@@ -1,5 +1,5 @@
 /* Punon pa internet: ruan aplikacionin dhe tekstet në telefon. */
-const VERSION = "fs-v55";
+const VERSION = "fs-v60";
 const SHELL = [
   "./", "index.html", "css/app.css", "css/glass.css", "js/app.js", "js/share.js", "js/music.js",
   "data/psaltiri.js", "data/eterit.js", "data/ungjilli.js", "data/apostulli.js", "data/profecite.js", "data/tipikoja.js", "data/sherbesa.js", "data/imazhet.js", "data/jerontikoni.js", "data/himnet.js", "data/pasdarka.js", "js/cross.js", "js/radio.js", "manifest.webmanifest",
@@ -22,6 +22,11 @@ self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   // Përditësimet e APK-së: kurrë nga cache-i, gjithmonë direkt nga interneti
   if (/netlify\.app$/.test(url.hostname) || /update\.json$/.test(url.pathname) || (/github\.io$/.test(url.hostname) && /\.json$/.test(url.pathname))) {
+    e.respondWith(fetch(e.request, { cache: "no-store" }));
+    return;
+  }
+  // Ikonat e ditës (ig_*, apostujt, listat mujore): kurrë në cache, gjithmonë direkt nga interneti
+  if (/\/img\/apostujt\/|\/ig_[^/]*$|\/data\/imazhet_\d\d\.json/.test(url.pathname)) {
     e.respondWith(fetch(e.request, { cache: "no-store" }));
     return;
   }

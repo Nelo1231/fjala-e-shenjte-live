@@ -238,3 +238,88 @@ input, textarea, select, svg, .rr-pin { text-shadow: none !important; }
 .ic-fwd { transform: scaleX(-1); width: 18px; height: 18px; }
 .ic-nav .btn { white-space: nowrap; min-width: 112px; justify-content: center; }
 .ic-count { white-space: nowrap; }
+
+/* ---------- Ikona e ditës: stack + ekran i plotë + datat ---------- */
+.ics-wrap { text-align: center; padding: 4px 16px 24px; }
+.ics { position: relative; display: block; width: min(300px, 78vw); aspect-ratio: 3 / 4; margin: 18px auto 10px; border: 0; padding: 0; background: none; cursor: pointer; }
+.ics-card { position: absolute; inset: 0; border-radius: 22px; background: center / cover no-repeat #2a2018; border: 2px solid rgba(217, 186, 120, .55);
+  box-shadow: 0 18px 40px rgba(40, 18, 6, .35); transition: transform .5s var(--spring);
+  transform: translate(calc(var(--k) * 10px), calc(var(--k) * -10px)) rotate(calc(var(--k) * 4deg)) scale(calc(1 - var(--k) * .04)); filter: brightness(calc(1 - var(--k) * .18)); }
+.ics:active .ics-card:last-child { transform: scale(.96); }
+.ics:hover .ics-card { transform: translate(calc(var(--k) * 14px), calc(var(--k) * -14px)) rotate(calc(var(--k) * 6deg)) scale(calc(1 - var(--k) * .04)); }
+.ics-hint { color: var(--ink-2); font-size: 14px; margin: 6px 0 14px; }
+.ics-all { margin: 0 auto; }
+
+.icv { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: #0b0806; opacity: 0; transition: opacity .3s; cursor: pointer; overflow: hidden; }
+.icv.open { opacity: 1; }
+.icv-bg { position: absolute; inset: -40px; background: center / cover no-repeat; filter: blur(30px) brightness(.45) saturate(1.2); transform: scale(1.1); }
+.icv-card { position: relative; width: min(92vw, 560px); height: min(78vh, 760px); }
+.icv-img { position: absolute; inset: 0; background: center / contain no-repeat; filter: drop-shadow(0 20px 40px rgba(0, 0, 0, .6)); }
+.icv-card.in { animation: icvIn .45s var(--spring); }
+.icv-card.next { animation: icvNext .5s var(--spring); }
+@keyframes icvIn { from { opacity: 0; transform: scale(.9); } }
+@keyframes icvNext { from { opacity: 0; transform: translateX(46px) rotate(4deg) scale(.94); } }
+.icv-top { position: absolute; top: calc(var(--safe-t) + 10px); left: 14px; right: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #fff4dc; }
+.icv-date { font-family: var(--font-cap); letter-spacing: .05em; font-size: 14px; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
+.icv-x { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 255, 255, .2); }
+.icv-x svg { width: 18px; height: 18px; }
+.icv-cap { position: absolute; bottom: calc(var(--safe-b) + 54px); left: 18px; right: 18px; margin: 0; max-height: 22vh; overflow: auto; color: #fff4dc; font-size: 15px; line-height: 1.45; white-space: pre-line; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+.icv-bar { position: absolute; bottom: calc(var(--safe-b) + 30px); left: 0; right: 0; display: flex; justify-content: center; gap: 4px; padding: 0 20px; flex-wrap: wrap; }
+.icv-bar i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, .25); transition: all .3s; }
+.icv-bar i.done { background: rgba(241, 204, 114, .55); } .icv-bar i.on { background: #f1cc72; transform: scale(1.4); }
+.icv-bar b { color: #f1cc72; font-family: var(--font-cap); font-size: 13px; }
+.icv-hint { position: absolute; bottom: calc(var(--safe-b) + 8px); margin: 0; color: rgba(255, 244, 220, .55); font-size: 12px; }
+
+.icd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; padding: 4px 16px 24px; }
+.icd { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; animation: tileIn .45s var(--spring) both; animation-delay: calc(var(--i, 0) * 30ms); }
+.icd-img { position: relative; width: 100%; aspect-ratio: 3 / 4; border-radius: 16px; background: center / cover no-repeat #2a2018; border: 1.5px solid rgba(217, 186, 120, .5); box-shadow: 0 8px 18px rgba(40, 18, 6, .22); }
+.icd-img em { position: absolute; top: 6px; right: 6px; min-width: 22px; height: 22px; border-radius: 11px; background: var(--accent); color: #fff; font-style: normal; font-size: 12px; display: grid; place-items: center; padding: 0 5px; }
+.icd b { font-family: var(--font-cap); font-weight: 500; font-size: 13px; letter-spacing: .03em; }
+.icd small { color: var(--accent); font-size: 11px; margin-top: -4px; }
+.ics-n { position: absolute; top: -8px; right: -8px; z-index: 3; min-width: 30px; height: 30px; border-radius: 15px; background: var(--accent); color: #fff; font-style: normal; font-family: var(--font-cap); font-size: 14px; display: grid; place-items: center; padding: 0 8px; box-shadow: 0 4px 10px rgba(0,0,0,.3); }
+
+/* ---------- Ikona e ditës: kartë e dedikuar te Lexo ---------- */
+.icon-banner { display: flex; align-items: center; gap: 16px; margin: 4px 16px 14px; padding: 14px 16px 14px 14px; border-radius: 22px; text-decoration: none; color: #fff6e3;
+  background: radial-gradient(120% 140% at 0% 0%, #6b4a1c 0%, #2a1a0c 60%, #140b05 100%); border: 1px solid rgba(217, 186, 120, .35);
+  box-shadow: 0 12px 30px rgba(40, 18, 6, .28), inset 0 1px 0 rgba(255, 255, 255, .08); text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+  animation: tileIn .55s var(--spring) both; }
+.ib-stack { position: relative; flex: none; width: 74px; height: 96px; }
+.ib-stack i { position: absolute; inset: 0; border-radius: 12px; background: center / cover no-repeat #2a2018; border: 1.5px solid rgba(241, 204, 114, .7);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .4); transform: translate(calc(var(--k) * 6px), calc(var(--k) * -5px)) rotate(calc(var(--k) * 5deg)); filter: brightness(calc(1 - var(--k) * .2)); }
+.ib-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ib-txt small { font-family: var(--font-cap); letter-spacing: .1em; text-transform: uppercase; font-size: 12px; color: #f1cc72; }
+.ib-txt b { font-family: var(--font-cap); font-weight: 500; font-size: 17px; letter-spacing: .02em; line-height: 1.25; }
+.ib-txt em { font-style: normal; font-size: 13.5px; opacity: .85; }
+.ib-go { font-size: 30px; color: #f1cc72; line-height: 1; }
+.icon-banner:active { transform: scale(.97); }
+
+/* ---------- Ikona e ditës: ngarkim pa ruajtje (blob) ---------- */
+.icv-spin { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%;
+  border: 3px solid rgba(241, 204, 114, .25); border-top-color: #f1cc72; animation: icSpin .8s linear infinite; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.icv.loading .icv-spin, .icv-wait .icv-spin { opacity: 1; }
+.icv-wait { position: relative; height: 50vh; }
+@keyframes icSpin { to { transform: rotate(360deg); } }
+[data-ic] { background-color: #2a2018; transition: filter .4s ease; }
+[data-ic]:not(.ld) { filter: brightness(.7); }
+.icd-month { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 16px 12px; }
+.icd-month b { font-family: var(--font-cap); font-weight: 500; font-size: 18px; color: var(--accent); letter-spacing: .05em; }
+.icd-month .btn { min-width: 48px; justify-content: center; }
+
+/* ---------- Paneli i autorit ---------- */
+.sp-author { display: inline-block; margin-top: 4px; padding: 6px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; color: #ffe2a3;
+  background: rgba(0, 0, 0, .28); border: 1px solid rgba(241, 204, 114, .4); font-family: var(--font-cap); letter-spacing: .05em; }
+.au-hero { margin: 0 16px 12px; padding: 22px 18px; border-radius: 26px; text-align: center; color: #fff4dc;
+  background: radial-gradient(120% 130% at 50% 0%, #7a5a1c 0%, #2a1a08 75%); border: 1px solid rgba(241, 204, 114, .35); text-shadow: 0 1px 2px rgba(0, 0, 0, .45); }
+.au-hero h2 { font-family: var(--font-cap); font-weight: 500; letter-spacing: .05em; margin: 4px 0; }
+.au-hero p { margin: 0 0 8px; opacity: .9; }
+.au-mark { font-size: 34px; color: #f1cc72; animation: pop .6s var(--spring); }
+.au-card { margin: 0 16px 12px; padding: 14px 16px; border-radius: 20px; }
+.au-card p { margin: 0 0 8px; }
+.au-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.au-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 0 16px 12px; }
+.au-stat { display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 18px; }
+.au-stat span { font-size: 18px; } .au-stat b { font-family: var(--font-cap); font-size: 24px; color: var(--accent); } .au-stat small { color: var(--ink-2); font-size: 12.5px; }
+.au-tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 16px 30px; }
+.au-dot { background: #d9b45a; box-shadow: 0 0 10px #d9b45a; }
+.au-when { color: var(--ink-2); font-size: 12px; }
+#auForm.shake { animation: shake .4s; }

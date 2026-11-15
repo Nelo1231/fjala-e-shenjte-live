@@ -407,6 +407,7 @@
     const seen = new Set(list.map((x) => norm(x.file)));
     // fotot e reja nga serveri hyjnë në listë vetëm pasi ngarkohen me sukses (asnjë sfond i zi nga foto që mungojnë)
     obj.images.forEach((im) => {
+      if (isDayIcon(im)) return;          // ikonat e ditës lexohen vetëm te “Ikona e ditës”, pa u ruajtur
       const rel = norm(im.file);
       if (!rel || seen.has(rel)) return;
       seen.add(rel);
@@ -2114,82 +2115,164 @@ function pickPhoto(it) {
   }
 
   // ---------- Ikona e ditës: lëviz telefonin dhe ikona merr jetë ----------
-  // Ikona e ditës: vetëm ikonat e tua me datë (img/apostujt/ig_*), ditë pas dite — çdo ditë ruhet me datën e vet
-  let iconDay = null;
-  async function viewIcon() {
-    await load("imazhet");
-    const pad = (n) => String(n).padStart(2, "0");
-    const isoD = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    const now = new Date(), today = isoD(now), mmdd = today.slice(5);
-    const all = ((data.imazhet || {}).images || []).filter(isDayIcon);
-    const keyOf = (im) => {
-      if (im.dita) return im.dita;
-      const m = String(im.file || "").match(/(20\d\d)[-_.]?(\d\d)[-_.]?(\d\d)/);   // data nga emri i skedarit
-      if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-      return im.date ? `${now.getFullYear()}-${im.date}` : "";
-    };
+  // ================= Ikona e ditës — “shiko dhe fshi” =================
+  // Ikonat NUK janë në APK dhe NUK ruhen në telefon: lista lexohet vetëm për muajin që shikon
+  // (data/imazhet_MM.json), çdo foto merret me fetch(..., {cache:"no-store"}) → blob → URL e përkohshme,
+  // dhe fshihet nga memoria (revokeObjectURL) sapo kalon te tjetra, del nga faqja ose app shkon në sfond.
+  const ICON_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";
+  const onIconHost = () => /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.href.startsWith(ICON_BASE);
+  const iconUrl = (f) => (/^https?:/.test(f) ? f : onIconHost() ? f : ICON_BASE + "/" + String(f).replace(/^\/+/, ""));
+  const dayMonths = {};
+  async function loadDayMonth(mm) {
+    if (dayMonths[mm]) return dayMonths[mm];
+    let j = null;
+    for (const u of [`${onIconHost() ? "" : ICON_BASE + "/"}data/imazhet_${mm}.json?t=${Date.now()}`, `data/imazhet_${mm}.json`]) {
+      try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) { j = await r.json(); break; } } catch (e) { /* pa internet */ }
+    }
+    return (dayMonths[mm] = (j && j.images) || []);
+  }
+  const blobs = new Set();
+  async function iconBlob(file) {
+    const r = await fetch(iconUrl(file), { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const u = URL.createObjectURL(await r.blob());
+    blobs.add(u);
+    return u;
+  }
+  function freeIcons(keep) {
+    blobs.forEach((u) => { if (!keep || !keep.includes(u)) { URL.revokeObjectURL(u); blobs.delete(u); } });
+  }
+  // vendos foton (blob) te çdo element me data-ic="<skedari>"
+  function hydrateIcons(root) {
+    $$("[data-ic]", root).forEach((el) => {
+      iconBlob(el.dataset.ic).then((u) => { if (el.isConnected) { el.style.backgroundImage = `url('${u}')`; el.classList.add("ld"); } else { URL.revokeObjectURL(u); blobs.delete(u); } })
+        .catch(() => el.classList.add("err"));
+    });
+  }
+  addEventListener("visibilitychange", () => { if (document.hidden) freeIcons(); else if (/^#\/ikona/.test(location.hash) && !$(".icv")) route(); });
+  addEventListener("pagehide", () => freeIcons());
+  // në nisje: fshi çdo gjurmë të vjetër të ikonave nga cache-t e shfletuesit
+  if (window.caches) caches.keys().then((ks) => ks.forEach((k) => caches.open(k).then((c) => c.keys().then((reqs) => reqs.forEach((q) => { if (/ig_|apostujt/.test(q.url)) c.delete(q); }))))).catch(() => {});
+
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const isoDay2 = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const keyOfIcon = (im) => {
+    if (im.dita) return im.dita;
+    const m = String(im.file || "").match(/(20\d\d)[-_.]?(\d\d)[-_.]?(\d\d)/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+    return im.date ? `${new Date().getFullYear()}-${im.date}` : "";
+  };
+  async function monthIcons(mm) {
     const groups = {};
-    all.forEach((im) => { const k = keyOf(im); if (k) (groups[k] = groups[k] || []).push(im); });
-    const days = Object.keys(groups).sort();
-    let idx = days.length - 1;
-    if (iconDay && days.includes(iconDay)) idx = days.indexOf(iconDay);
-    else if (days.includes(today)) idx = days.indexOf(today);
-    else { const k = [...days].reverse().find((d) => d.slice(5) === mmdd); if (k) idx = days.indexOf(k); }
-    const fmt = (k) => { const [y, m, d] = k.split("-").map(Number); const dt = new Date(y, m - 1, d); return `${["E diel", "E hënë", "E martë", "E mërkurë", "E enjte", "E premte", "E shtunë"][dt.getDay()]}, ${d} ${MUAJ_G[m - 1]} ${y}`; };
-    const render = () => {
-      if (!days.length) {
-        listPane.innerHTML = `
-          <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Ikona e ditës</h1></header>
-          <div class="empty">${icon("image")}<h3>Ende asnjë ikonë</h3><p>Ikonat që shton çdo ditë do të dalin këtu, secila me datën e vet.</p></div>`;
-        enter(listPane); return;
-      }
-      const key = days[idx], list = groups[key];
-      iconDay = key;
-      listPane.innerHTML = `
-        <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Ikona e ditës</h1></header>
-        <div class="ic-stage">
-          <p class="ic-date ic-date-top">${esc(fmt(key))}${key === today ? " · sot" : ""}</p>
-          <div class="ic-frame" id="icFrame"><div class="ic-img" style="background-image:url('${esc(list[0].file)}')"></div><div class="ic-glare"></div><div class="ic-halo"></div></div>
-          ${list.length > 1 ? `<div class="ic-thumbs">${list.map((g, i) => `<button class="ic-th${i ? "" : " on"}" data-g="${i}" style="background-image:url('${esc(g.file)}')" aria-label="Ikona ${i + 1}"></button>`).join("")}</div>` : ""}
-          ${list[0].pershkrimi ? `<p class="ic-cap" id="icCap">${esc(list[0].pershkrimi)}</p>` : `<p class="ic-cap" id="icCap" hidden></p>`}
-          <div class="ic-nav">
-            <button class="btn" id="icPrev" ${idx === 0 ? "disabled" : ""}>${icon("back")}<span>Mbrapa</span></button>
-            <span class="ic-count">${idx + 1} / ${days.length}</span>
-            <button class="btn" id="icNext" ${idx === days.length - 1 ? "disabled" : ""}><span>Përpara</span><svg class="ic-fwd"><use href="#i-back"/></svg></button>
-          </div>
-        </div>`;
-      enter(listPane);
-      $$(".ic-th", listPane).forEach((b) => b.addEventListener("click", () => {
-        const g = list[+b.dataset.g];
-        $$(".ic-th", listPane).forEach((x) => x.classList.toggle("on", x === b));
-        $(".ic-img").style.backgroundImage = `url('${g.file}')`;
-        const c = $("#icCap"); c.textContent = g.pershkrimi || ""; c.hidden = !g.pershkrimi;
-        haptic(10);
-      }));
-      $("#icPrev").addEventListener("click", () => { if (idx > 0) { idx--; haptic(12); render(); } });
-      $("#icNext").addEventListener("click", () => { if (idx < days.length - 1) { idx++; haptic(12); render(); } });
-      // rrëshqit majtas/djathtas mbi ikonë për të ndërruar ditën
-      const fr = $("#icFrame");
-      let sx0 = null;
-      fr.addEventListener("pointerdown", (e) => { sx0 = e.clientX; });
-      fr.addEventListener("pointerup", (e) => { if (sx0 == null) return; const dx = e.clientX - sx0; sx0 = null;
-        if (dx > 60 && idx > 0) { idx--; render(); } else if (dx < -60 && idx < days.length - 1) { idx++; render(); } });
-      let raf = 0, tx = 0, ty = 0;
-      const apply = () => { raf = 0; fr.style.setProperty("--rx", ty.toFixed(2) + "deg"); fr.style.setProperty("--ry", tx.toFixed(2) + "deg"); };
-      const set = (x, y) => { tx = Math.max(-14, Math.min(14, x)); ty = Math.max(-14, Math.min(14, y)); if (!raf) raf = requestAnimationFrame(apply); };
-      fr.addEventListener("pointermove", (e) => { const r = fr.getBoundingClientRect(); set(((e.clientX - r.left) / r.width - 0.5) * 24, -((e.clientY - r.top) / r.height - 0.5) * 24); });
-      fr.addEventListener("pointerleave", () => set(0, 0));
-      window.__icSet = set;
+    (await loadDayMonth(mm)).forEach((im) => { const k = keyOfIcon(im); if (k) (groups[k] = groups[k] || []).push(im); });
+    const days = Object.keys(groups).sort().reverse();
+    return { groups, days };
+  }
+  // muaji i fundit që ka ikona (nga ky muaj mbrapa, deri në 12 muaj)
+  async function latestIconMonth() {
+    const d = new Date();
+    for (let k = 0; k < 12; k++) {
+      const mm = pad2(((d.getMonth() - k + 12) % 12) + 1);
+      const r = await monthIcons(mm);
+      if (r.days.length) return { mm, ...r };
+    }
+    return null;
+  }
+  const fmtDay = (k, short) => {
+    const [y, m, d] = k.split("-").map(Number); const dt = new Date(y, m - 1, d);
+    return short ? `${d} ${MUAJ_G[m - 1].slice(0, 3)} ${y}` : `${["E diel", "E hënë", "E martë", "E mërkurë", "E enjte", "E premte", "E shtunë"][dt.getDay()]}, ${d} ${MUAJ_G[m - 1]} ${y}`;
+  };
+  // shikuesi në ekran të plotë: vetëm ikonat e një dite; në fund → faqja me datat
+  async function iconViewer(dayKey) {
+    const mm = dayKey.slice(5, 7);
+    const { groups } = await monthIcons(mm);
+    const seq = groups[dayKey] || [];
+    if (!seq.length) return;
+    const today = isoDay2(new Date());
+    let i = 0, cur = null, nextU = null;
+    const el = document.createElement("div");
+    el.className = "icv";
+    el.innerHTML = `<div class="icv-bg"></div><div class="icv-card"><div class="icv-img"></div><span class="icv-spin"></span></div>
+      <div class="icv-top"><span class="icv-date"></span><button class="icv-x" aria-label="Mbyll">${icon("close")}</button></div>
+      <p class="icv-cap"></p><div class="icv-bar"></div><p class="icv-hint">Prek për ikonën tjetër</p>`;
+    document.body.appendChild(el);
+    const show = async (dir) => {
+      const it = seq[i];
+      $(".icv-date", el).textContent = fmtDay(dayKey) + (dayKey === today ? " · sot" : "") + (seq.length > 1 ? ` · ${i + 1}/${seq.length}` : "");
+      const c = $(".icv-cap", el); c.textContent = it.pershkrimi || ""; c.hidden = !it.pershkrimi;
+      $(".icv-bar", el).innerHTML = seq.length <= 40 ? seq.map((_, k) => `<i class="${k < i ? "done" : k === i ? "on" : ""}"></i>`).join("") : `<b>${i + 1} / ${seq.length}</b>`;
+      el.classList.add("loading");
+      let u;
+      try { u = nextU && nextU.i === i ? await nextU.p : await iconBlob(it.file); } catch (e) { u = null; }
+      if (!el.isConnected) { if (u) { URL.revokeObjectURL(u); blobs.delete(u); } return; }
+      const card = $(".icv-card", el);
+      card.classList.remove("in", "next"); void card.offsetWidth; card.classList.add(dir ? "next" : "in");
+      $(".icv-img", el).style.backgroundImage = u ? `url('${u}')` : "";
+      $(".icv-bg", el).style.backgroundImage = u ? `url('${u}')` : "";
+      el.classList.remove("loading");
+      const prev = cur; cur = u;
+      if (prev) { URL.revokeObjectURL(prev); blobs.delete(prev); }          // e mëparshmja fshihet nga memoria
+      nextU = seq[i + 1] ? { i: i + 1, p: iconBlob(seq[i + 1].file).catch(() => null) } : null;   // tjetra paraprakisht
     };
-    render();
+    const close = (toDates) => {
+      el.classList.remove("open");
+      setTimeout(() => { el.remove(); freeIcons(); }, 320);
+      if (nextU) nextU.p.then((u) => { if (u) { URL.revokeObjectURL(u); blobs.delete(u); } });
+      if (toDates) location.hash = "#/ikona/datat/" + mm;
+    };
+    requestAnimationFrame(() => el.classList.add("open"));
+    show(false);
+    el.addEventListener("click", (e) => {
+      if (e.target.closest(".icv-x")) return close(false);
+      haptic(12);
+      if (i < seq.length - 1) { i++; show(true); } else close(true);
+    });
+    let y0 = null;
+    el.addEventListener("pointerdown", (e) => { y0 = e.clientY; });
+    el.addEventListener("pointerup", (e) => { if (y0 != null && e.clientY - y0 > 120) close(false); y0 = null; });
+  }
+  async function viewIcon(sub, mmArg) {
+    freeIcons();
+    const today = isoDay2(new Date());
+    const head = (extra) => `<header class="page-head"><a class="back-btn" href="${sub === "datat" ? "#/ikona" : "#/lexo"}" aria-label="Kthehu">${icon("back")}</a><h1>${sub === "datat" ? "Të gjitha ditët" : "Ikona e ditës"}</h1>${extra || ""}</header>`;
+    listPane.innerHTML = head() + `<div class="icv-wait"><span class="icv-spin"></span></div>`;
     mainPane.innerHTML = emptyMain();
     setMode("list");
-    const onOri = (e) => {
-      if (!location.hash.startsWith("#/ikona")) { removeEventListener("deviceorientation", onOri); return; }
-      if (e.gamma == null || !window.__icSet) return;
-      window.__icSet(e.gamma / 3, -(e.beta - 45) / 3);
-    };
-    addEventListener("deviceorientation", onOri);
+    if (sub === "datat") {
+      const L = mmArg ? null : await latestIconMonth();
+      const mm = mmArg || (L ? L.mm : pad2(new Date().getMonth() + 1));
+      const { groups, days } = L && L.mm === mm ? L : await monthIcons(mm);
+      if (!location.hash.startsWith("#/ikona")) return;
+      const prevM = pad2(((+mm + 10) % 12) + 1), nextM = pad2((+mm % 12) + 1);
+      listPane.innerHTML = head() + `
+        <div class="icd-month"><a class="btn" href="#/ikona/datat/${prevM}">${icon("back")}</a><b>${MUAJ_G[+mm - 1].replace(/^./, (c) => c.toUpperCase())}</b><a class="btn" href="#/ikona/datat/${nextM}"><svg class="ic-fwd"><use href="#i-back"/></svg></a></div>
+        ${days.length ? `<div class="icd-grid">${days.map((k, di) => `<button class="icd" data-day="${k}" style="--i:${di}"><span class="icd-img" data-ic="${esc(groups[k][0].file)}">${groups[k].length > 1 ? `<em>${groups[k].length}</em>` : ""}</span><b>${esc(fmtDay(k, true))}</b>${k === today ? "<small>sot</small>" : ""}</button>`).join("")}</div>`
+          : `<div class="empty">${icon("image")}<h3>Asnjë ikonë këtë muaj</h3></div>`}`;
+      enter(listPane);
+      hydrateIcons(listPane);
+      $$(".icd", listPane).forEach((b) => b.addEventListener("click", () => { haptic(12); iconViewer(b.dataset.day); }));
+      return;
+    }
+    const L = await latestIconMonth();
+    if (!location.hash.startsWith("#/ikona")) return;
+    if (!L) {
+      listPane.innerHTML = head() + `<div class="empty">${icon("image")}<h3>Ende asnjë ikonë</h3><p>Ikonat e çdo dite do të dalin këtu, secila me datën e vet. Duhet internet.</p></div>`;
+      enter(listPane); return;
+    }
+    const k = L.days[0], dayList = L.groups[k];
+    listPane.innerHTML = head(`<a class="icon-btn" href="#/ikona/datat/${L.mm}" aria-label="Të gjitha ditët">${icon("calendar")}</a>`) + `
+      <section class="ics-wrap">
+        <p class="ic-date ic-date-top">${esc(fmtDay(k))}${k === today ? " · sot" : ""}</p>
+        <button class="ics" id="icStack" aria-label="Hap ikonat">
+          ${dayList.slice(0, 3).map((x, j) => `<span class="ics-card" style="--k:${j}" data-ic="${esc(x.file)}"></span>`).reverse().join("")}
+          ${dayList.length > 1 ? `<em class="ics-n">${dayList.length}</em>` : ""}
+        </button>
+        <p class="ics-hint">${dayList.length > 1 ? `Prek kartën · ${dayList.length} ikona të kësaj dite` : "Prek kartën"}</p>
+        <a class="btn ics-all" href="#/ikona/datat/${L.mm}">${icon("calendar")}<span>Të gjitha ditët</span></a>
+      </section>`;
+    enter(listPane);
+    hydrateIcons(listPane);
+    $("#icStack").addEventListener("click", () => { haptic(14); iconViewer(k); });
   }
 
   // ---------- Deri në festë: numërimi i gjallë ----------
@@ -3435,6 +3518,127 @@ function pickPhoto(it) {
     const obs = setInterval(() => { if (!document.body.contains(stopBtn)) return clearInterval(obs); stopBtn.hidden = !run; }, 400);
   }
 
+  // ================= Autori i aplikacionit: Minuel Çollaku · emri i pagëzimit Emanuel =================
+  // Kodi nuk ruhet në aplikacion: ruhet vetëm “gjurma” SHA-256 e tij.
+  const AUTHOR_HASH = "5d46b92296dad97ebccaa269e22ebe93ba08d7574daa9a9983d4a8e5c1ae8ce9";
+  let authorOpen = false;
+  async function sha256hex(t) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""); }
+  const isAuthorName = (n, b) => /^minuel/.test(nrm(n || "")) && /^emanuel/.test(nrm(b || ""));
+  function askAuthorCode(then) {
+    if ($(".author-sheet")) return;
+    const el = document.createElement("div");
+    el.className = "sheet update-sheet author-sheet";
+    el.innerHTML = `<div class="sheet-card update-card" role="dialog" aria-modal="true">
+        <div class="upd-icon">✦</div>
+        <h2>Mirë se erdhe, Emanuel</h2>
+        <p class="upd-notes">Je autori i aplikacionit? Shkruaj kodin tënd.</p>
+        <form id="auForm" class="rr-open"><input id="auCode" class="rr-pin" type="password" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="••••••">
+          <button class="btn primary" type="submit">Hyr</button></form>
+        <button class="btn upd-later" type="button">Jo tani</button></div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("open"));
+    setTimeout(() => $("#auCode", el)?.focus(), 350);
+    const close = () => { el.classList.remove("open"); setTimeout(() => el.remove(), 300); };
+    $(".upd-later", el).addEventListener("click", close);
+    $("#auForm", el).addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const ok = (await sha256hex("fjala-autori:" + $("#auCode", el).value.trim())) === AUTHOR_HASH;
+      if (!ok) { const f = $("#auForm", el); f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); haptic([60, 40, 60], true); $("#auCode", el).value = ""; return; }
+      store.set("author", true); authorOpen = true;
+      haptic([30, 60, 30, 60, 160], true); goldBurst(); close();
+      toast("✦ Mirë se erdhe, autor Emanuel!");
+      if (then) then();
+    });
+  }
+  function checkAuthor() {
+    if (store.get("author", false)) return;
+    if (isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""))) askAuthorCode(() => { location.hash = "#/autori"; });
+  }
+  function backupText() {
+    const data = {};
+    for (let k = 0; k < localStorage.length; k++) { const key = localStorage.key(k); if (key && key.startsWith("fs.")) data[key] = localStorage.getItem(key); }
+    return JSON.stringify({ app: "Fjala e Shenjtë", version: APP_VERSION, at: new Date().toISOString(), data }, null, 1);
+  }
+  function saveBackup(silent) {
+    const d = new Date(), name = `fjala-kopje-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.json`;
+    const text = backupText();
+    if (android && android.saveBackup) android.saveBackup(text, name);
+    else Share.download(new Blob([text], { type: "application/json" }), name);
+    store.set("author.lastBackup", Date.now()); store.set("author.dirty", false);
+    if (!silent && !android) toast("Kopja u ruajt");
+  }
+  function viewAuthor() {
+    const head = `<header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Paneli i autorit</h1>${authorOpen ? `<button class="icon-btn" id="auLock" aria-label="Mbyll">🔒</button>` : ""}</header>`;
+    const done = () => { enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list"); };
+    if (!store.get("author", false) && !isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""))) { location.hash = "#/shpirti"; return; }
+    if (!authorOpen) {
+      listPane.innerHTML = head + `<section class="au-hero"><div class="au-mark">✦</div><h2>Vetëm për autorin</h2><p>Shkruaj kodin për të hyrë.</p>
+        <button class="btn primary" id="auIn">${icon("check")}<span>Shkruaj kodin</span></button></section>`;
+      done();
+      $("#auIn").addEventListener("click", () => askAuthorCode(viewAuthor));
+      return;
+    }
+    const log = store.get("author.log", []);
+    const last = store.get("author.lastBackup", 0);
+    const q = store.get("quiz2", { gap: 0, order: 0 });
+    const stats = [
+      ["🕯", "Qirinj të ndezur", candles().length], ["📿", "Lutje me komboskini", store.get("rope." + pid, 0)],
+      ["◎", "Lutje me frymëmarrje", store.get("breath.total", 0)], ["☦", "Kungime të shënuara", store.get("kungimi", []).length],
+      ["🎮", "Rekordi i lojës", Math.max(q.gap || 0, q.order || 0)], ["👤", "Persona për ditën e emrit", Persons.all().length],
+      ["♥", "Pëlqime", (store.get("likes", []) || []).length], ["✎", "Shënime në ditar", log.length],
+    ];
+    listPane.innerHTML = head + `
+      <section class="au-hero open"><div class="au-mark">✦</div><h2>Minuel Çollaku</h2><p>Emri i pagëzimit: Emanuel · autori i “Fjala e Shenjtë” · v${esc(APP_VERSION)}</p></section>
+      <h2 class="hub-h">Ditari im si autor</h2>
+      <form class="rr-add glass" id="auAdd"><textarea id="auText" rows="3" maxlength="1500" placeholder="Çfarë bëra sot në aplikacion, çfarë dua të shtoj…"></textarea>
+        <button class="btn primary" type="submit">${icon("plus")}<span>Shto në ditar</span></button></form>
+      <ul class="rr-list">${log.map((x, i) => `<li class="glass" style="--i:${i}"><span class="rr-dot au-dot"></span><p><small class="au-when">${esc(new Date(x.at).toLocaleString("sq-AL"))}</small><br>${esc(x.t)}</p><button class="icon-btn small" data-adel="${i}" aria-label="Fshi">${icon("close")}</button></li>`).join("")}</ul>
+      <h2 class="hub-h">Kopja rezervë (mos humbë asgjë)</h2>
+      <section class="au-card glass"><p>Ruan <b>gjithçka</b>: ditarin, qirinjtë, personat, kungimet, shënimet, Rrëfimin (të koduar), cilësimet. Skedari shkon te <b>Download / Fjala e Shenjte</b> dhe mbetet edhe po ta fshish aplikacionin.</p>
+        <p class="muted">${last ? "Kopja e fundit: " + esc(new Date(last).toLocaleString("sq-AL")) : "Ende asnjë kopje."}</p>
+        <div class="row au-row"><button class="btn primary" id="auSave">${icon("download")}<span>Ruaj kopjen</span></button>
+          <label class="btn" for="auFile">${icon("refresh")}<span>Rikthe nga kopja</span></label><input type="file" id="auFile" accept=".json,application/json" hidden></div></section>
+      <h2 class="hub-h">Statistikat e mia</h2>
+      <div class="au-stats">${stats.map(([e, l, v]) => `<div class="au-stat glass"><span>${e}</span><b>${v}</b><small>${l}</small></div>`).join("")}</div>
+      <h2 class="hub-h">Mjetet e autorit</h2>
+      <div class="au-tools">
+        <button class="btn" id="auUpd">${icon("refresh")}<span>Kontrollo përditësimin</span></button>
+        <button class="btn" id="auCache">${icon("close")}<span>Pastro cache-t</span></button>
+      </div>`;
+    done();
+    const persist = (l) => { store.set("author.log", l); store.set("author.dirty", true); viewAuthor(); };
+    $("#auLock").addEventListener("click", () => { authorOpen = false; haptic(20); viewAuthor(); });
+    $("#auAdd").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const t = $("#auText").value.replace(/\s+$/g, "").trim();
+      if (!t) return;
+      const l = store.get("author.log", []); l.unshift({ t, at: Date.now() }); haptic(14); persist(l);
+      // kopje automatike një herë në ditë kur ditari ndryshon
+      if (Date.now() - store.get("author.lastBackup", 0) > 864e5) saveBackup(true);
+    });
+    $$("[data-adel]", listPane).forEach((b) => b.addEventListener("click", () => {
+      if (!confirm("Ta fshish këtë shënim nga ditari?")) return;
+      const l = store.get("author.log", []); l.splice(+b.dataset.adel, 1); persist(l);
+    }));
+    $("#auSave").addEventListener("click", () => { haptic([15, 30, 15]); saveBackup(false); setTimeout(viewAuthor, 400); });
+    $("#auFile").addEventListener("change", async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      try {
+        const j = JSON.parse(await f.text());
+        if (!j || j.app !== "Fjala e Shenjtë" || !j.data) throw new Error("skedar i panjohur");
+        if (!confirm(`Të rikthehen të dhënat nga kopja e ${new Date(j.at).toLocaleString("sq-AL")}? Të dhënat e tanishme zëvendësohen.`)) return;
+        Object.entries(j.data).forEach(([k, v]) => { if (k.startsWith("fs.")) localStorage.setItem(k, v); });
+        toast("U rikthye ✓"); setTimeout(() => location.reload(), 600);
+      } catch (err) { toast("Kopja nuk u lexua"); }
+    });
+    $("#auUpd").addEventListener("click", () => { toast("Po kontrolloj…"); checkAppUpdate(); });
+    $("#auCache").addEventListener("click", async () => {
+      try { for (const k of await caches.keys()) await caches.delete(k); } catch (e) { /* */ }
+      freeIcons(); toast("Cache-t u pastruan ✓");
+    });
+  }
+
   // ---------- Shpirti: të gjitha veçoritë në një vend ----------
   function viewSpirit() {
     const nf = nextFeasts()[0], nfDays = Math.ceil((nf.d - Date.now()) / 864e5);
@@ -3447,6 +3651,7 @@ function pickPhoto(it) {
         <div class="sp-aura" aria-hidden="true"><i></i><i></i><i></i></div>
         <p class="sp-greet">${esc(greeting())}</p>
         <p class="sp-verse">“Lutuni pa pushim.”<small>1 Thesalonikasve 5:17</small></p>
+        ${store.get("author", false) ? `<a class="sp-author" href="#/autori">✦ Paneli i autorit</a>` : ""}
       </section>
       ${Streak.html()}
       ${store.get("me.unbaptized", false) ? `<a class="bap-invite" href="#/biblioteka/pagezimi">${icon("cross")}<span><b>Krishti të fton</b><small>Mëso si të pagëzohesh në Kishën Orthodhokse</small></span></a>` : ""}
@@ -3468,7 +3673,6 @@ function pickPhoto(it) {
       <div class="feat-tiles hub">
         ${tile("cd-t", "#/numerimi", `<b class="ft-days">${nfDays}</b>`, "Deri në festë", esc(nf.name), i++)}
         ${tile("name-t", "#/emri", icon("calendar"), "Dita e emrit", Persons.all().length ? Persons.all().length + " persona" : "Kur feston emri yt", i++)}
-        ${tile("icon-t", "#/ikona", `<span class="ft-icon"></span>`, "Ikona e ditës", "Lëviz telefonin", i++)}
       </div>
       <h2 class="hub-h">Ushqim për shpirtin</h2>
       <div class="feat-tiles hub">
@@ -3954,6 +4158,7 @@ function pickPhoto(it) {
       Persons.schedule();
       close();
       toast("U ruajt ✓");
+      if (isMe) setTimeout(checkAuthor, 600);
       if (after) after();
     });
   }
@@ -4167,11 +4372,13 @@ function pickPhoto(it) {
       }
       app.dataset.view = "read";
       const navOf = { pelqyerat: "pelqyerat", shenime: "pelqyerat", kisha: "kisha", lajm: "kisha", shpirti: "shpirti", lutja: "shpirti", fjala: "shpirti", emri: "shpirti",
-        diptiket: "shpirti", kuiz: "shpirti", komboskini: "shpirti", rrefimi: "shpirti", shqyrtimi: "shpirti", frymemarrja: "shpirti", edjela: "shpirti", ikona: "shpirti", numerimi: "shpirti", sfida: "shpirti", kungimi: "shpirti", mjekesia: "shpirti", lindja: "shpirti", lavdi: "shpirti", kalendari: "shpirti" };
+        diptiket: "shpirti", kuiz: "shpirti", komboskini: "shpirti", rrefimi: "shpirti", autori: "shpirti", shqyrtimi: "shpirti", frymemarrja: "shpirti", edjela: "shpirti", ikona: "shpirti", numerimi: "shpirti", sfida: "shpirti", kungimi: "shpirti", mjekesia: "shpirti", lindja: "shpirti", lavdi: "shpirti", kalendari: "shpirti" };
     if (view === "kisha") document.querySelector('.nav-btn[data-go="kisha"]')?.classList.remove("has-new");
     if (view !== "lajm") mainPane.classList.remove("art-open");
     if (view !== "lutja") { clearInterval(candleTimer); Smoke.stop(); }
-    if (view !== "rrefimi") Confess.lock();   // Rrëfimi mbyllet sapo del nga faqja
+    if (view !== "rrefimi") Confess.lock();
+    if (view !== "autori") authorOpen = false;   // paneli i autorit mbyllet kur del
+    if (view !== "ikona" && view !== "lexo") freeIcons();   // ikonat e parë fshihen nga memoria   // Rrëfimi mbyllet sapo del nga faqja
       setNav(navOf[view] || "lexo");
       if (view === "lexo" || view === "sot") await viewLibrary();
       else if (view === "pelqyerat") { await viewLikes(); mineSeg("pelqyerat"); }
@@ -4183,6 +4390,7 @@ function pickPhoto(it) {
       else if (view === "imazhet") await viewCredits();
       else if (view === "lutja") await viewPrayer();
       else if (view === "komboskini") viewRope();
+      else if (view === "autori") viewAuthor();
       else if (view === "rrefimi") viewConfess();
       else if (view === "shqyrtimi") viewExam();
       else if (view === "frymemarrja") viewBreath();
@@ -4192,7 +4400,7 @@ function pickPhoto(it) {
       else if (view === "dcs") await viewDcs();
       else if (view === "diptiket") await viewDiptychs(parts[1]);
       else if (view === "kuiz") await viewQuiz();
-      else if (view === "ikona") await viewIcon();
+      else if (view === "ikona") await viewIcon(parts[1], parts[2]);
       else if (view === "numerimi") viewCountdown();
       else if (view === "sfida") viewChallenge();
       else if (view === "sinaksari") await viewSynax(parts[1], parts[2]);
@@ -4231,6 +4439,21 @@ function pickPhoto(it) {
     return { kind: "psaltiri", id: `ps:${p.n}:${vi + 1}`, text: p.v[vi], ref: psalmRef(p.n, vi + 1), link: `#/psaltiri/${p.n}`, n: p.n, vi };
   }
 
+  // Ikona e ditës: kartë e madhe e dedikuar në krye të faqes Lexo (lexon vetëm muajin e fundit)
+  async function fillIconCard() {
+    const slot = $("#icSlot");
+    if (!slot) return;
+    const L = await latestIconMonth();
+    if (!L || !$("#icSlot")) return;
+    const k = L.days[0], list = L.groups[k], today = isoDay2(new Date());
+    slot.innerHTML = `<a class="icon-banner" href="#/ikona">
+        <span class="ib-stack">${list.slice(0, 3).map((x, j) => `<i style="--k:${j}" data-ic="${esc(x.file)}"></i>`).reverse().join("")}</span>
+        <span class="ib-txt"><small>Ikona e ditës</small><b>${esc(fmtDay(k))}${k === today ? " · sot" : ""}</b>
+          <em>${list.length > 1 ? list.length + " ikona · prek për t'i parë" : "Prek për ta parë"}</em></span>
+        <span class="ib-go">›</span></a>`;
+    enter(slot);
+    hydrateIcons(slot);
+  }
   async function viewLibrary() {
     await load("psaltiri");
     const v = todayVerse();
@@ -4258,6 +4481,7 @@ function pickPhoto(it) {
       <header class="page-head"><h1>Lexo</h1></header>
       <p class="greet">${esc(greeting())}</p>
       <div id="nameSlot">${nameDayBanner()}${myNameDayHtml()}</div>
+      <div id="icSlot"></div>
       <div id="todaySlot">${todayCardHtml(t)}</div>
       <a class="kal-banner" href="#/kalendari">${icon("calendar")}<span><b>Kalendari Kishtar</b><small>Liturgjitë, kreshmët dhe leximet e çdo dite</small></span></a>
       <h2 class="hub-h">Librat</h2>
@@ -4265,6 +4489,7 @@ function pickPhoto(it) {
         <a class="tile" href="#/${k}">${icon(ic)}<strong>${t}</strong><span>${s}</span></a>`).join("")}</div>
 `;
     bindCards(listPane, { [v.id]: v });
+    fillIconCard();
     if (!data.tipikoja) load("tipikoja").then(() => { const slot = $("#todaySlot"); const td = Today.data || store.get("today", null); if (slot && td) slot.innerHTML = todayCardHtml(td); });
     if (Persons.all().length && !data.tipikoja) load("tipikoja").then(() => { const ns = $("#nameSlot"); if (ns) { ns.innerHTML = nameDayBanner() + myNameDayHtml(); enter(ns); } });
     Today.load().then((td) => { const slot = $("#todaySlot"); if (slot && td && (!t || td.key !== t.key || !slot.innerHTML.trim())) { slot.innerHTML = todayCardHtml(td); enter(slot); } });
@@ -4883,7 +5108,8 @@ function pickPhoto(it) {
   { const im = new Image(); im.onload = () => rootEl.classList.add("has-qiri"); im.src = "img/qiri.webp"; }
 
   /* ---------- Mirëseardhja: si të quajmë? ---------- */
-  const userName = () => store.get("me.name", "");
+  // besimtarit i drejtohemi gjithmonë me emrin e pagëzimit (nëse e ka), përndryshe me emrin
+  const userName = () => store.get("me.bapt", "") || store.get("me.name", "");
   function greeting() {
     const h = new Date().getHours(), n = userName();
     const g = h < 5 ? "Natë e bekuar" : h < 12 ? "Mirëmëngjes" : h < 18 ? "Mirëdita" : "Mirëmbrëma";
@@ -4934,6 +5160,7 @@ function pickPhoto(it) {
       store.set("persons", l);
       Persons.schedule();
       goldBurst();
+      setTimeout(checkAuthor, 900);
       const me = !unb && Persons.main(l[0], data.tipikoja);
       toast(me ? `${n}, dita e emrit tënd është ${me.d} ${MUAJ_G[me.m - 1]} 🎉` : `Mirë se erdhe, ${n}!`);
       if (unb) location.hash = "#/biblioteka/pagezimi"; else route();
@@ -5019,6 +5246,7 @@ function pickPhoto(it) {
   setTimeout(checkAppUpdate, 3600);   // pas ekranit hyrës
   setTimeout(syncCandles, 6000);   // njoftimet (dita e emrit, vargu, Liturgjia, qirinjtë) + widget-i i qirinjve
   setTimeout(onboarding, 3400);
+  setTimeout(checkAuthor, 4200);
   setTimeout(() => { if (store.get("me.asked", false) && !location.hash.startsWith("#/kungimi")) maybeAskCommunion(); }, 5200);
   // widget-et: 14 ditë përpara (vargu, e kremtja, kreshma, ditët e emrit)
   setTimeout(async () => {
