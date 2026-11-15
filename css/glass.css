@@ -228,3 +228,13 @@ input, textarea, select, svg, .rr-pin { text-shadow: none !important; }
 .ic-thumbs { display: flex; justify-content: center; gap: 8px; margin: 2px 16px 10px; flex-wrap: wrap; }
 .ic-th { width: 52px; height: 64px; border-radius: 10px; background: center / cover no-repeat; border: 2px solid transparent; box-shadow: 0 4px 12px rgba(0,0,0,.25); opacity: .7; padding: 0; }
 .ic-th.on { border-color: var(--gold); opacity: 1; transform: scale(1.06); }
+
+/* Ikona e ditës: data, teksti i postimit, ditët */
+.ic-date-top { margin: 0 0 10px; font-family: var(--font-cap); letter-spacing: .05em; color: var(--accent); }
+.ic-cap { margin: 4px 20px 12px; white-space: pre-line; line-height: 1.5; color: var(--ink); text-align: left; }
+.ic-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 16px 20px; }
+.ic-nav .btn[disabled] { opacity: .4; }
+.ic-count { font-family: var(--font-cap); color: var(--ink-2); font-size: 13px; }
+.ic-fwd { transform: scaleX(-1); width: 18px; height: 18px; }
+.ic-nav .btn { white-space: nowrap; min-width: 112px; justify-content: center; }
+.ic-count { white-space: nowrap; }

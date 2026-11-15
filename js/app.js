@@ -2114,73 +2114,82 @@ function pickPhoto(it) {
   }
 
   // ---------- Ikona e ditës: lëviz telefonin dhe ikona merr jetë ----------
+  // Ikona e ditës: vetëm ikonat e tua me datë (img/apostujt/ig_*), ditë pas dite — çdo ditë ruhet me datën e vet
+  let iconDay = null;
   async function viewIcon() {
     await load("imazhet");
-    const td = (await Promise.race([Today.load(), new Promise((r) => setTimeout(() => r(null), 3000))])) || Today.data || store.get("today", null);
-    // gjithmonë ikona e parë e ditës: e kremtja ose shenjtori i parë i Sinaksarit
-    const sts = (td && td.saints || []).filter((s) => s.img);
-    const pick = sts[0];
-    const ims = ((data.imazhet || {}).images || []).filter((i) => /ikonat/.test(i.cat));
-    const fallback = ims.length ? ims[dayIndex() % ims.length].file : "";
-    const now = new Date(), fi = Fast.info(now);
-    // ikonat e Sinaksarit për këtë datë ("MM-DD"): të gjitha, nga çdo vit, bashkë
-    const mmdd = `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    const own = ((data.imazhet || {}).images || []).filter((im) => isDayIcon(im) && im.date === mmdd);
-    const big = (u) => String(u || "").replace(/-\d{2,4}x\d{2,4}(\.\w+)(\?.*)?$/, "$1");
-    const gallery = [...(pick ? [{ src: pick.img, full: big(pick.img), title: pick.title }] : []),
-      ...own.map((im) => ({ src: im.file, full: im.file, title: im.shenjtori || im.title }))];
-    if (!gallery.length) gallery.push({ src: fallback, full: fallback, title: "" });
-    const src = gallery[0].src;
-    const sx = await load(sxKey(now.getMonth() + 1));
-    const sxDay = sx && sx.days && sx.days.find((d) => d.d === now.getDate());
-    // rreshti i Sinaksarit që flet për shenjtorin e ikonës (ose i pari i ditës)
-    const lis = sxDay ? (sxDay.blocks || []).filter((b) => (b.t === "li" || b.t === "intro") && b.x && !/^Muaji /.test(b.x)) : [];
-    const keyW = pick ? (pick.title.match(/\p{Lu}\p{Ll}{3,}/u) || [""])[0] : "";
-    const sxFirst = (keyW && lis.find((b) => nrm(b.x).includes(nrm(keyW).slice(0, Math.max(4, keyW.length - 1))))) || lis[0];
-    const title = gallery[0].title || fi.feast || (td && td.title) || "Ikona e ditës";
-    const sxLine = sxFirst ? sxFirst.x.replace(/^Më \d+ të këtij muaji,\s*/i, "").replace(/^\p{Ll}/u, (c) => c.toUpperCase()) : "";
-    const slug = pick ? (pick.link.split("ods_saint=")[1] || "").split("&")[0] : "";
-    listPane.innerHTML = `
-      <header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>Ikona e ditës</h1></header>
-      <div class="ic-stage">
-        <div class="ic-frame" id="icFrame"><div class="ic-img" style="background-image:url('${esc(src)}')"></div><div class="ic-glare"></div><div class="ic-halo"></div></div>
-        ${gallery.length > 1 ? `<div class="ic-thumbs">${gallery.map((g, i) => `<button class="ic-th${i ? "" : " on"}" data-g="${i}" style="background-image:url('${esc(g.src)}')" aria-label="${esc(g.title || "Ikona")}"></button>`).join("")}</div>` : ""}
-        <h2 class="ic-title">${esc(title)}</h2>
-        ${td && td.date ? `<p class="ic-date">${esc(td.date)}</p>` : ""}
-        ${sxLine ? `<a class="ic-sx" href="#/sinaksari/${now.getMonth() + 1}/${now.getDate()}">${esc(sxLine.length > 180 ? sxLine.slice(0, 177).replace(/\s+\S*$/, "") + "…" : sxLine)}<small>Sinaksari i ditës ›</small></a>` : ""}
-        <div class="ic-actions">
-          ${slug ? `<a class="btn" href="#/lajm/shenjt/${encodeURIComponent(slug)}">${icon("book")}<span>Jeta</span></a>` : ""}
-          <a class="btn primary" href="#/lutja" id="icCandle">${icon("candle")}<span>Ndiz qiri</span></a>
-        </div>
-      </div>`;
-    enter(listPane);
+    const pad = (n) => String(n).padStart(2, "0");
+    const isoD = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const now = new Date(), today = isoD(now), mmdd = today.slice(5);
+    const all = ((data.imazhet || {}).images || []).filter(isDayIcon);
+    const keyOf = (im) => {
+      if (im.dita) return im.dita;
+      const m = String(im.file || "").match(/(20\d\d)[-_.]?(\d\d)[-_.]?(\d\d)/);   // data nga emri i skedarit
+      if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+      return im.date ? `${now.getFullYear()}-${im.date}` : "";
+    };
+    const groups = {};
+    all.forEach((im) => { const k = keyOf(im); if (k) (groups[k] = groups[k] || []).push(im); });
+    const days = Object.keys(groups).sort();
+    let idx = days.length - 1;
+    if (iconDay && days.includes(iconDay)) idx = days.indexOf(iconDay);
+    else if (days.includes(today)) idx = days.indexOf(today);
+    else { const k = [...days].reverse().find((d) => d.slice(5) === mmdd); if (k) idx = days.indexOf(k); }
+    const fmt = (k) => { const [y, m, d] = k.split("-").map(Number); const dt = new Date(y, m - 1, d); return `${["E diel", "E hënë", "E martë", "E mërkurë", "E enjte", "E premte", "E shtunë"][dt.getDay()]}, ${d} ${MUAJ_G[m - 1]} ${y}`; };
+    const render = () => {
+      if (!days.length) {
+        listPane.innerHTML = `
+          <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Ikona e ditës</h1></header>
+          <div class="empty">${icon("image")}<h3>Ende asnjë ikonë</h3><p>Ikonat që shton çdo ditë do të dalin këtu, secila me datën e vet.</p></div>`;
+        enter(listPane); return;
+      }
+      const key = days[idx], list = groups[key];
+      iconDay = key;
+      listPane.innerHTML = `
+        <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Ikona e ditës</h1></header>
+        <div class="ic-stage">
+          <p class="ic-date ic-date-top">${esc(fmt(key))}${key === today ? " · sot" : ""}</p>
+          <div class="ic-frame" id="icFrame"><div class="ic-img" style="background-image:url('${esc(list[0].file)}')"></div><div class="ic-glare"></div><div class="ic-halo"></div></div>
+          ${list.length > 1 ? `<div class="ic-thumbs">${list.map((g, i) => `<button class="ic-th${i ? "" : " on"}" data-g="${i}" style="background-image:url('${esc(g.file)}')" aria-label="Ikona ${i + 1}"></button>`).join("")}</div>` : ""}
+          ${list[0].pershkrimi ? `<p class="ic-cap" id="icCap">${esc(list[0].pershkrimi)}</p>` : `<p class="ic-cap" id="icCap" hidden></p>`}
+          <div class="ic-nav">
+            <button class="btn" id="icPrev" ${idx === 0 ? "disabled" : ""}>${icon("back")}<span>Mbrapa</span></button>
+            <span class="ic-count">${idx + 1} / ${days.length}</span>
+            <button class="btn" id="icNext" ${idx === days.length - 1 ? "disabled" : ""}><span>Përpara</span><svg class="ic-fwd"><use href="#i-back"/></svg></button>
+          </div>
+        </div>`;
+      enter(listPane);
+      $$(".ic-th", listPane).forEach((b) => b.addEventListener("click", () => {
+        const g = list[+b.dataset.g];
+        $$(".ic-th", listPane).forEach((x) => x.classList.toggle("on", x === b));
+        $(".ic-img").style.backgroundImage = `url('${g.file}')`;
+        const c = $("#icCap"); c.textContent = g.pershkrimi || ""; c.hidden = !g.pershkrimi;
+        haptic(10);
+      }));
+      $("#icPrev").addEventListener("click", () => { if (idx > 0) { idx--; haptic(12); render(); } });
+      $("#icNext").addEventListener("click", () => { if (idx < days.length - 1) { idx++; haptic(12); render(); } });
+      // rrëshqit majtas/djathtas mbi ikonë për të ndërruar ditën
+      const fr = $("#icFrame");
+      let sx0 = null;
+      fr.addEventListener("pointerdown", (e) => { sx0 = e.clientX; });
+      fr.addEventListener("pointerup", (e) => { if (sx0 == null) return; const dx = e.clientX - sx0; sx0 = null;
+        if (dx > 60 && idx > 0) { idx--; render(); } else if (dx < -60 && idx < days.length - 1) { idx++; render(); } });
+      let raf = 0, tx = 0, ty = 0;
+      const apply = () => { raf = 0; fr.style.setProperty("--rx", ty.toFixed(2) + "deg"); fr.style.setProperty("--ry", tx.toFixed(2) + "deg"); };
+      const set = (x, y) => { tx = Math.max(-14, Math.min(14, x)); ty = Math.max(-14, Math.min(14, y)); if (!raf) raf = requestAnimationFrame(apply); };
+      fr.addEventListener("pointermove", (e) => { const r = fr.getBoundingClientRect(); set(((e.clientX - r.left) / r.width - 0.5) * 24, -((e.clientY - r.top) / r.height - 0.5) * 24); });
+      fr.addEventListener("pointerleave", () => set(0, 0));
+      window.__icSet = set;
+    };
+    render();
     mainPane.innerHTML = emptyMain();
     setMode("list");
-    // ikona me cilësi të plotë: API jep vetëm miniaturën (p.sh. 300x200); origjinali është pa “-300x200”
-    const showFull = (g) => { if (g.full && g.full !== g.src) { const im = new Image(); im.onload = () => { const el = $(".ic-img"); if (el && el.dataset.g == g.i) el.style.backgroundImage = `url('${g.full}')`; }; im.src = g.full; } };
-    gallery.forEach((g, i) => (g.i = i));
-    $(".ic-img").dataset.g = 0;
-    showFull(gallery[0]);
-    $$(".ic-th", listPane).forEach((b) => b.addEventListener("click", () => {
-      const g = gallery[+b.dataset.g], el = $(".ic-img");
-      $$(".ic-th", listPane).forEach((x) => x.classList.toggle("on", x === b));
-      el.dataset.g = g.i; el.style.backgroundImage = `url('${g.src}')`; showFull(g);
-      if (g.title) $(".ic-title").textContent = g.title;
-      haptic(10);
-    }));
-    $("#icCandle").addEventListener("click", () => { prayerTab = "qiri"; store.set("prayerTab", "qiri"); });
-    const fr = $("#icFrame");
-    let raf = 0, tx = 0, ty = 0;
-    const apply = () => { raf = 0; fr.style.setProperty("--rx", ty.toFixed(2) + "deg"); fr.style.setProperty("--ry", tx.toFixed(2) + "deg"); };
-    const set = (x, y) => { tx = Math.max(-14, Math.min(14, x)); ty = Math.max(-14, Math.min(14, y)); if (!raf) raf = requestAnimationFrame(apply); };
     const onOri = (e) => {
       if (!location.hash.startsWith("#/ikona")) { removeEventListener("deviceorientation", onOri); return; }
-      if (e.gamma == null) return;
-      set(e.gamma / 3, -(e.beta - 45) / 3);
+      if (e.gamma == null || !window.__icSet) return;
+      window.__icSet(e.gamma / 3, -(e.beta - 45) / 3);
     };
     addEventListener("deviceorientation", onOri);
-    fr.addEventListener("pointermove", (e) => { const r = fr.getBoundingClientRect(); set(((e.clientX - r.left) / r.width - 0.5) * 24, -((e.clientY - r.top) / r.height - 0.5) * 24); });
-    fr.addEventListener("pointerleave", () => set(0, 0));
   }
 
   // ---------- Deri në festë: numërimi i gjallë ----------
