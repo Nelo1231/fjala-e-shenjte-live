@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="sq">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Fjala e Shenjtë</title>
+  <meta name="description" content="Psaltiri, Ungjilli, Apostulli dhe thëniet e Etërve të Kishës, si reels, me muzikë bizantine.">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fjala e Shenjtë">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css?v=2.4.9">
+  <link rel="stylesheet" href="css/glass.css?v=2.4.9">
+</head>
+<body>
+  <!-- Ekrani hyrës (2–3 sekonda) -->
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="splash-inner">
+      <svg class="splash-cross" viewBox="-14 -14 348 448"><use href="#i-cross"/></svg>
+      <h1 class="splash-title">Fjala e Shenjtë</h1>
+    </div>
+    <p class="splash-by">Minuel Çollaku</p>
+  </div>
+
+  <div class="app" id="app" data-view="feed">
+    <!-- REELS: rrjedha vertikale si Instagram Reels / TikTok -->
+    <section class="feed-wrap" id="feedWrap" aria-label="Reels">
+      <div class="feed" id="feed"></div>
+    </section>
+
+    <!-- Biblioteka (Lexo): lista majtas, leximi djathtas në Fold/Duo -->
+    <aside class="pane pane-list" id="paneList" aria-label="Lista"></aside>
+    <main class="pane pane-main" id="paneMain" tabindex="-1"></main>
+
+    <nav class="nav" aria-label="Navigimi">
+      <div class="nav-brand" aria-hidden="true"><svg viewBox="-14 -14 348 448"><use href="#i-cross"/></svg></div>
+      <button class="nav-btn" data-go="kreu" aria-current="page"><svg><use href="#i-home"/></svg><span>Kreu</span></button>
+      <button class="nav-btn" data-go="lexo"><svg><use href="#i-book"/></svg><span>Lexo</span></button>
+      <button class="nav-btn" data-go="shpirti"><svg><use href="#i-candle"/></svg><span>Shpirti</span></button>
+      <button class="nav-btn" data-go="kisha"><svg><use href="#i-church"/></svg><span>Kisha</span></button>
+      <button class="nav-btn" data-go="pelqyerat"><svg><use href="#i-heart"/></svg><span>Të miat</span></button>
+    </nav>
+  </div>
+
+  <!-- Disku i muzikës (luajtësi i YouTube brenda tij, gjithmonë i dukshëm) -->
+  <button class="disc" id="musicDisc" aria-label="Muzika bizantine">
+    <div class="disc-inner"><div id="ytPlayer"></div></div>
+  </button>
+
+  <!-- Radio Ngjallja live: prek për ta ndalur (muzika bizantine rinis vetë) -->
+  <button class="radio-pill" id="radioPill" hidden aria-label="Ndal Radio Ngjallja">
+    <span class="rp-dot"></span><span class="rp-name">Radio Ngjallja</span><span class="rp-state">LIVE</span><svg><use href="#i-stop"/></svg>
+  </button>
+
+  <!-- Fleta e muzikës -->
+  <div class="sheet" id="musicSheet" hidden>
+    <div class="sheet-card music-card" role="dialog" aria-modal="true" aria-label="Muzikë bizantine">
+      <div class="music-video-slot" aria-hidden="true"></div>
+      <p class="music-title" id="musicTitle">Muzikë bizantine</p>
+      <p class="music-sub" id="musicSub">Po ngarkohet…</p>
+      <p class="music-ctx" id="musicCtx"></p>
+      <div class="music-controls">
+        <button class="round-btn big" id="musicPlay" aria-label="Luaj"><svg><use href="#i-play"/></svg></button>
+        <button class="round-btn" id="musicNext" aria-label="Tjetra"><svg><use href="#i-next"/></svg></button>
+      </div>
+      <div class="seg" role="radiogroup" aria-label="Gjuha e këngës">
+        <button role="radio" data-lang="mix" aria-checked="true">Mix</button>
+        <button role="radio" data-lang="sq" aria-checked="false">Shqip</button>
+        <button role="radio" data-lang="el" aria-checked="false">Ελληνικά</button>
+        <button role="radio" data-lang="en" aria-checked="false">English</button>
+      </div>
+      <div class="seg music-more" role="radiogroup" aria-label="Kore të tjera">
+        <button role="radio" data-lang="athos" aria-checked="false">Athos</button>
+        <button role="radio" data-lang="ro" aria-checked="false">Română</button>
+        <button role="radio" data-lang="ru" aria-checked="false">Русский</button>
+        <button role="radio" data-lang="gr" aria-checked="false">Gregoriane</button>
+      </div>
+      <p class="music-src" id="musicSrc"></p>
+      <button class="btn ghost wide" data-act="close">Mbyll</button>
+    </div>
+  </div>
+
+  <!-- Fleta e vargut (në Lexo) -->
+  <div class="sheet" id="verseSheet" hidden>
+    <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheetRef">
+      <p class="sheet-ref" id="sheetRef"></p>
+      <blockquote class="sheet-text" id="sheetText"></blockquote>
+      <div class="sheet-actions four">
+        <button class="btn" data-act="like"><svg><use href="#i-heart"/></svg><span>Pëlqej</span></button>
+        <button class="btn" data-act="share"><svg><use href="#i-send"/></svg><span>Ndaj</span></button>
+        <button class="btn" data-act="note"><svg><use href="#i-pen"/></svg><span>Shënim</span></button>
+        <button class="btn" data-act="copy"><svg><use href="#i-copy"/></svg><span>Kopjo</span></button>
+      </div>
+      <button class="btn ghost wide" data-act="close">Mbyll</button>
+    </div>
+  </div>
+
+  <!-- Ndaj: Instagram, Story, Facebook, WhatsApp, Messenger, Email -->
+  <div class="sheet" id="shareSheet" hidden>
+    <div class="sheet-card share-card" role="dialog" aria-modal="true" aria-label="Ndaj">
+      <div class="share-head">
+        <div class="share-preview" id="sharePreview" aria-hidden="true"></div>
+        <div class="share-info"><p class="share-text" id="shareText"></p><p class="share-ref" id="shareRef"></p></div>
+      </div>
+      <p class="share-label">Ndaj si foto</p>
+      <div class="share-grid">
+        <button data-to="instagram"><span class="tgt ig"><svg><use href="#i-instagram"/></svg></span>Instagram</button>
+        <button data-to="story"><span class="tgt ig-story"><svg><use href="#i-story"/></svg></span>Story</button>
+        <button data-to="facebook"><span class="tgt fb"><svg><use href="#i-facebook"/></svg></span>Facebook</button>
+        <button data-to="save"><span class="tgt neutral"><svg><use href="#i-download"/></svg></span>Ruaj</button>
+        <button data-to="whatsapp"><span class="tgt wa"><svg><use href="#i-wa"/></svg></span>WhatsApp</button>
+        <button data-to="messenger"><span class="tgt ms"><svg><use href="#i-messenger"/></svg></span>Messenger</button>
+        <button data-to="email"><span class="tgt mail"><svg><use href="#i-mail"/></svg></span>Email</button>
+        <button data-to="telegram"><span class="tgt tg"><svg><use href="#i-send"/></svg></span>Telegram</button>
+        <button data-to="copy"><span class="tgt neutral"><svg><use href="#i-copy"/></svg></span>Kopjo tekstin</button>
+        <button data-to="more"><span class="tgt neutral"><svg><use href="#i-dots"/></svg></span>Të tjera</button>
+      </div>
+      <button class="btn ghost wide" data-to="close">Mbyll</button>
+    </div>
+  </div>
+
+  <!-- Shënim personal -->
+  <div class="sheet" id="noteSheet" hidden>
+    <div class="sheet-card note-sheet" role="dialog" aria-modal="true" aria-label="Shënim">
+      <p class="note-who">Shënim i <strong id="noteWho"></strong></p>
+      <div class="note-passage" id="notePassage" hidden><p id="notePassageText"></p><p class="note-ref" id="notePassageRef"></p></div>
+      <textarea id="noteText" rows="6" placeholder="Shkruaj mendimin, lutjen ose kujtimin tënd…"></textarea>
+      <div class="row">
+        <button class="btn primary grow" id="noteSave"><svg><use href="#i-pen"/></svg><span>Ruaj shënimin</span></button>
+        <button class="btn" id="noteDelete" hidden><svg><use href="#i-close"/></svg><span>Fshi</span></button>
+      </div>
+      <button class="btn ghost wide" data-act="close">Mbyll</button>
+    </div>
+  </div>
+
+  <!-- Profilet: secili person me shënimet dhe pëlqimet e veta -->
+  <div class="sheet" id="profileSheet" hidden>
+    <div class="sheet-card" role="dialog" aria-modal="true" aria-label="Profilet">
+      <p class="sheet-ref">Kush po lexon?</p>
+      <ul class="profile-list" id="profileList"></ul>
+      <form class="profile-add" id="profileAdd">
+        <input id="profileName" maxlength="30" placeholder="Emri i personit të ri" autocomplete="off">
+        <button class="btn primary" type="submit"><svg><use href="#i-plus"/></svg><span>Shto</span></button>
+      </form>
+      <button class="btn ghost wide" data-act="close">Mbyll</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-cross" viewBox="-14 -14 348 448"> <defs> <mask id="kxo" maskUnits="userSpaceOnUse" x="-20" y="-20" width="360" height="460"> <g fill="#fff" stroke="#fff" stroke-width="22" stroke-linejoin="round"> <rect x="138" y="40" width="44" height="340"/> <rect x="40" y="118" width="240" height="44"/> <circle cx="160" cy="38" r="30"/><circle cx="131" cy="66" r="24"/><circle cx="189" cy="66" r="24"/> <circle cx="160" cy="382" r="30"/><circle cx="131" cy="354" r="24"/><circle cx="189" cy="354" r="24"/> <circle cx="32" cy="140" r="30"/><circle cx="60" cy="111" r="24"/><circle cx="60" cy="169" r="24"/> <circle cx="288" cy="140" r="30"/><circle cx="260" cy="111" r="24"/><circle cx="260" cy="169" r="24"/> </g> <g fill="#000"> <rect x="138" y="40" width="44" height="340"/> <rect x="40" y="118" width="240" height="44"/> <circle cx="160" cy="38" r="30"/><circle cx="131" cy="66" r="24"/><circle cx="189" cy="66" r="24"/> <circle cx="160" cy="382" r="30"/><circle cx="131" cy="354" r="24"/><circle cx="189" cy="354" r="24"/> <circle cx="32" cy="140" r="30"/><circle cx="60" cy="111" r="24"/><circle cx="60" cy="169" r="24"/> <circle cx="288" cy="140" r="30"/><circle cx="260" cy="111" r="24"/><circle cx="260" cy="169" r="24"/> </g> </mask> <mask id="kxi" maskUnits="userSpaceOnUse" x="-20" y="-20" width="360" height="460"> <g fill="#fff" stroke="#fff" stroke-width="7" stroke-linejoin="round"> <rect x="154" y="74" width="12" height="304"/> <rect x="140" y="100" width="40" height="11"/> <rect x="100" y="134" width="120" height="12"/> <rect x="134" y="300" width="52" height="11" transform="rotate(35 160 305.5)"/> </g> <g fill="#000"> <rect x="154" y="74" width="12" height="304"/> <rect x="140" y="100" width="40" height="11"/> <rect x="100" y="134" width="120" height="12"/> <rect x="134" y="300" width="52" height="11" transform="rotate(35 160 305.5)"/> </g> </mask> </defs> <rect x="-20" y="-20" width="360" height="460" fill="currentColor" mask="url(#kxo)"/> <rect x="-20" y="-20" width="360" height="460" fill="currentColor" mask="url(#kxi)"/> <g fill="currentColor"> <text x="64" y="152" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="31" text-anchor="middle">IC</text> <text x="256" y="152" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="31" text-anchor="middle">XC</text> </g> </symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/></symbol>
+      <symbol id="i-compass" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z" stroke-linejoin="round"/></g></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-music" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></g></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></symbol>
+      <symbol id="i-lyre" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7 3c-2 2-2 6 0 9s1 7-1 9h12c-2-2-3-6-1-9s2-7 0-9"/><path d="M6 6h12M10 6v15M14 6v15"/></g></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 4h12a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3z"/><path d="M4 17a3 3 0 0 1 3-3h12M11.5 6.5v5M9.5 8.5h4"/></g></symbol>
+      <symbol id="i-letter" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4M8 11h8M8 14h8M8 17h5"/></g></symbol>
+      <symbol id="i-scroll" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M6 4h11a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2z"/><path d="M8 9h7M8 12h7M8 15h5"/></g></symbol>
+      <symbol id="i-quote" viewBox="0 0 24 24"><path fill="currentColor" d="M6.5 6C4 7.3 3 9.4 3 12v6h7v-7H6.2c.2-1.5 1-2.6 2.4-3.4zm10 0C14 7.3 13 9.4 13 12v6h7v-7h-3.8c.2-1.5 1-2.6 2.4-3.4z"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M6 5h4v14H6zm8 0h4v14h-4z"/></symbol>
+      <symbol id="i-next" viewBox="0 0 24 24"><path fill="currentColor" d="M6 5l9 7-9 7zm10 0h2v14h-2z"/></symbol>
+      <symbol id="i-heart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 20s-7.5-4.6-9-9.2C2 7.5 4.3 4.5 7.4 4.5c2 0 3.6 1.1 4.6 2.7 1-1.6 2.6-2.7 4.6-2.7 3.1 0 5.4 3 4.4 6.3C19.5 15.4 12 20 12 20z"/></symbol>
+      <symbol id="i-heart-fill" viewBox="0 0 24 24"><path fill="currentColor" d="M12 20s-7.5-4.6-9-9.2C2 7.5 4.3 4.5 7.4 4.5c2 0 3.6 1.1 4.6 2.7 1-1.6 2.6-2.7 4.6-2.7 3.1 0 5.4 3 4.4 6.3C19.5 15.4 12 20 12 20z"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></g></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path fill="currentColor" d="M21.7 2.3 2.9 9.6c-.9.4-.9 1.6 0 1.9l7 2.6 2.6 7c.3.9 1.6.9 1.9 0L21.7 2.3zM10.6 12.4 18 6l-6.4 7.4-.6 4z"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></g></symbol>
+      <symbol id="i-story" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><rect x="6" y="2.5" width="12" height="19" rx="3"/><circle cx="12" cy="12" r="3" stroke-dasharray="2 1.6"/></g></symbol>
+      <symbol id="i-video" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="2.5" y="5.5" width="13" height="13" rx="2.5"/><path d="m15.5 10 6-3.5v11l-6-3.5z"/></g></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></g></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5M5 20h14"/></g></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></g></symbol>
+      <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15 5l-7 7 7 7"/></symbol>
+      <symbol id="i-wa" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.2A9.7 9.7 0 0 0 3.6 16.8L2.3 21.7l5-1.3A9.7 9.7 0 1 0 12 2.2zm0 17.7a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 19.9zm4.4-6c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.8.9c-.1.2-.3.2-.5.1-1.4-.6-2.4-1.5-3.2-2.8-.2-.4.2-.4.6-1.2.1-.1 0-.3 0-.4l-.7-1.7c-.2-.5-.4-.4-.5-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.4-.6 1.6-1.2.2-.6.2-1 .1-1.2l-.4-.1z"/></symbol>
+      <symbol id="i-church" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2v4M10 4h4M12 6 7 10v11h10V10z"/><path d="M4 21v-6l3-2M20 21v-6l-3-2M10 21v-4a2 2 0 0 1 4 0v4"/></g></symbol>
+      <symbol id="i-pen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></g></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></g></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></g></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></g></symbol>
+      <symbol id="i-candle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c2 2.2 2 4 0 5.5C10 7 10 5.2 12 3z"/><rect x="9.5" y="10" width="5" height="11" rx="1"/></g></symbol>
+      <symbol id="i-help" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></g></symbol>
+      <symbol id="i-news" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 5h13v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2M7 9h7M7 13h7M7 17h4"/></g></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></g></symbol>
+      <symbol id="i-dots" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></g></symbol>
+      <symbol id="i-instagram" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6" fill="currentColor"/></g></symbol>
+      <symbol id="i-facebook" viewBox="0 0 24 24"><path fill="currentColor" d="M13.5 21v-7.5H16l.4-3h-2.9V8.6c0-.9.3-1.5 1.5-1.5h1.5V4.4c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8v2.4H8.1v3h2.5V21z"/></symbol>
+      <symbol id="i-messenger" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5C6.6 2.5 2.5 6.4 2.5 11.4c0 2.7 1.2 5 3.2 6.6V21l2.9-1.6c1 .3 2.2.5 3.4.5 5.4 0 9.5-3.9 9.5-8.9S17.4 2.5 12 2.5zm1 11.9-2.4-2.6-4.7 2.6 5.2-5.5 2.5 2.6 4.6-2.6z"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="18" r="1" fill="currentColor"/></g></symbol>
+      <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></symbol>
+      <symbol id="i-radio" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="2.2"/><path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></g></symbol>
+    </defs>
+  </svg>
+
+  <script src="js/cross.js?v=2.4.9"></script>
+  <script src="js/share.js?v=2.4.9"></script>
+  <script src="js/music.js?v=2.4.9"></script>
+  <script src="js/radio.js?v=2.4.9"></script>
+  <script src="js/app.js?v=2.4.9"></script>
+</body>
+</html>

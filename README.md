@@ -1,3 +1,3 @@
-# Fjala e Shenjtë — përditësimet
+# Fjala e Shenjtë
 
-`update.json` për aplikacionin. APK-ja është te **Releases**.
+Versioni web (GitHub Pages) dhe `update.json`. APK-ja është te **Releases**.
