@@ -3618,6 +3618,109 @@ function pickPhoto(it) {
     const obs = setInterval(() => { if (!document.body.contains(stopBtn)) return clearInterval(obs); stopBtn.hidden = !run; }, 400);
   }
 
+  // ================= Kathizma e ditës: i gjithë Psaltiri në 20 ditë =================
+  async function viewKathisma(nArg) {
+    const ps = await load("psaltiri");
+    const K = ps.kathismata || [];
+    const st = store.get("kath", { cur: 1, done: [], rounds: 0, last: "" });
+    const n = nArg ? Math.min(K.length, Math.max(1, +nArg)) : st.cur;
+    const kat = K.find((k) => k.n === n) || K[0];
+    const byN = {};
+    ps.psalms.forEach((x) => (byN[x.n] = x));
+    const pct = st.done.length / K.length;
+    listPane.innerHTML = `
+      <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Kathizma e ditës</h1></header>
+      <section class="kt-hero">
+        <div class="kt-ring" style="--p:${pct.toFixed(3)}"><b>${st.done.length}</b><small>/${K.length}</small></div>
+        <div class="kt-info"><p class="eyebrow">${st.rounds ? `Rrethi ${st.rounds + 1} i Psaltirit · ${st.rounds} të mbaruara` : "I gjithë Psaltiri në 20 ditë"}</p>
+          <h2>${esc(kat.title)}</h2><p>Psalmet ${kat.psalms[0]}–${kat.psalms[kat.psalms.length - 1]}${st.last === isoToday() ? " · sot lexove ✓" : ""}</p></div>
+      </section>
+      <div class="kt-dots">${K.map((k) => `<a class="kt-dot${st.done.includes(k.n) ? " on" : ""}${k.n === n ? " cur" : ""}" href="#/kathizma/${k.n}" aria-label="${esc(k.title)}">${k.n}</a>`).join("")}</div>
+      <article class="kt-read">${kat.psalms.map((pn) => { const x = byN[pn]; if (!x) return ""; return `<section class="kt-ps"><h3>Psalmi ${pn}</h3>${x.title ? `<p class="kt-sup">${esc(x.title)}</p>` : ""}${x.v.map((v, i) => `<p class="kt-v"><sup>${i + 1}</sup>${esc(v)}</p>`).join("")}</section>`; }).join("")}
+        <p class="kt-doxa">Lavdi Atit e Birit edhe Shpirtit të Shenjtë, tani e përherë e në jetë të jetëve. Amin.</p></article>
+      <div class="kt-end"><button class="btn primary" id="ktDone">${icon("check")}<span>${st.done.includes(n) ? "E lexova përsëri" : "E lexova"}</span></button></div>`;
+    enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
+    $("#ktDone").addEventListener("click", (e) => {
+      const s2 = store.get("kath", { cur: 1, done: [], rounds: 0, last: "" });
+      if (!s2.done.includes(n)) s2.done.push(n);
+      s2.last = isoToday();
+      let next = n % K.length + 1;
+      for (let k = 0; k < K.length && s2.done.includes(next); k++) next = next % K.length + 1;
+      s2.cur = next;
+      const r = e.currentTarget.getBoundingClientRect(); goldBurst(r.left + r.width / 2, r.top);
+      if (s2.done.length >= K.length) { s2.rounds = (s2.rounds || 0) + 1; s2.done = []; s2.cur = 1; haptic([40, 60, 40, 60, 220], true); toast("☦ E mbarove të gjithë Psaltirin! Lavdi Perëndisë!"); }
+      else { haptic([20, 40, 20], true); toast(`Lavdi Perëndisë! Nesër: ${K.find((k) => k.n === s2.cur).title}`); }
+      store.set("kath", s2);
+      location.hash = "#/kathizma";
+      if (!nArg) viewKathisma();
+    });
+  }
+
+  // ================= Kanuni im i lutjes: lutjet e mëngjesit dhe të mbrëmjes, me kujtesa =================
+  const RULE_DEF = { m: [0, 1, 2, 4, 5], e: [0, 2, 9, 11, 13], tm: "07:00", te: "21:00", notif: true, log: {} };
+  const ruleGet = () => Object.assign({}, RULE_DEF, store.get("kanuni", {}));
+  function ruleStreak(r) {
+    let n = 0;
+    const d = new Date();
+    for (let k = 0; k < 400; k++) {
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const x = r.log[key];
+      if (x && (x.m || x.e)) n++; else if (k > 0) break;
+      d.setDate(d.getDate() - 1);
+    }
+    return n;
+  }
+  async function viewRule(part) {
+    const lj = await load("lutjet");
+    const P = (lj && lj.prayers) || [];
+    const r = ruleGet(), today = isoToday(), tlog = r.log[today] || {};
+    const head = `<header class="page-head"><a class="back-btn" href="${part ? "#/kanuni" : "#/shpirti"}" aria-label="Kthehu">${icon("back")}</a><h1>${part === "m" ? "Lutja e mëngjesit" : part === "e" ? "Lutja e mbrëmjes" : "Kanuni im i lutjes"}</h1></header>`;
+    const done = () => { enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list"); };
+    if (part === "m" || part === "e") {
+      const list = (r[part] || []).map((i) => P[i]).filter(Boolean);
+      listPane.innerHTML = head + `<article class="ru-read">${list.map((x, i) => `<section class="ru-pr" style="--i:${i}"><h3>${esc(x.t)}</h3><p>${esc(x.x)}</p></section>`).join("") || `<p class="muted">Zgjidh lutjet te “Kanuni im”.</p>`}</article>
+        <div class="kt-end"><button class="btn primary" id="ruDone">${icon("check")}<span>${tlog[part] ? "U lutëm ✓" : "Mbarova ☦"}</span></button></div>`;
+      done();
+      $("#ruDone").addEventListener("click", (e) => {
+        const rr = ruleGet(); rr.log[today] = Object.assign({}, rr.log[today], { [part]: true });
+        // log-u mbahet vetëm për 400 ditët e fundit
+        const keys = Object.keys(rr.log).sort(); while (keys.length > 400) delete rr.log[keys.shift()];
+        store.set("kanuni", rr);
+        const b = e.currentTarget.getBoundingClientRect(); goldBurst(b.left + b.width / 2, b.top); haptic([20, 40, 20], true);
+        toast(part === "m" ? "Mëngjes të bekuar! ☦" : "Natë të qetë në paqen e Zotit 🕊");
+        location.hash = "#/kanuni";
+      });
+      return;
+    }
+    const streak = ruleStreak(r);
+    const pick = (k) => P.map((x, i) => `<label class="ru-ch"><input type="checkbox" data-k="${k}" value="${i}" ${(r[k] || []).includes(i) ? "checked" : ""}><span>${esc(x.t)}</span></label>`).join("");
+    listPane.innerHTML = head + `
+      <section class="ru-hero"><div class="ru-flame">🔥</div><div><b>${streak}</b> ${streak === 1 ? "ditë" : "ditë"} rresht me lutje<small>${tlog.m && tlog.e ? "Sot u lute mëngjes e mbrëmje ✓" : tlog.m ? "Sot: mëngjesi ✓ · të pret mbrëmja" : tlog.e ? "Sot: mbrëmja ✓" : "Sot ende pa lutje"}</small></div></section>
+      <div class="ru-two">
+        <a class="ru-card m${tlog.m ? " ok" : ""}" href="#/kanuni/m"><span>🌅</span><b>Mëngjesi</b><small>${(r.m || []).length} lutje · ${esc(r.tm)}</small><em>${tlog.m ? "✓ U lute" : "Fillo ›"}</em></a>
+        <a class="ru-card e${tlog.e ? " ok" : ""}" href="#/kanuni/e"><span>🌙</span><b>Mbrëmja</b><small>${(r.e || []).length} lutje · ${esc(r.te)}</small><em>${tlog.e ? "✓ U lute" : "Fillo ›"}</em></a>
+      </div>
+      <h2 class="hub-h">Lutjet e mëngjesit</h2><div class="ru-list glass">${pick("m")}</div>
+      <h2 class="hub-h">Lutjet e mbrëmjes</h2><div class="ru-list glass">${pick("e")}</div>
+      <h2 class="hub-h">Kujtesa</h2>
+      <section class="ru-set glass">
+        <label>Mëngjesi<input type="time" id="ruTm" value="${esc(r.tm)}"></label>
+        <label>Mbrëmja<input type="time" id="ruTe" value="${esc(r.te)}"></label>
+        <label class="ru-sw"><input type="checkbox" id="ruN" ${r.notif ? "checked" : ""}> Më kujto në telefon</label>
+      </section>
+      <p class="rr-verse">“Lutuni pa pushim.”<small>1 Thesalonikasve 5:17</small></p>`;
+    done();
+    const save = () => {
+      const rr = ruleGet();
+      rr.m = $$('[data-k="m"]:checked', listPane).map((c) => +c.value);
+      rr.e = $$('[data-k="e"]:checked', listPane).map((c) => +c.value);
+      rr.tm = $("#ruTm").value || "07:00"; rr.te = $("#ruTe").value || "21:00"; rr.notif = $("#ruN").checked;
+      store.set("kanuni", rr); Persons.schedule(); haptic(8);
+      $$(".ru-card small", listPane).forEach((el, i) => { el.textContent = `${(i ? rr.e : rr.m).length} lutje · ${i ? rr.te : rr.tm}`; });
+    };
+    $$("input", listPane).forEach((c) => c.addEventListener("change", save));
+  }
+
   // ================= Autori i aplikacionit: Minuel Çollaku · emri i pagëzimit Emanuel =================
   // Kodi nuk ruhet në aplikacion: ruhet vetëm “gjurma” SHA-256 e tij.
   const AUTHOR_HASH = "5d46b92296dad97ebccaa269e22ebe93ba08d7574daa9a9983d4a8e5c1ae8ce9";
@@ -3762,6 +3865,8 @@ function pickPhoto(it) {
         ${tile("rope-t2", "#/komboskini", `<svg class="pt-ico"><use href="#i-cross"/></svg>`, "Komboskini", "Lutja e Jisuit · me zë", i++)}
         ${tile("candle-t", "#/lutja", flameHtml(false), "Qiriri & Temjanica", candles().length ? candles().length + " qirinj ndezur" : "24 orë · zilet · temjani", i++)}
         ${tile("br-t", "#/frymemarrja", `<span class="ft-orb"></span>`, "Frymëmarrja e lutjes", "Lutja me ritmin e frymës", i++)}
+        ${tile("rule-t", "#/kanuni", `<span class="ft-emo">🌅</span>`, "Kanuni im i lutjes", (() => { const r = ruleGet(), t = r.log[isoToday()] || {}; return t.m && t.e ? "Sot ✓ mëngjes e mbrëmje" : `Mëngjes ${r.tm} · mbrëmje ${r.te}`; })(), i++)}
+        ${tile("kt-t", "#/kathizma", icon("lyre"), "Kathizma e ditës", (() => { const k = store.get("kath", { done: [] }); return `${k.done.length}/20 · Psaltiri në 20 ditë`; })(), i++)}
         ${tile("dipt-t", "#/diptiket", icon("book"), "Diptikët", "Emrat për lutje", i++)}
         ${tile("east-t", "#/lindja", icon("compass"), "Drejt Lindjes", "Busulla e lutjes", i++)}
       </div>
@@ -4437,6 +4542,15 @@ function pickPhoto(it) {
             text: "Prek këtu për ta shënuar dhe mos harro Uratat e falënderimit pas Kungatës së Shenjtë." });
         }
       }
+      // Kanuni im i lutjes: mëngjes dhe mbrëmje
+      const ru = ruleGet();
+      if (ru.notif) for (let k = 0; k < 14; k++) {
+        [["m", ru.tm, "🌅 Lutja e mëngjesit", "Fillo ditën me Zotin: lutjet e tua të mëngjesit të presin."], ["e", ru.te, "🌙 Lutja e mbrëmjes", "Mbyll ditën në paqen e Zotit: lutjet e tua të mbrëmjes."]].forEach(([w, t, title, text], j) => {
+          const [hh, mi] = String(t || "07:00").split(":").map(Number);
+          const d = new Date(); d.setDate(d.getDate() + k); d.setHours(hh || 0, mi || 0, 0, 0);
+          if (d > Date.now()) out.push({ id: 3800 + k * 2 + j, at: d.getTime(), route: "/kanuni/" + w, title: userName() ? `${title}, ${userName()}` : title, text });
+        });
+      }
       // kur mbaron kanoni
       const cu = store.get("rr.canonUntil", "");
       if (cu) { const at = new Date(cu + "T09:00:00"); if (at > Date.now()) out.push({ id: 3950, at: at.getTime(), route: "/kungimi", title: "☦ Koha e kanonit mbaroi", text: "Me bekimin e atit shpirtëror mund t'i afrohesh përsëri Kungimit Hyjnor. Lavdi Perëndisë!" }); }
@@ -4461,6 +4575,7 @@ function pickPhoto(it) {
   }
   $$(".nav-btn[data-go]").forEach((b) => b.addEventListener("click", () => {
     const go = b.dataset.go;
+    haptic(8);
     location.hash = go === "kreu" ? "#/" : "#/" + go;
   }));
 
@@ -4477,7 +4592,7 @@ function pickPhoto(it) {
       }
       app.dataset.view = "read";
       const navOf = { pelqyerat: "pelqyerat", shenime: "pelqyerat", kisha: "kisha", lajm: "kisha", shpirti: "shpirti", lutja: "shpirti", fjala: "shpirti", emri: "shpirti",
-        diptiket: "shpirti", kuiz: "shpirti", komboskini: "shpirti", rrefimi: "shpirti", autori: "shpirti", shqyrtimi: "shpirti", frymemarrja: "shpirti", edjela: "shpirti", ikona: "shpirti", numerimi: "shpirti", sfida: "shpirti", kungimi: "shpirti", mjekesia: "shpirti", lindja: "shpirti", lavdi: "shpirti", kalendari: "shpirti" };
+        diptiket: "shpirti", kuiz: "shpirti", komboskini: "shpirti", rrefimi: "shpirti", autori: "shpirti", kanuni: "shpirti", kathizma: "shpirti", shqyrtimi: "shpirti", frymemarrja: "shpirti", edjela: "shpirti", ikona: "shpirti", numerimi: "shpirti", sfida: "shpirti", kungimi: "shpirti", mjekesia: "shpirti", lindja: "shpirti", lavdi: "shpirti", kalendari: "shpirti" };
     if (view === "kisha") document.querySelector('.nav-btn[data-go="kisha"]')?.classList.remove("has-new");
     if (view !== "lajm") mainPane.classList.remove("art-open");
     if (view !== "lutja") { clearInterval(candleTimer); Smoke.stop(); }
@@ -4496,6 +4611,8 @@ function pickPhoto(it) {
       else if (view === "lutja") await viewPrayer();
       else if (view === "komboskini") viewRope();
       else if (view === "autori") viewAuthor();
+      else if (view === "kanuni") await viewRule(parts[1]);
+      else if (view === "kathizma") await viewKathisma(parts[1]);
       else if (view === "rrefimi") viewConfess();
       else if (view === "shqyrtimi") viewExam();
       else if (view === "frymemarrja") viewBreath();
@@ -4529,8 +4646,13 @@ function pickPhoto(it) {
   window.addEventListener("hashchange", async () => {
     $$(".sheet").forEach((s) => (s.hidden = true));
     $("#musicDisc").classList.remove("big");
-    await route();
-    restoreScroll();
+    const run = async () => { await route(); restoreScroll(); };
+    const calm = matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.classList.contains("eco");
+    if (document.startViewTransition && !calm) {
+      let p;
+      document.startViewTransition(() => Promise.race([(p = run()), new Promise((r) => setTimeout(r, 320))]));
+      await p;
+    } else await run();
   });
 
   /* =====================================================================
@@ -5100,7 +5222,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "2.2.0";
+  const APP_VERSION = "2.2.1";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {

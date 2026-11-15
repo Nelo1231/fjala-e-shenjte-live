@@ -348,3 +348,55 @@ input, textarea, select, svg, .rr-pin { text-shadow: none !important; }
 .kg-canon .kg-verse small { color: #d8c8ff !important; }
 .kg-canon .btn { background: rgba(0, 0, 0, .3) !important; color: #fff6e3 !important; border-color: rgba(255, 240, 215, .25) !important; box-shadow: none !important; }
 .kg-canon .btn svg { color: #f1cc72; }
+
+/* ---------- v2.2.1: Kathizma e ditës ---------- */
+.kt-t { background: radial-gradient(120% 120% at 80% 0%, #2d4a1f 0%, #0f1a0a 75%); }
+.kt-t svg { color: #f1cc72; }
+.rule-t { background: radial-gradient(120% 120% at 80% 0%, #8a4b1c 0%, #2a1206 75%); }
+.kt-hero { display: flex; align-items: center; gap: 16px; margin: 0 16px 12px; padding: 16px; border-radius: 24px; color: #fff4dc; text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+  background: radial-gradient(120% 140% at 0% 0%, #3d5f2a 0%, #13200c 80%); border: 1px solid rgba(241, 204, 114, .25); }
+.kt-hero h2 { font-family: var(--font-cap); font-weight: 500; margin: 2px 0; font-size: 19px; letter-spacing: .03em; }
+.kt-hero p { margin: 0; opacity: .9; font-size: 14px; } .kt-hero .eyebrow { color: #f1cc72; font-size: 12px; }
+.kt-ring { --p: 0; flex: none; width: 76px; height: 76px; border-radius: 50%; display: grid; place-content: center; text-align: center;
+  background: radial-gradient(closest-side, #13200c 78%, transparent 80% 100%), conic-gradient(#f1cc72 calc(var(--p) * 360deg), rgba(255, 255, 255, .15) 0); }
+.kt-ring b { font-family: var(--font-cap); font-size: 24px; line-height: 1; } .kt-ring small { font-size: 11px; opacity: .8; }
+.kt-dots { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin: 0 16px 14px; }
+.kt-dot { aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font-size: 12px; text-decoration: none; color: var(--ink-2); background: var(--bg-2); border: 1px solid var(--line); }
+.kt-dot.on { background: color-mix(in srgb, var(--gold) 30%, transparent); color: var(--ink); border-color: var(--gold); }
+.kt-dot.cur { outline: 2px solid var(--accent); outline-offset: 1px; color: var(--accent); font-weight: 700; }
+.kt-read { margin: 0 18px; font-size: var(--read-size); line-height: 1.6; }
+.kt-ps h3 { font-family: var(--font-cap); font-weight: 500; color: var(--accent); letter-spacing: .05em; margin: 22px 0 4px; font-size: 18px; }
+.kt-sup { font-style: italic; color: var(--ink-2); font-size: .82em; margin: 0 0 8px; }
+.kt-v { margin: 0 0 8px; } .kt-v sup { color: var(--accent); font-size: .6em; margin-right: 4px; }
+.kt-doxa { margin: 24px 0 8px; font-style: italic; color: var(--rubric, var(--accent)); text-align: center; }
+.kt-end { display: flex; justify-content: center; margin: 14px 16px 34px; }
+.kt-end .btn { min-width: 200px; justify-content: center; }
+
+/* ---------- v2.2.1: Kanuni im i lutjes ---------- */
+.ru-hero { display: flex; align-items: center; gap: 14px; margin: 0 16px 12px; padding: 14px 16px; border-radius: 22px; color: #fff4dc; text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+  background: radial-gradient(120% 140% at 0% 0%, #8a4b1c 0%, #2a1206 80%); border: 1px solid rgba(241, 204, 114, .25); }
+.ru-flame { font-size: 34px; } .ru-hero b { font-family: var(--font-cap); font-size: 26px; color: #f1cc72; } .ru-hero small { display: block; opacity: .85; font-size: 13px; }
+.ru-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 16px 14px; }
+.ru-card { display: flex; flex-direction: column; gap: 2px; padding: 14px; border-radius: 20px; text-decoration: none; color: #fff4dc; min-height: 120px; text-shadow: 0 1px 2px rgba(0, 0, 0, .45); }
+.ru-card.m { background: linear-gradient(160deg, #e0a050 0%, #8a4b1c 100%); } .ru-card.e { background: linear-gradient(160deg, #3a4a8a 0%, #141a3a 100%); }
+.ru-card span { font-size: 26px; } .ru-card b { font-family: var(--font-cap); font-weight: 500; font-size: 16px; } .ru-card small { opacity: .85; font-size: 12.5px; }
+.ru-card em { margin-top: auto; font-style: normal; font-size: 13px; color: #ffe2a3; } .ru-card.ok { box-shadow: inset 0 0 0 2px #9be38a; }
+.ru-list { margin: 0 16px 12px; padding: 6px 12px; border-radius: 18px; }
+.ru-ch { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); font-size: 15.5px; }
+.ru-ch:last-child { border-bottom: 0; } .ru-ch input { width: 20px; height: 20px; accent-color: var(--accent); }
+.ru-set { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 16px 12px; padding: 14px 16px; border-radius: 18px; }
+.ru-set label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.ru-set input[type="time"] { font: inherit; font-size: 17px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); color: var(--ink); }
+.ru-set .ru-sw { flex-direction: row; align-items: center; gap: 8px; width: 100%; font-size: 15px; color: var(--ink); }
+.ru-sw input { width: 20px; height: 20px; accent-color: var(--accent); }
+.ru-read { margin: 0 18px; }
+.ru-pr { animation: tileIn .45s var(--spring) both; animation-delay: calc(var(--i, 0) * 50ms); }
+.ru-pr h3 { font-family: var(--font-cap); font-weight: 500; color: var(--accent); letter-spacing: .05em; margin: 20px 0 6px; font-size: 18px; }
+.ru-pr p { white-space: pre-line; font-size: var(--read-size); line-height: 1.6; margin: 0; }
+
+/* ---------- v2.2.1: kalime të buta mes faqeve ---------- */
+::view-transition-old(root) { animation: vtOut .18s ease-in both; }
+::view-transition-new(root) { animation: vtIn .3s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes vtOut { to { opacity: 0; transform: scale(.985); } }
+@keyframes vtIn { from { opacity: 0; transform: translateY(10px); } }
+@media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } }
