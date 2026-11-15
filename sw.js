@@ -1,5 +1,5 @@
 /* Punon pa internet: ruan aplikacionin dhe tekstet në telefon. */
-const VERSION = "fs-v60";
+const VERSION = "fs-v62";
 const SHELL = [
   "./", "index.html", "css/app.css", "css/glass.css", "js/app.js", "js/share.js", "js/music.js",
   "data/psaltiri.js", "data/eterit.js", "data/ungjilli.js", "data/apostulli.js", "data/profecite.js", "data/tipikoja.js", "data/sherbesa.js", "data/imazhet.js", "data/jerontikoni.js", "data/himnet.js", "data/pasdarka.js", "js/cross.js", "js/radio.js", "manifest.webmanifest",

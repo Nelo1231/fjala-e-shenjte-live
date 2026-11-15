@@ -67,6 +67,29 @@
      RUAJTJA + PROFILET (secili person ka pëlqimet dhe shënimet e veta)
      ===================================================================== */
   // ikonë e Sinaksarit: ka datë "MM-DD", është shënuar sinaksari, ose është ig_* e apostujve
+  // Ftesë për të papagëzuarit — vargje të sakta nga Ungjilli dhe Veprat (tekst i KOASh-it në aplikacion)
+  const INVITE = [
+    ["Ejani tek unë gjithë sa jeni të lodhur e të ngarkuar, edhe unë do t'ju preh ju.", "Mattheu 11:28"],
+    ["Unë jam udha edhe e vërteta edhe jeta. Asnjë s'vjen tek Ati, veçse me anën time.", "Joani 14:6"],
+    ["Unë jam drita e botës. Ai që më vjen pas, nuk do të ecë në errësirë, por do të ketë dritën e jetës.", "Joani 8:12"],
+    ["Pendohuni, edhe gjithësecili prej jush le të pagëzohet në emrin e Jisu Krishtit, për ndjesën e mëkateve; edhe do të merrni dhuratën e Frymës së Shenjtë.", "Veprat 2:38"],
+    ["Pendohuni, sepse u afrua mbretëria e qiejve.", "Mattheu 4:17"],
+  ];
+  // Ngushëllim për kohën e kanonit (pa Kungim)
+  const COMFORT = [
+    ["S'kam ardhur të thërres të drejtë, por mëkatarë në pendim.", "Lluka 5:32"],
+    ["Po ju them juve, se kështu do të jetë më tepër gëzim në qiell për një mëkatar që pendohet, se për nëntëdhjetë e nëntë të drejtë, të cilët s'kanë nevojë për pendim.", "Lluka 15:7"],
+    ["Zoti është pranë atyre që kanë zemër të dërrmuar; dhe shpëton të përulurit në frymë.", "ps:33:18"],
+    ["Therore ndaj Perëndisë është shpirti i dërrmuar; zemrën e dërrmuar dhe të përulur Perëndia nuk do ta përbuzë.", "ps:50:16"],
+    ["Krijo zemër të pastër tek unë, o Perëndi, dhe përtëri frymë të drejtë në thellësitë e zemrës sime.", "ps:50:10"],
+  ];
+  const unbaptized = () => store.get("me.unbaptized", false);
+  const isoToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  // kanoni (epitimia): data kur mund të kungohesh përsëri (ruhet vetëm data)
+  const canonUntil = () => { const u = store.get("rr.canonUntil", ""); return u && u > isoToday() ? u : ""; };
+  const daysTo = (iso) => Math.max(0, Math.round((new Date(iso + "T12:00:00") - new Date(isoToday() + "T12:00:00")) / 864e5));
+  const fmtIso = (iso) => { const [y, m, d] = iso.split("-").map(Number); return `${d} ${["janar", "shkurt", "mars", "prill", "maj", "qershor", "korrik", "gusht", "shtator", "tetor", "nëntor", "dhjetor"][m - 1]} ${y}`; };
+  const refTxt = (r) => (/^ps:/.test(r) ? (() => { const [, n, v] = r.split(":"); return psalmRef(+n, +v); })() : r);
   function isDayIcon(im) { return !!(im && (im.sinaksari || im.date || /img\/apostujt\/ig_/.test(im.file || ""))); }
   const store = {
     get(k, d) { try { const v = localStorage.getItem("fs." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -472,6 +495,11 @@ function pickPhoto(it) {
       made++;
       let it = null;
       if (made % 11 === 0) it = likedReminder();
+      // të papagëzuarit: çdo e 6-ta kartë është një ftesë drejt Krishtit dhe Pagëzimit
+      if (!it && unbaptized() && made % 6 === 3) {
+        const [t, r] = INVITE[(made / 6 | 0) % INVITE.length];
+        it = { kind: "ungjilli", id: "ftese:" + made, text: t, ref: r, link: "#/biblioteka/pagezimi", invite: true };
+      }
       if (!it) {
         const kind = pickKind();
         if (kind === "psaltiri") it = makePsalm(data.psaltiri);
@@ -2709,6 +2737,18 @@ function pickPhoto(it) {
   // ---------- Ditari i Kungimit ----------
   const CLERGY = ["Prift (At)", "Episkop", "Mitropolit", "Kryepiskopi Joan"];
   function viewCommunion() {
+    if (unbaptized()) {
+      const [t, r] = INVITE[3];
+      listPane.innerHTML = `
+        <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Kungimi Hyjnor</h1></header>
+        <section class="kg-hero"><div class="kg-cup">${icon("cross")}</div><h2>Hapi i parë: Pagëzimi</h2>
+          <p>Kungimi Hyjnor u jepet atyre që janë pagëzuar në Kishën Orthodhokse. Krishti të pret: Pagëzimi është dera.</p></section>
+        <section class="kg-plan"><p class="kg-verse">“${esc(t)}”<small>${esc(r)}</small></p>
+          <a class="btn primary" href="#/biblioteka/pagezimi">${icon("cross")}<span>Si të pagëzohem</span></a></section>
+        <section class="kg-plan"><p>Ndërkohë eja në Liturgjinë Hyjnore të së Dielës: dëgjo Ungjillin, lutu me besimtarët dhe merr nafurën e bekuar në fund. Fol me priftin e famullisë: ai do të të udhëheqë me dashuri.</p></section>`;
+      enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
+      return;
+    }
     const list = store.get("kungimi", []);
     const today = new Date(), iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const last = list[0], todayDone = last && last.date === iso(today);
@@ -2721,6 +2761,10 @@ function pickPhoto(it) {
         <h2>${todayDone ? "U kungove sot ✓" : "A je kunguar sot?"}</h2>
         <p>${last ? (ago === 0 ? "Sot" : ago === 1 ? "Dje" : `${ago} ditë më parë`) + " · " + list.length + " kungime gjithsej" : "Ende asnjë kungim i shënuar"}</p>
       </section>
+      ${canonUntil() ? (() => { const [t, r] = COMFORT[new Date().getDate() % COMFORT.length]; const u = canonUntil(); return `<section class="kg-canon"><p class="eyebrow">Koha e kanonit</p>
+        <h3>Mund të kungohesh më ${esc(fmtIso(u))}</h3><p class="kg-left">edhe <b>${daysTo(u)}</b> ditë</p>
+        <p class="kg-verse">“${esc(t)}”<small>${esc(refTxt(r))}</small></p>
+        <div class="row"><a class="btn" href="#/psaltiri/50">${icon("book")}<span>Psalmi 50</span></a><a class="btn" href="#/rrefimi">${icon("pen")}<span>Rrëfimi</span></a></div></section>`; })() : ""}
       <div class="kg-books">
         <a class="kg-book" href="#/kungata/0/0">${icon("book")}<span><b>Para Kungimit</b><small>Kanoni, Psalmet dhe Uratat</small></span></a>
         <a class="kg-book" href="#/kungata/1/0">${icon("heart")}<span><b>Pas Kungimit</b><small>Uratat e falënderimit</small></span></a>
@@ -2846,7 +2890,7 @@ function pickPhoto(it) {
   // kur hapet aplikacioni pas Liturgjisë (11:00–22:00 në ditë Liturgjie) pyet një herë në ditë
   function maybeAskCommunion() {
     const d = new Date(), h = d.getHours();
-    if (h < 11 || h >= 22) return;
+    if (h < 11 || h >= 22 || unbaptized() || canonUntil()) return;
     const f = Fast.info(d);
     if (!(litDay(f, null) || d.getDay() === 0)) return;
     if (store.get("kg.thanks." + isoDay(d), false)) return;
@@ -3213,7 +3257,7 @@ function pickPhoto(it) {
   // ---------- Rrëfimi: shënimet për atin shpirtëror, të mbyllura me kod (AES-GCM) ----------
   const Confess = (() => {
     const K = "rr.v1";
-    let dataKey = null, raw = null, items = [];
+    let dataKey = null, raw = null, items = [], hist = [];
     const enc = new TextEncoder(), dec = new TextDecoder();
     const b64 = (u8) => { let x = ""; new Uint8Array(u8).forEach((c) => (x += String.fromCharCode(c))); return btoa(x); };
     const ub64 = (t) => Uint8Array.from(atob(t), (c) => c.charCodeAt(0));
@@ -3238,15 +3282,16 @@ function pickPhoto(it) {
       const o = rec();
       const r = await unseal(await kek(which === "pin" ? secret : norm(secret), ub64(which === "pin" ? o.sp : o.sa)), which === "pin" ? o.pin : o.ans);
       await useRaw(r);
-      items = JSON.parse(dec.decode(await unseal(dataKey, o.data)));
+      const v = JSON.parse(dec.decode(await unseal(dataKey, o.data)));
+      if (Array.isArray(v)) { items = v; hist = []; } else { items = v.items || []; hist = v.hist || []; }
     }
     async function unlock(pin) { try { await openWith(pin, "pin"); return true; } catch (e) { lock(); return false; } }
     async function setPin(pin) { const o = rec(); const sp = crypto.getRandomValues(new Uint8Array(16)); o.sp = b64(sp); o.pin = await seal(await kek(pin, sp), raw); store.set(K, o); }
     async function reset(ans, pin) { try { await openWith(ans, "ans"); await setPin(pin); return true; } catch (e) { lock(); return false; } }
-    async function save() { const o = rec(); o.data = await seal(dataKey, enc.encode(JSON.stringify(items))); store.set(K, o); }
-    function lock() { dataKey = null; raw = null; items = []; }
+    async function save() { const o = rec(); o.data = await seal(dataKey, enc.encode(JSON.stringify({ items, hist }))); store.set(K, o); }
+    function lock() { dataKey = null; raw = null; items = []; hist = []; }
     return { setup, unlock, reset, setPin, save, lock, has: () => !!rec(), question: () => (rec() || {}).q || "",
-      wipe() { store.set(K, null); lock(); }, get items() { return items; }, get open() { return !!dataKey; } };
+      wipe() { store.set(K, null); lock(); }, get items() { return items; }, get hist() { return hist; }, get open() { return !!dataKey; } };
   })();
   let pendingConfess = [];
   const RR_Q = ["Emri i shenjtorit tim mbrojtës?", "Kisha ku u pagëzova?", "Emri i kumbarit ose i kumbarës?", "Qyteti ku kam lindur?", "Ushqimi im i preferuar?"];
@@ -3326,9 +3371,15 @@ function pickPhoto(it) {
       <ul class="rr-list">${L.map((x, i) => `<li class="glass" style="--i:${i}"><span class="rr-dot"></span><p>${esc(x.t)}</p><button class="icon-btn small" data-rdel="${i}" aria-label="Fshi">${icon("close")}</button></li>`).join("")}</ul>
       <div class="rr-actions">
         <a class="btn" href="#/shqyrtimi">${icon("book")}<span>Shqyrtimi i ndërgjegjes</span></a>
-        ${L.length ? `<button class="btn primary" id="rrDone">${icon("check")}<span>U rrëfeva</span></button>` : ""}
+        <button class="btn primary" id="rrDone">${icon("check")}<span>U rrëfeva</span></button>
         <button class="btn ghost" id="rrChange">Ndrysho kodin</button>
       </div>
+      ${canonUntil() ? (() => { const [t, r] = COMFORT[new Date().getDate() % COMFORT.length]; const u = canonUntil(); return `<section class="kg-canon rr-canon glass"><p class="eyebrow">Koha e kanonit</p>
+        <h3>Mund të kungohesh më ${esc(fmtIso(u))} · edhe ${daysTo(u)} ditë</h3>
+        <p>Kanoni nuk është ndëshkim, por mjekim që ati shpirtëror ta jep me dashuri, që shpirti të shërohet dhe ta presë Kungimin me zemër të përgatitur. Mos u largo nga Kisha: lutu, eja në Liturgji, merr nafurën dhe ndiq këshillat e tij.</p>
+        <p class="kg-verse">“${esc(t)}”<small>${esc(refTxt(r))}</small></p>
+        <div class="row"><a class="btn" href="#/psaltiri/50">${icon("book")}<span>Psalmi 50</span></a><a class="btn" href="#/komboskini">${icon("cross")}<span>Lutja e Jisuit</span></a></div></section>`; })() : ""}
+      ${Confess.hist.length ? `<h2 class="hub-h">Rrëfimet e mia</h2><ul class="rr-list">${Confess.hist.slice(0, 12).map((h, i) => `<li class="glass" style="--i:${i}"><span class="rr-dot"></span><p><b>${esc(fmtIso(h.date))}</b>${h.ati ? ` · ${esc(h.ati)}` : ""}<br><small>${h.kanon ? `Kanon: ${h.n} ${esc(h.unit)}${h.until ? ` → deri më ${esc(fmtIso(h.until))}` : ""}${h.shenim ? ` · ${esc(h.shenim)}` : ""}` : "Pa kanon"}</small></p></li>`).join("")}</ul>` : ""}
       <p class="rr-verse">“Po t'i rrëfejmë mëkatet tona, Ai është besnik dhe i drejtë që të na i falë.”<small>1 Joanit 1:9</small></p>`;
     done();
     const persist = async () => { await Confess.save(); viewConfess(); };
@@ -3341,18 +3392,67 @@ function pickPhoto(it) {
     });
     $("#rrImport")?.addEventListener("click", async () => { pendingConfess.forEach((t) => L.push({ t, at: Date.now() })); pendingConfess = []; haptic([15, 30, 15]); await persist(); });
     $$("[data-rdel]", listPane).forEach((x) => x.addEventListener("click", async () => { L.splice(+x.dataset.rdel, 1); await persist(); }));
-    $("#rrDone")?.addEventListener("click", async () => {
-      if (!confirm("U rrëfeve? Shënimet do të fshihen — Perëndia i fal.")) return;
+    $("#rrDone")?.addEventListener("click", () => confessedSheet(async (rec) => {
       L.length = 0;
-      const d = new Date(); store.set("rr.last", `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
-      goldBurst(); haptic([30, 60, 30, 60, 160], true); toast("Lavdi Perëndisë! Shko në paqe 🕊");
+      Confess.hist.unshift(rec);
+      store.set("rr.last", rec.date);
+      store.set("rr.canonUntil", rec.until || "");
+      goldBurst(); haptic([30, 60, 30, 60, 160], true);
+      toast(rec.until ? `Lavdi Perëndisë! Mund të kungohesh më ${fmtIso(rec.until)} 🕊` : "Lavdi Perëndisë! Shko në paqe 🕊");
       await persist();
-    });
+      Persons.schedule();
+    }));
     $("#rrChange").addEventListener("click", async () => {
       const np = prompt("Kodi i ri (4–12 shifra):");
       if (np == null) return;
       if (!/^\d{4,12}$/.test(np.trim())) return toast("Kodi: 4 deri në 12 shifra");
       await Confess.setPin(np.trim()); toast("Kodi u ndryshua ✓");
+    });
+  }
+
+  function confessedSheet(onSave) {
+    const last = (Confess.hist[0] || {}).ati || "";
+    const el = document.createElement("div");
+    el.className = "sheet update-sheet onboard";
+    el.innerHTML = `<div class="sheet-card update-card" role="dialog" aria-modal="true" aria-labelledby="cfT">
+        <h2 id="cfT">U rrëfeva ☦</h2>
+        <form id="cfForm" class="cf-form">
+          <label>Data e rrëfimit<input type="date" id="cfDate" value="${isoToday()}" max="${isoToday()}" required></label>
+          <label>Ati shpirtëror<input id="cfAti" maxlength="60" value="${esc(last)}" placeholder="p.sh. At Joani" autocomplete="off"></label>
+          <div class="seg cf-seg" role="radiogroup"><button type="button" data-k="0" aria-checked="true">Pa kanon</button><button type="button" data-k="1" aria-checked="false">Më dha kanon</button></div>
+          <div id="cfKanon" hidden>
+            <label>Sa kohë pa Kungim?</label>
+            <div class="cf-row"><input type="number" id="cfN" min="1" max="99" value="1"><select id="cfU"><option value="ditë">ditë</option><option value="javë" selected>javë</option><option value="muaj">muaj</option><option value="vjet">vjet</option></select></div>
+            <label>Çfarë të dha (opsionale)<input id="cfSh" maxlength="120" placeholder="p.sh. Psalmi 50 çdo mbrëmje, 100 metani" autocomplete="off"></label>
+            <p class="cf-when" id="cfWhen"></p>
+          </div>
+          <button class="btn primary upd-go" type="submit">${icon("check")}<span>Ruaj</span></button>
+        </form>
+        <button class="btn upd-later" type="button">Anulo</button></div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("open"));
+    let kanon = false;
+    const until = () => {
+      const d = new Date($("#cfDate", el).value + "T12:00:00"), n = Math.max(1, +$("#cfN", el).value || 1), u = $("#cfU", el).value;
+      if (u === "ditë") d.setDate(d.getDate() + n); else if (u === "javë") d.setDate(d.getDate() + n * 7);
+      else if (u === "muaj") d.setMonth(d.getMonth() + n); else d.setFullYear(d.getFullYear() + n);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+    const upd = () => { if (kanon) $("#cfWhen", el).textContent = `Mund të kungohesh më ${fmtIso(until())} (edhe ${daysTo(until())} ditë).`; };
+    $$(".cf-seg button", el).forEach((b) => b.addEventListener("click", () => {
+      kanon = b.dataset.k === "1";
+      $$(".cf-seg button", el).forEach((x) => x.setAttribute("aria-checked", x === b));
+      $("#cfKanon", el).hidden = !kanon; upd(); haptic(10);
+    }));
+    ["#cfDate", "#cfN", "#cfU"].forEach((q) => $(q, el).addEventListener("input", upd));
+    const close = () => { el.classList.remove("open"); setTimeout(() => el.remove(), 300); };
+    $(".upd-later", el).addEventListener("click", close);
+    $("#cfForm", el).addEventListener("submit", (e) => {
+      e.preventDefault();
+      const rec = { date: $("#cfDate", el).value || isoToday(), ati: $("#cfAti", el).value.trim(), kanon };
+      if (kanon) Object.assign(rec, { n: Math.max(1, +$("#cfN", el).value || 1), unit: $("#cfU", el).value, shenim: $("#cfSh", el).value.trim(), until: until() });
+      close();
+      onSave(rec);
     });
   }
 
@@ -3550,7 +3650,10 @@ function pickPhoto(it) {
       if (then) then();
     });
   }
+  const authorOK = () => store.get("author", false) && isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""));
   function checkAuthor() {
+    // po s'janë më emrat e autorit, mënyra e autorit fiket dhe paneli fshihet krejt
+    if (!isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""))) { if (store.get("author", false)) store.set("author", false); authorOpen = false; return; }
     if (store.get("author", false)) return;
     if (isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""))) askAuthorCode(() => { location.hash = "#/autori"; });
   }
@@ -3570,7 +3673,7 @@ function pickPhoto(it) {
   function viewAuthor() {
     const head = `<header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Paneli i autorit</h1>${authorOpen ? `<button class="icon-btn" id="auLock" aria-label="Mbyll">🔒</button>` : ""}</header>`;
     const done = () => { enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list"); };
-    if (!store.get("author", false) && !isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""))) { location.hash = "#/shpirti"; return; }
+    if (!authorOK()) { location.replace("#/shpirti"); return; }      // për të gjithë të tjerët faqja nuk ekziston
     if (!authorOpen) {
       listPane.innerHTML = head + `<section class="au-hero"><div class="au-mark">✦</div><h2>Vetëm për autorin</h2><p>Shkruaj kodin për të hyrë.</p>
         <button class="btn primary" id="auIn">${icon("check")}<span>Shkruaj kodin</span></button></section>`;
@@ -3651,10 +3754,9 @@ function pickPhoto(it) {
         <div class="sp-aura" aria-hidden="true"><i></i><i></i><i></i></div>
         <p class="sp-greet">${esc(greeting())}</p>
         <p class="sp-verse">“Lutuni pa pushim.”<small>1 Thesalonikasve 5:17</small></p>
-        ${store.get("author", false) ? `<a class="sp-author" href="#/autori">✦ Paneli i autorit</a>` : ""}
+        ${authorOK() ? `<a class="sp-author" href="#/autori">✦ Paneli i autorit</a>` : ""}
       </section>
       ${Streak.html()}
-      ${store.get("me.unbaptized", false) ? `<a class="bap-invite" href="#/biblioteka/pagezimi">${icon("cross")}<span><b>Krishti të fton</b><small>Mëso si të pagëzohesh në Kishën Orthodhokse</small></span></a>` : ""}
       <h2 class="hub-h">Lutja</h2>
       <div class="feat-tiles hub">
         ${tile("rope-t2", "#/komboskini", `<svg class="pt-ico"><use href="#i-cross"/></svg>`, "Komboskini", "Lutja e Jisuit · me zë", i++)}
@@ -4326,15 +4428,18 @@ function pickPhoto(it) {
           const isPlan = plan === `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
           // 20:00 mbrëmjen para · 07:00 në mëngjes · 12:00 pas Liturgjisë: “A u kungove?”
           if (eve > Date.now()) out.push({ id: 5000 + k * 2, at: eve.getTime(), route: isPlan ? "/kungata/0/0" : "/kungimi", title: `${big}Nesër ka Liturgji Hyjnore`,
-            text: (what ? what + ". " : "") + (isPlan ? "Nesër kungohesh: sonte lexo Shërbesën para Kungimit dhe mos ha e mos pi asgjë pas mesnate." : "Përgatitu sonte me lutje. Nëse je përgatitur me kreshmë dhe rrëfim, nesër kungohu.") });
+            text: (what ? what + ". " : "") + (isPlan ? "Nesër kungohesh: sonte lexo Shërbesën para Kungimit dhe mos ha e mos pi asgjë pas mesnate." : unbaptized() || canonUntil() ? "Eja nesër në Liturgji: Krishti të pret në shtëpinë e Tij." : "Përgatitu sonte me lutje. Nëse je përgatitur me kreshmë dhe rrëfim, nesër kungohu.") });
           const morn = new Date(day); morn.setHours(7, 0, 0, 0);
           if (morn > Date.now()) out.push({ id: 5001 + k * 2, at: morn.getTime(), route: "/kungimi", title: `${big}Sot ka Liturgji Hyjnore${userName() ? ", " + userName() : ""}`,
             text: (what ? what + ". " : "") + (isPlan ? "Sot kungohesh: mos ha e mos pi asgjë para Kungimit. Zoti të bekoftë!" : "Eja në kishë: Krishti të pret në Liturgji 🙏") });
           const noon = new Date(day); noon.setHours(12, 0, 0, 0);
-          if (noon > Date.now()) out.push({ id: 5500 + k, at: noon.getTime(), route: "/kungimi/pyet", title: `☦ A u kungove sot${userName() ? ", " + userName() : ""}?`,
+          if (noon > Date.now() && !unbaptized() && !canonUntil()) out.push({ id: 5500 + k, at: noon.getTime(), route: "/kungimi/pyet", title: `☦ A u kungove sot${userName() ? ", " + userName() : ""}?`,
             text: "Prek këtu për ta shënuar dhe mos harro Uratat e falënderimit pas Kungatës së Shenjtë." });
         }
       }
+      // kur mbaron kanoni
+      const cu = store.get("rr.canonUntil", "");
+      if (cu) { const at = new Date(cu + "T09:00:00"); if (at > Date.now()) out.push({ id: 3950, at: at.getTime(), route: "/kungimi", title: "☦ Koha e kanonit mbaroi", text: "Me bekimin e atit shpirtëror mund t'i afrohesh përsëri Kungimit Hyjnor. Lavdi Perëndisë!" }); }
       try { android.scheduleReminders(JSON.stringify(out)); } catch (e) { /* */ }
     }
     return { all, add, remove, main, feasts, schedule };
@@ -4481,6 +4586,7 @@ function pickPhoto(it) {
       <header class="page-head"><h1>Lexo</h1></header>
       <p class="greet">${esc(greeting())}</p>
       <div id="nameSlot">${nameDayBanner()}${myNameDayHtml()}</div>
+      ${unbaptized() ? (() => { const [t, r] = INVITE[new Date().getDate() % INVITE.length]; return `<a class="bap-invite inv-card" href="#/biblioteka/pagezimi">${icon("cross")}<span><b>Krishti të fton${userName() ? ", " + esc(userName()) : ""}</b><q>${esc(t)}</q><small>${esc(r)} · Si të pagëzohem në Kishën Orthodhokse ›</small></span></a>`; })() : ""}
       <div id="icSlot"></div>
       <div id="todaySlot">${todayCardHtml(t)}</div>
       <a class="kal-banner" href="#/kalendari">${icon("calendar")}<span><b>Kalendari Kishtar</b><small>Liturgjitë, kreshmët dhe leximet e çdo dite</small></span></a>

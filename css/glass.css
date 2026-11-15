@@ -323,3 +323,28 @@ input, textarea, select, svg, .rr-pin { text-shadow: none !important; }
 .au-dot { background: #d9b45a; box-shadow: 0 0 10px #d9b45a; }
 .au-when { color: var(--ink-2); font-size: 12px; }
 #auForm.shake { animation: shake .4s; }
+
+/* ---------- Ftesa për të papagëzuarit ---------- */
+.inv-card { align-items: flex-start; }
+.inv-card q { display: block; margin: 4px 0; font-style: italic; quotes: "“" "”"; line-height: 1.45; }
+/* ---------- Koha e kanonit ---------- */
+.kg-canon { margin: 0 16px 14px; padding: 16px; border-radius: 20px; color: #f6eefc; text-shadow: 0 1px 2px rgba(0, 0, 0, .4);
+  background: radial-gradient(120% 130% at 50% 0%, #4b3a6b 0%, #1a1228 85%); border: 1px solid rgba(220, 200, 255, .2); }
+.kg-canon h3 { font-family: var(--font-cap); font-weight: 500; letter-spacing: .03em; margin: 2px 0 4px; font-size: 18px; }
+.kg-canon .eyebrow { color: #d8c8ff; }
+.kg-canon .kg-left b { font-family: var(--font-cap); font-size: 24px; color: #f1cc72; }
+.kg-canon .kg-verse { margin: 10px 0; font-style: italic; }
+.kg-canon .kg-verse small { display: block; font-style: normal; font-size: 12px; opacity: .8; }
+.kg-canon .row { display: flex; flex-wrap: wrap; gap: 8px; }
+.rr-canon { margin-top: 12px; }
+/* ---------- Fleta “U rrëfeva” ---------- */
+.cf-form { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.cf-form label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-2); }
+.cf-form input, .cf-form select { font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg-2); color: var(--ink); }
+.cf-seg { display: flex; } .cf-seg button { flex: 1; }
+.cf-row { display: flex; gap: 8px; } .cf-row input { width: 90px; } .cf-row select { flex: 1; }
+.cf-when { margin: 4px 0 0; color: var(--accent); font-family: var(--font-cap); font-size: 14px; letter-spacing: .02em; }
+.kg-canon .kg-verse, .kg-canon p { color: #efe6ff !important; }
+.kg-canon .kg-verse small { color: #d8c8ff !important; }
+.kg-canon .btn { background: rgba(0, 0, 0, .3) !important; color: #fff6e3 !important; border-color: rgba(255, 240, 215, .25) !important; box-shadow: none !important; }
+.kg-canon .btn svg { color: #f1cc72; }
