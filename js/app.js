@@ -369,6 +369,7 @@
     }
 
     function makeQuote(et) {
+      if (!et) return null;
       let i = rand(et.quotes.length);
       for (let k = 0; k < 12 && et.quotes[i].t.length > 200; k++) i = rand(et.quotes.length);
       const q = et.quotes[i];
@@ -604,7 +605,8 @@ function pickPhoto(it) {
     }
 
     async function init() {
-      await Promise.all(["psaltiri", "eterit", "ungjilli", "apostulli", "profecite", "imazhet"].map(load));
+      await Promise.all(["psaltiri", "imazhet"].map(load));
+      (window.requestIdleCallback || ((f) => setTimeout(f, 1200)))(() => ["eterit", "profecite", "apostulli", "ungjilli"].reduce((pr, n) => pr.then(() => load(n)), Promise.resolve()), { timeout: 3000 });
       const io = new IntersectionObserver((entries) => {
         entries.forEach((en) => { if (en.isIntersecting && en.intersectionRatio > 0.6) setActive(+en.target.dataset.idx); });
       }, { root: feedEl, threshold: [0.6] });
@@ -951,6 +953,12 @@ function pickPhoto(it) {
         <div class="rc-info"><p class="rc-live"><span class="rp-dot"></span>LIVE</p><h2>Radio Ngjallja</h2><p class="rc-sub">Radioja e Kishës, drejtpërdrejt</p></div>
         <button class="rc-btn" id="radioBtn" aria-label="${radioOn ? "Ndal radion" : "Dëgjo radion"}">${icon(radioOn ? "stop" : "play")}</button>
       </section>
+      ${gazetaCardHtml()}
+      <div class="ch-new">
+        <a class="ch-n lj" href="#/lajme"><span>📰</span><b>Lajme Orthodhokse</b><small>UGO.al · KOASH · Bota</small></a>
+        <a class="ch-n gz" href="#/gazeta/arkiva"><span>🗞</span><b>Arkiva e Gazetës</b><small>Numrat e kaluar · kërkim</small></a>
+        <a class="ch-n mz" href="#/shkolla"><span>🎼</span><b>Shkolla e Muzikës Bizantine</b><small>Kori «Shën Joan Kukuzeli»</small></a>
+      </div>
       <div class="seg news-seg" role="tablist">
         <button role="tab" data-src="kisha" aria-checked="${src === "kisha"}">Kisha</button>
         <button role="tab" data-src="ngjallja" aria-checked="${src === "ngjallja"}">Radio Ngjallja</button>
@@ -3515,37 +3523,47 @@ function pickPhoto(it) {
       ctx = new AC();
       const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
       // jehona e kambanores: përgjigje impulsi e gjeneruar
-      const len = ctx.sampleRate * 3.2, ir = ctx.createBuffer(2, len, ctx.sampleRate);
-      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+      const len = Math.floor(ctx.sampleRate * 4.2), pre = Math.floor(ctx.sampleRate * 0.03), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = pre; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8) * (i < pre * 4 ? 0.6 : 1); }
       const conv = ctx.createConvolver(); conv.buffer = ir;
       const wet = ctx.createGain(); wet.gain.value = 0.32; const dry = ctx.createGain(); dry.gain.value = 0.8;
       out = ctx.createGain(); out.gain.value = 0.9;
       out.connect(dry).connect(comp); out.connect(conv).connect(wet).connect(comp); comp.connect(ctx.destination);
       return ctx;
     }
-    // [raporti, amplituda, kohëzgjatja relative]
-    const PARTIALS = [[0.5, 0.9, 1], [1, 0.75, 0.62], [1.2, 0.5, 0.48], [1.5, 0.28, 0.4], [2, 0.42, 0.34], [2.5, 0.14, 0.22], [2.67, 0.13, 0.2], [3.01, 0.1, 0.16], [4.17, 0.06, 0.1], [5.43, 0.03, 0.07]];
-    function strike(f, vol = 1, when = 0) {
+    // partialet e një kambane bronzi të derdhur (raporti me notën kryesore, amplituda, kohëzgjatja relative):
+    // hum 0.5 · prime 1 · tierce 1.19 (terca e vogël) · quint 1.5 · nominal 2 · superquint 2.5 · 2.67 · 3 · 4 · 5.3 · 6.4
+    const PARTIALS = [[0.5, 0.85, 1], [1, 0.7, 0.66], [1.19, 0.62, 0.55], [1.5, 0.22, 0.42], [2, 0.75, 0.38], [2.5, 0.2, 0.24],
+      [2.67, 0.24, 0.22], [3.01, 0.16, 0.16], [4.07, 0.12, 0.11], [5.33, 0.07, 0.07], [6.4, 0.04, 0.05]];
+    function strike(f, vol = 1, when = 0, pan = 0) {
       const c = init(); if (!c) return;
-      const t0 = c.currentTime + 0.01 + when, dur = Math.max(3.2, Math.min(11, 1500 / f));
+      const t0 = c.currentTime + 0.01 + when, dur = Math.max(2.6, Math.min(14, 1700 / f));
+      const bus = c.createGain(); bus.gain.value = 1;
+      let node = bus;
+      if (c.createStereoPanner) { const pn = c.createStereoPanner(); pn.pan.value = pan; bus.connect(pn); node = pn; }
+      node.connect(out);
+      const bright = Math.pow(vol, 1.4);
       PARTIALS.forEach(([r, a, dr], i) => {
-        const fr = f * r * (1 + (Math.random() - 0.5) * 0.002);
-        [0, i < 3 ? 0.9 + Math.random() * 0.8 : 0].forEach((beat, k) => {
+        const fr = f * r * (1 + (Math.random() - 0.5) * 0.003);
+        // partialet e ulëta janë dyfishe (kambana s'është krejt simetrike) → rrahje e ngadaltë, si te kambanat e vërteta
+        [0, i < 5 ? 0.6 + Math.random() * 1.6 : 0].forEach((beat, k) => {
           if (k && !beat) return;
           const o = c.createOscillator(), g = c.createGain();
-          o.type = "sine"; o.frequency.value = fr + beat;
-          const amp = a * vol * (k ? 0.45 : 1) * 0.16;
-          g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(amp, t0 + 0.004 + i * 0.0015);
+          o.type = "sine"; o.frequency.setValueAtTime(fr * 1.004 + beat, t0); o.frequency.exponentialRampToValueAtTime(fr + beat, t0 + 0.08);
+          const amp = a * (i > 3 ? bright : vol) * (k ? 0.5 : 1) * 0.14;
+          g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, amp), t0 + 0.003 + i * 0.001);
+          if (i >= 4) g.gain.exponentialRampToValueAtTime(Math.max(0.0002, amp * 0.45), t0 + 0.25);   // “klang”-u i goditjes shuhet shpejt
           g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur * dr);
-          o.connect(g).connect(out); o.start(t0); o.stop(t0 + dur * dr + 0.05);
+          o.connect(g).connect(bus); o.start(t0); o.stop(t0 + dur * dr + 0.05);
         });
       });
-      // goditja e gjuhës së kambanës
-      const nb = c.createBuffer(1, c.sampleRate * 0.05, c.sampleRate), nd = nb.getChannelData(0);
-      for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nd.length, 4);
+      // goditja e gjuhës (metal mbi metal): zhurmë e shkurtër me filtër dhe tone të parregullta
+      const nb = c.createBuffer(1, Math.floor(c.sampleRate * 0.06), c.sampleRate), nd = nb.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nd.length, 5);
       const ns = c.createBufferSource(), bp = c.createBiquadFilter(), ng = c.createGain();
-      ns.buffer = nb; bp.type = "bandpass"; bp.frequency.value = f * 3.2; bp.Q.value = 1.2; ng.gain.value = 0.35 * vol;
-      ns.connect(bp).connect(ng).connect(out); ns.start(t0);
+      ns.buffer = nb; bp.type = "bandpass"; bp.frequency.value = Math.min(9000, f * 6); bp.Q.value = 0.9; ng.gain.value = 0.3 * bright;
+      ns.connect(bp).connect(ng).connect(bus); ns.start(t0);
+      setTimeout(() => { try { bus.disconnect(); node.disconnect(); } catch (e) { /* */ } }, (when + dur + 0.5) * 1000);
     }
     return { strike, init };
   })();
@@ -3556,6 +3574,8 @@ function pickPhoto(it) {
     { n: "Zilja", f: 294, w: 46, x: 74 },
     { n: "E vogla", f: 392, w: 36, x: 86 },
   ];
+  // shkalla diatonike bizantine (intervalet 12-10-8-12-12-10-8 moria nga 72 → cent), nga Ni = Do4
+  const ZILET = [["Ni", 0], ["Pa", 200], ["Vu", 366.7], ["Ga", 500], ["Di", 700], ["Ke", 900], ["Zo", 1066.7], ["Ni'", 1200]].map(([n, c]) => ({ n, f: 261.63 * Math.pow(2, c / 1200) }));
   function viewBells() {
     const alive = () => location.hash.startsWith("#/kambanorja");
     let playT = [], rec = null;
@@ -3585,12 +3605,21 @@ function pickPhoto(it) {
         </div>`).join("")}
         <p class="kb-hint">Tërhiq litarët poshtë, ose prek kambanat</p>
       </section>
+      <h2 class="hub-h">Si u bihet kambanave</h2>
       <div class="kb-pat">
-        <button class="kb-p glass" data-p="call"><span>🔔</span><b>Thirrja</b><small>Kambana e madhe, ngadalë</small></button>
-        <button class="kb-p glass" data-p="joy"><span>🎉</span><b>E gëzueshme</b><small>Të gjitha bashkë, me ritëm</small></button>
-        <button class="kb-p glass" data-p="slow"><span>🕯</span><b>E ngadaltë</b><small>Nga e vogla te e madhja</small></button>
+        <button class="kb-p glass" data-p="call"><span>🔔</span><b>Thirrja</b><small>Kambana e madhe, goditje të rralla e të matura: thërret në shërbesë</small></button>
+        <button class="kb-p glass" data-p="tre"><span>☦</span><b>Tri herë (festë)</b><small>Të gjitha kambanat, tri vargje me pushim në mes: Liturgjia e të Dielës dhe festat</small></button>
+        <button class="kb-p glass" data-p="two"><span>✨</span><b>Dy herë</b><small>Dy vargje me të gjitha kambanat: Mbrëmësorja dhe Utrenia</small></button>
+        <button class="kb-p glass" data-p="joy"><span>🎉</span><b>E gëzueshme</b><small>Kambana të shpejta, pa pushim: Pashkët, «Krishti u ngjall!»</small></button>
+        <button class="kb-p glass" data-p="per"><span>🕊</span><b>Një nga një</b><small>Çdo kambanë një herë, nga e vogla te e madhja, pastaj të gjitha bashkë</small></button>
+        <button class="kb-p glass" data-p="mourn"><span>🕯</span><b>E zisë</b><small>Një kambanë, ngadalë e me pushime të gjata: e Premtja e Madhe, varrimi</small></button>
         <button class="kb-p glass" data-p="stop"><span>⏹</span><b>Ndalo</b><small>Hesht kambanat</small></button>
       </div>
+      <h2 class="hub-h">Melodi me zile</h2>
+      <section class="kb-keys glass" id="kbKeys">
+        ${ZILET.map((z, k) => `<button class="kb-key" data-k="${k}" style="--h:${(k / 7 * 100).toFixed(0)}%"><i></i><b>${z.n}</b></button>`).join("")}
+        <button class="btn" id="kbScale">♪ Shkalla lart e poshtë</button>
+      </section>
       <div class="kb-rec glass"><button class="btn" id="kbRec">● Regjistro ritmin tënd</button><button class="btn primary" id="kbPlay"${saved ? "" : " disabled"}>▶ Luaje</button><small id="kbRecT">${saved ? `${saved.length} goditje të ruajtura` : "Deri në 40 sekonda"}</small></div>`;
     enter(listPane);
     mainPane.innerHTML = emptyMain();
@@ -3626,23 +3655,46 @@ function pickPhoto(it) {
     });
     const stopAll = () => { playT.forEach(clearTimeout); playT = []; $$(".kb-p", listPane).forEach((b) => b.classList.remove("on")); };
     const at = (ms, fn) => playT.push(setTimeout(() => { if (alive()) fn(); else stopAll(); }, ms));
+    const all = (v) => BELLS.forEach((_, i) => ring(i, v));
+    // ritmi i zileve të vogla mbi kambanën e madhe (si në kambanoret orthodhokse)
+    const series = (t, beats, v = 0.8) => {
+      for (let b = 0; b < beats; b++) {
+        const T = t + b * 520;
+        if (b % 4 === 0) at(T, () => ring(0, 1));
+        if (b % 2 === 1) at(T, () => ring(1, 0.8));
+        at(T, () => ring(b % 2 ? 4 : 3, v)); at(T + 260, () => ring(b % 4 === 2 ? 2 : 4, v * 0.85));
+      }
+      return t + beats * 520;
+    };
     const PAT = {
-      call: () => { for (let k = 0; k < 12; k++) at(k * 2400, () => ring(0, 1)); return 12 * 2400; },
-      joy: () => { const seq = [[4, 3], [3, 2], [4, 3], [2, 4], [4, 3], [3, 2], [4, 1], [2, 4]]; let t = 0; for (let r = 0; r < 4; r++) { seq.forEach(([a, b]) => { at(t, () => ring(a, 0.8)); at(t + 190, () => ring(b, 0.75)); t += 420; }); at(t - 420 * 8, () => ring(0, 1)); at(t - 420 * 4, () => ring(1, 0.9)); } return t; },
-      slow: () => { let t = 0; for (let r = 0; r < 3; r++) { for (let i = BELLS.length - 1; i >= 0; i--) { at(t, () => ring(i, 0.85)); t += 2600; } at(t, () => BELLS.forEach((_, i) => ring(i, 0.7))); t += 5200; } return t; },
+      call: () => { for (let k = 0; k < 12; k++) at(k * 2600, () => ring(0, 1)); return 12 * 2600; },
+      tre: () => { let t = 0; for (let k = 0; k < 3; k++) { at(t, () => ring(0, 1)); t = series(t + 1400, 16); at(t, () => all(0.9)); t += 4200; } return t; },
+      two: () => { let t = 0; for (let k = 0; k < 2; k++) { at(t, () => ring(0, 1)); t = series(t + 1400, 16); at(t, () => all(0.9)); t += 4200; } return t; },
+      joy: () => { let t = 0; for (let r = 0; r < 6; r++) { for (let b = 0; b < 8; b++) { const T = t + b * 300; at(T, () => ring(4 - (b % 3), 0.85)); if (b % 2 === 0) at(T + 150, () => ring(1 + (b % 4 === 0 ? 0 : 1), 0.8)); if (b === 0) at(T, () => ring(0, 1)); } t += 2400; } return t; },
+      per: () => { let t = 0; for (let r = 0; r < 3; r++) { for (let i = BELLS.length - 1; i >= 0; i--) { at(t, () => ring(i, 0.85)); t += 2400; } at(t, () => all(0.75)); t += 6000; } return t; },
+      mourn: () => { for (let k = 0; k < 10; k++) at(k * 6500, () => ring(1, 0.85)); return 10 * 6500; },
     };
     $$(".kb-p", listPane).forEach((btn) => btn.addEventListener("click", () => {
       BellAudio.init(); stopAll(); haptic(10);
       if (btn.dataset.p === "stop") return;
       btn.classList.add("on"); const total = PAT[btn.dataset.p](); at(total + 200, () => btn.classList.remove("on"));
     }));
+    // zilet: melodi (regjistrohen si 100 + nota)
+    const zil = (k, v = 0.8, fromUser) => {
+      const z = ZILET[k], key = $$(".kb-key", listPane)[k]; if (!z || !alive()) return;
+      BellAudio.strike(z.f, v, 0, (k / 7) * 1.2 - 0.6);
+      if (key) { key.classList.remove("hit"); void key.offsetWidth; key.classList.add("hit"); }
+      if (fromUser && rec) rec.push([100 + k, v, Date.now() - rec.t0]);
+    };
+    $$(".kb-key", listPane).forEach((b) => b.addEventListener("pointerdown", (e) => { e.preventDefault(); BellAudio.init(); zil(+b.dataset.k, 0.85, true); }));
+    $("#kbScale").onclick = () => { BellAudio.init(); stopAll(); [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1, 0].forEach((k, n) => at(n * 420, () => zil(k, 0.8))); };
     $("#kbRec").onclick = () => {
       BellAudio.init();
       if (rec) { const r = rec; rec = null; $("#kbRec").textContent = "● Regjistro ritmin tënd"; $("#kbRec").classList.remove("rec"); if (r.length) { store.set("kambana.rec", r.slice()); $("#kbPlay").disabled = false; $("#kbRecT").textContent = `${r.length} goditje të ruajtura`; toast("Ritmi u ruajt"); } return; }
       rec = []; rec.t0 = Date.now(); $("#kbRec").textContent = "■ Mbaro regjistrimin"; $("#kbRec").classList.add("rec"); $("#kbRecT").textContent = "Po regjistrohet… bjeri kambanave";
       at(40000, () => rec && $("#kbRec").click());
     };
-    $("#kbPlay").onclick = () => { const r = store.get("kambana.rec", null); if (!r) return; BellAudio.init(); stopAll(); r.forEach(([i, v, t]) => at(t, () => ring(i, v))); haptic(8); };
+    $("#kbPlay").onclick = () => { const r = store.get("kambana.rec", null); if (!r) return; BellAudio.init(); stopAll(); r.forEach(([i, v, t]) => at(t, () => (i >= 100 ? zil(i - 100, v) : ring(i, v)))); haptic(8); };
   }
 
   // =====================================================================
@@ -3753,7 +3805,7 @@ function pickPhoto(it) {
       const place = () => { const ic = $(".kd-icon"), br = $("#kdBr"); if (!ic || !br) return removeEventListener("resize", place); const y = ic.offsetTop + ic.offsetHeight + 4; br.style.top = y + "px"; hang.style.top = (y + 6) + "px"; };
       place(); addEventListener("resize", place, { passive: true }); $(".kd-icon img").addEventListener("load", place);
       $("#kdStage").addEventListener("transitionend", place);
-      hang.addEventListener("pointerdown", (e) => { const r = hang.getBoundingClientRect(); sway.w += (e.clientX < r.left + r.width / 2 ? 1 : -1) * 1.6; haptic(6); wakeLoop(); });
+      hang.addEventListener("pointerdown", (e) => { const r = hang.getBoundingClientRect(); sway.w += (e.clientX < r.left + r.width / 2 ? 1 : -1) * 1.6; wakeLoop(); });
       loop();
     }
     function loop() {
@@ -3794,6 +3846,480 @@ function pickPhoto(it) {
     render();
     mainPane.innerHTML = emptyMain();
     setMode("list");
+  }
+
+  // =====================================================================
+  //  LAJME ORTHODHOKSE — UGO.al · KOASH · Orthodox Times
+  //  Titujt dhe përmbledhjet vijnë nga data/lajme_bota.json (tools/merr_lajmet.py, sinkronizim automatik),
+  //  pa bllokime CORS. Teksti i plotë lexohet gjithmonë te portali i burimit.
+  // =====================================================================
+  const LIVE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live/";
+  const NEWS_GRP = [["all", "Të gjitha"], ["ugo", "UGO.al"], ["koash", "KOASH"], ["bota", "Nga Bota"], ["studime", "Studime"]];
+  const NEWS_SRC = { ugo: "UGO.al", koash: "KOASH", ot: "Orthodox Times", oca: "OCA", basil: "Basilica.ro", po: "Public Orthodoxy", pem: "Pemptousia", oaj: "Orthodox Arts Journal" };
+  let newsDoc = null;
+  // skedari më i ri: ai i faqes së aplikacionit (sinkronizohet disa herë në ditë) ose ai i paketuar
+  async function liveJson(name, force) {
+    const local = await load(name);
+    let doc = null;
+    try {
+      const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 5000);
+      const r = await fetch(`${LIVE_BASE}data/${name}.json?t=${Date.now()}`, { cache: "no-store", credentials: "omit", signal: ctl.signal });
+      clearTimeout(tm);
+      if (r.ok) doc = await r.json();
+    } catch (e) { /* pa internet */ }
+    if (!doc || (local && (local.updated || "") > (doc.updated || ""))) doc = local;
+    return doc;
+  }
+  async function newsLoad(force) {
+    if (!newsDoc || force) newsDoc = (await liveJson("lajme_bota", force)) || { items: [], sources: [] };
+    return newsDoc;
+  }
+  const domainOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return ""; } };
+  const ago = (iso) => {
+    if (!iso) return "";
+    const m = Math.round((Date.now() - new Date(iso)) / 6e4);
+    if (m < 60) return `${Math.max(1, m)} min më parë`;
+    if (m < 24 * 60) return `${Math.round(m / 60)} orë më parë`;
+    if (m < 48 * 60) return "dje";
+    return fmtDate(iso);
+  };
+  // Fotot e lajmeve: ngarkohen vetëm kur afrohen në ekran dhe hiqen sapo largohen (memoria e telefonit mbetet e lirë);
+  // shërbyesi (sw.js) i merr me cache: "no-store", pa i ruajtur.
+  const NewsImg = (() => {
+    let io = null;
+    function watch(root) {
+      stop();
+      const imgs = $$("img[data-ns]", root);
+      if (!("IntersectionObserver" in window)) { imgs.forEach((im) => (im.src = im.dataset.ns)); return; }
+      io = new IntersectionObserver((es) => es.forEach((e) => {
+        const im = e.target;
+        if (e.isIntersecting) { if (!im.getAttribute("src")) im.src = im.dataset.ns; }
+        else if (im.getAttribute("src")) im.removeAttribute("src");
+      }), { rootMargin: "500px 0px" });
+      imgs.forEach((im) => { io.observe(im); im.addEventListener("error", () => im.closest(".lj-ph, .gz-ph")?.classList.add("noimg"), { once: true }); });
+    }
+    function stop() { if (io) { io.disconnect(); io = null; } }
+    return { watch, stop };
+  })();
+  function newsCard(n) {
+    const src = NEWS_SRC[n.src] || n.src;
+    return `<article class="lj-card g-${n.grp}" data-out="${esc(n.link)}">
+      ${n.img ? `<div class="lj-ph"><img data-ns="${esc(n.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}
+      <div class="lj-b">
+        <p class="lj-meta"><span class="lj-tag">${esc(src)}</span>${n.cat ? `<span>${esc(n.cat)}</span>` : ""}<span>${esc(ago(n.date))}</span>${n.lang === "en" ? `<span class="lj-en">anglisht</span>` : ""}</p>
+        <h3>${esc(n.title)}</h3>
+        ${n.ex ? `<p class="lj-ex">${esc(n.ex)}</p>` : ""}
+        <p class="lj-foot"><span>Burimi: <b>${esc(src)}</b> · ${esc(domainOf(n.link))}</span><a class="lj-go" href="${esc(n.link)}" target="_blank" rel="noopener">Lexo artikullin ↗</a></p>
+      </div></article>`;
+  }
+  async function viewNews() {
+    const tab = store.get("lj.tab", "all");
+    const draw = (doc) => {
+      const items = (doc.items || []).filter((n) => tab === "all" || n.grp === tab);
+      const box = $("#ljList"); if (!box) return;
+      box.innerHTML = items.length ? items.map(newsCard).join("") : `<p class="muted" style="text-align:center;padding:30px 0">Lajmet shfaqen pas sinkronizimit të parë.</p>`;
+      const up = $("#ljUp"); if (up && doc.updated) up.textContent = "Përditësuar " + ago(doc.updated);
+      NewsImg.watch(box);
+    };
+    listPane.innerHTML = `
+      <header class="page-head"><a class="back-btn" href="#/kisha" aria-label="Kthehu">${icon("back")}</a><h1>Lajme Orthodhokse</h1>
+        <button class="icon-btn" id="ljRef" aria-label="Rifresko">${icon("refresh")}</button></header>
+      <a class="lj-gazeta" href="#/gazeta"><span class="lj-gz-t">Fjala e Shenjtë</span><span><b>Gazeta e sotme</b><small>Numri i ditës · format A2</small></span><i>›</i></a>
+      <div class="lj-tabs" role="tablist">${NEWS_GRP.map(([k, t]) => `<button role="tab" data-lj="${k}" aria-selected="${k === tab}">${t}</button>`).join("")}</div>
+      <p class="lj-up" id="ljUp"></p>
+      <div id="ljList" class="lj-list"><p class="muted" style="text-align:center;padding:30px 0">Po ngarkohen lajmet…</p></div>
+`;
+    enter(listPane);
+    mainPane.innerHTML = emptyMain();
+    setMode("list");
+    listPane.onclick = (e) => {
+      const t = e.target.closest("[data-lj]");
+      if (t) { haptic(6); store.set("lj.tab", t.dataset.lj); viewNews(); return; }
+      if (e.target.closest(".lj-go")) { e.preventDefault(); openSite(e.target.closest(".lj-go").href); return; }
+      const c = e.target.closest("[data-out]");
+      if (c) openSite(c.dataset.out);
+    };
+    $("#ljRef").onclick = async () => { $("#ljList").classList.add("loading"); draw(await newsLoad(true)); $("#ljList")?.classList.remove("loading"); };
+    if (newsDoc) draw(newsDoc);
+    draw(await newsLoad());
+  }
+
+  // =====================================================================
+  //  GAZETA — “Fjala e Shenjtë”, faqe e vetme A2 (420 × 594 mm) me faqosje si gazetat e vjetra:
+  //  kokë me shkronja gotike, 6 kolona, vija ndarëse, foto bardh e zi. Lajmet e ditës nga Kisha e Shqipërisë
+  //  dhe kishat e botës; çdo shkrim mban burimin e vet. Printohet / ruhet si PDF në A2.
+  // =====================================================================
+  const GZ_W = 1587, GZ_H = 2245;   // A2 në 96 dpi
+  // arkiva: një numër për çdo ditë (ruhet vetëm titulli, përmbledhja dhe lidhja; 14 ditët e fundit)
+  const GzArch = {
+    all() { return store.get("gz.arch", {}); },
+    save(day, items) {
+      const a = this.all();
+      a[day] = items.slice(0, 32).map((n) => ({ title: n.title, ex: n.ex, link: n.link, img: n.img, src: n.src, grp: n.grp, date: n.date, lang: n.lang }));
+      Object.keys(a).sort().reverse().slice(14).forEach((k) => delete a[k]);
+      store.set("gz.arch", a);
+    },
+  };
+  // madhësia më e madhe e shkrimit (në px) me të cilën elementi nxë ende në lartësinë e dhënë
+  // ndarja rrokjesore shqipe (vetëm për fjalë të gjata, ≥ 10 shkronja): vendos “ndarje të fshehta” (&shy;)
+  // që shfaqen si “-” VETËM kur rreshti përndryshe do të kishte hapësira të mëdha
+  const SQ_V = "aeiouyëAEIOUYË", SQ_DI = ["dh", "gj", "ll", "nj", "rr", "sh", "th", "xh", "zh"];
+  function sqHyph(w) {
+    if (w.length < 10 || /[^a-zA-ZçÇëË]/.test(w)) return w;
+    const isV = (c) => SQ_V.includes(c), out = [];
+    let last = 0;
+    for (let i = 4; i < w.length - 4; i++) {
+      if (!isV(w[i - 1]) || isV(w[i])) continue;           // pas një zanoreje, para bashkëtingëllores
+      let j = i; while (j < w.length && !isV(w[j])) j++;    // grupi i bashkëtingëlloreve
+      const cl = w.slice(i, j), n = cl.length;
+      if (j >= w.length - 2) break;
+      let cut = i;                                          // V-CV
+      if (n >= 2) { const lc = cl.toLowerCase(); cut = SQ_DI.includes(lc.slice(0, 2)) && n === 2 ? i : (SQ_DI.includes(lc.slice(-2)) || /[bdtkpgfv][rl]$/.test(lc) && n >= 3 ? j - 2 : j - 1); }   // VC-CV; digrafet dhe “dr, tr, bl…” bashkë
+      if (cut - last >= 4 && w.length - cut >= 4) { out.push(w.slice(last, cut)); last = cut; }
+      i = j;
+    }
+    out.push(w.slice(last));
+    return out.join("\u00AD");
+  }
+  function gzHyphenate(root) {
+    const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const nodes = []; while (tw.nextNode()) { const n = tw.currentNode; if (n.parentElement.closest("p, li")) nodes.push(n); }
+    nodes.forEach((n) => { n.nodeValue = n.nodeValue.replace(/[a-zA-ZçÇëË]{10,}/g, sqHyph); });
+  }
+  function gzFit(el, measure, target, min, max) {
+    let lo = min, hi = max;
+    for (let k = 0; k < 9; k++) { const mid = (lo + hi) / 2; el.style.fontSize = mid + "px"; if (measure() > target) hi = mid; else lo = mid; }
+    el.style.fontSize = lo + "px";
+  }
+  // seksionet e gazetës (renditja e faqeve)
+  const GZ_SECS = [
+    ["koash", "Kisha e Shqipërisë", "KOASH · orthodoxalbania.org"],
+    ["ugo", "Bota orthodhokse", "UGO.al"],
+    ["bota", "Kishat e botës", "Orthodox Times · OCA · Basilica.ro · anglisht"],
+    ["studime", "Studime, teologji dhe art", "Public Orthodoxy · Pemptousia · Orthodox Arts Journal · anglisht"],
+  ];
+  async function viewGazeta(dayArg) {
+    if (!$("#gzFonts")) {
+      const l = document.createElement("link"); l.id = "gzFonts"; l.rel = "stylesheet";
+      l.href = "https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Playfair+Display:wght@700;900&display=swap";
+      document.head.appendChild(l);
+    }
+    listPane.innerHTML = `
+      <header class="page-head"><a class="back-btn" href="#/kisha" aria-label="Kthehu">${icon("back")}</a><h1>Gazeta</h1>
+        <button class="icon-btn" id="gzZoom" aria-label="Zmadho">🔍</button></header>
+      <form class="gz-search" id="gzSearch" role="search"><input type="search" id="gzQ" placeholder="Kërko në të gjithë numrat e gazetës…" autocomplete="off" enterkeyhint="search"><button class="btn" aria-label="Kërko">${icon("search")}</button></form>
+      <div id="gzRes" class="gz-res" hidden></div>
+      <p class="gz-pc" id="gzPc"></p>
+      <div class="gz-wrap" id="gzWrap"><div class="gz-pages" id="gzPages"><div class="gz-sheet"><p class="gz-load">Po faqoset gazeta…</p></div></div></div>
+      <div class="gz-actions"><button class="btn primary" id="gzPrint">⬇ Shkarko PDF (A2)</button></div>`;
+    enter(listPane);
+    mainPane.innerHTML = emptyMain();
+    setMode("list");
+    const [docLive, ps] = await Promise.all([newsLoad(), load("psaltiri")]);
+    const pages = $("#gzPages"); if (!pages) return;
+    const today = isoToday();
+    if ((docLive.items || []).length) GzArch.save(today, docLive.items);
+    const arch = GzArch.all();
+    let srvDays = [];
+    try { const ix = await fetch(LIVE_BASE + "data/gazeta/index.json?t=" + Date.now(), { cache: "no-store", credentials: "omit" }).then((r) => (r.ok ? r.json() : null)); srvDays = (ix && ix.days) || []; } catch (e) { /* */ }
+    if (!srvDays.length) { try { const ix = await fetch("data/gazeta/index.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)); srvDays = (ix && ix.days) || []; } catch (e) { /* */ } }
+    const days = [...new Set([today, ...Object.keys(arch), ...srvDays])].sort().reverse().slice(0, 60);
+    const day = dayArg && days.includes(dayArg) ? dayArg : today;
+    if (dayArg === "arkiva") setTimeout(() => { const q = $("#gzQ"); if (q) { q.focus(); q.scrollIntoView({ block: "center" }); } }, 300);
+    let doc = docLive;
+    if (day !== today) {
+      doc = null;
+      for (const u of [LIVE_BASE + "data/gazeta/" + day + ".json", "data/gazeta/" + day + ".json"]) {
+        try { const j = await fetch(u, { cache: "no-store", credentials: "omit" }).then((r) => (r.ok ? r.json() : null)); if (j && j.items) { doc = j; break; } } catch (e) { /* */ }
+      }
+      doc = doc || (arch[day] ? { items: arch[day] } : { items: [] });
+    }
+    const now = day === today ? new Date() : new Date(day + "T09:00:00");
+    if (days.length > 1) {
+      const nav = document.createElement("div"); nav.className = "lj-tabs gz-days"; nav.setAttribute("aria-label", "Arkiva e numrave");
+      nav.innerHTML = days.map((d) => `<a role="tab" href="#/gazeta/${d}" aria-selected="${d === day}">${d === today ? "Sot" : (+d.slice(8)) + " " + MUAJT[+d.slice(5, 7) - 1].slice(0, 3)}</a>`).join("");
+      $("#gzPc").before(nav);
+    }
+    const doy = Math.max(1, Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(2026, 10, 16)) / 864e5) + 1);   // Nr. 1 = 16 nëntor 2026
+    const DIT = ["E Diel", "E Hënë", "E Martë", "E Mërkurë", "E Enjte", "E Premte", "E Shtunë"];
+    const dateTxt = `${DIT[now.getDay()]}, ${now.getDate()} ${MUAJT[now.getMonth()]} ${now.getFullYear()}`;
+    let verse = null;
+    if (ps) {
+      const pool = []; ps.psalms.forEach((p) => p.v.forEach((v, i) => { if (v.length > 50 && v.length < 170) pool.push([p, i]); }));
+      const di = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 864e5);
+      const [p, vi] = pool[(di * 7919) % pool.length]; verse = { t: ortho(p.v[vi]), r: psalmRef(p.n, vi + 1) };
+    }
+    let feast = "", fast = "";
+    try { const f = Fast.info(now); feast = f.feast || (Today.data && Today.data.title) || ""; fast = f.level && f.level.cls !== "free" ? f.level.name + (f.period ? " · " + f.period : "") : (f.period || "Pa kreshmë"); } catch (e) { /* */ }
+
+    const items = (doc.items || []).map((n, i) => Object.assign({ _i: i }, n));
+    const by = (g) => items.filter((n) => n.grp === g);
+    const koash = by("koash"), ugo = by("ugo"), bota = by("bota");
+    const lead = koash.find((n) => n.img) || ugo.find((n) => n.img) || items[0];
+    const second = ugo.find((n) => n.img && n !== lead) || bota.find((n) => n.img && n !== lead) || by("studime").find((n) => n.img && n !== lead);
+    const rest = (arr) => arr.filter((n) => n !== lead && n !== second);
+    const srcLine = (n) => `<p class="gz-src">Burimi: ${esc(NEWS_SRC[n.src] || n.src)} · <a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(domainOf(n.link))}</a></p>`;
+    const dropcap = (t) => t ? `<span class="gz-dc">${esc(t[0])}</span>${esc(t.slice(1))}` : "";
+    const art = (n, photo, cap) => `<article class="gz-art" data-i="${n._i}" data-g="${n.grp}">
+        <h4><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a></h4>
+        ${n.img && photo ? `<div class="gz-ph"><img data-ns="${esc(n.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}
+        ${n.ex ? `<p>${cap ? dropcap(n.ex) : esc(n.ex)}</p>` : ""}${srcLine(n)}</article>`;
+    const sec = (g, arr) => { const S = GZ_SECS.find((x) => x[0] === g); return arr.length ? `<section class="gz-sec"><h3 class="gz-sh"><span>${S[1]}</span><small>${esc(S[2].split(" · ")[0])}</small></h3><div class="gz-flow">${arr.map((n, k) => art(n, k < 2, k === 0)).join("")}</div></section>` : ""; };
+    if (day === today) store.set("gz.seen", today);
+
+    // ---------- Faqja 1 ----------
+    const sheet = document.createElement("div"); sheet.className = "gz-sheet"; sheet.setAttribute("lang", "sq");
+    sheet.innerHTML = `
+      <header class="gz-mast">
+        <div class="gz-ears"><div class="gz-ear"><b>Sot në Kishë</b>${esc(feast || "Dita e Zotit")}<small>${esc(fast)}</small></div>
+          <h1 class="gz-title">Fjala e Shenjtë</h1>
+          <div class="gz-ear r"><b>Vargu i ditës</b>${verse ? `“${esc(verse.t)}”<small>${esc(verse.r)}</small>` : ""}</div></div>
+        <p class="gz-tag">Gazetë e përditshme orthodhokse · Lajme nga Kisha e Shqipërisë dhe nga kishat e botës</p>
+        <div class="gz-bar"><span>Viti I · Nr. ${doy}</span><span>${dateTxt}</span><span>Botim i aplikacionit «Fjala e Shenjtë»</span><span id="gzPgs">Faqe 1</span></div>
+      </header>
+      <div class="gz-top">
+        ${lead ? `<article class="gz-lead" data-i="${lead._i}"><p class="gz-kick">${esc(NEWS_SRC[lead.src] || "")} · ${esc(fmtDate(lead.date || now))}</p><h2><a href="${esc(lead.link)}" target="_blank" rel="noopener">${esc(lead.title)}</a></h2>
+          ${lead.img ? `<div class="gz-ph big"><img data-ns="${esc(lead.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}
+          <div class="gz-lead-tx${(lead.ex || "").length < 420 ? " short" : ""}"><p>${dropcap(lead.ex)}</p>${srcLine(lead)}</div></article>` : ""}
+        <aside class="gz-side">
+          ${second ? `<article class="gz-art gz-second" data-i="${second._i}"><h4><a href="${esc(second.link)}" target="_blank" rel="noopener">${esc(second.title)}</a></h4>${second.img ? `<div class="gz-ph"><img data-ns="${esc(second.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}<p>${esc(second.ex)}</p>${srcLine(second)}</article>` : ""}
+          <div class="gz-briefs" id="gzBriefs"><b>Shkurtimisht</b><ul></ul></div>
+          <div class="gz-box" id="gzIndex"><b>Në këtë numër</b><ol></ol></div>
+        </aside>
+      </div>
+      <div class="gz-secs">${sec("koash", rest(koash))}${sec("ugo", rest(ugo))}${sec("bota", rest(bota))}</div>
+      <footer class="gz-foot"><span>Fjala e Shenjtë · Viti I · Nr. ${doy}</span><span>Themelues dhe autor: Minuel Çollaku</span><span>Faqe 1</span></footer>`;
+    pages.innerHTML = ""; pages.appendChild(sheet);
+    gzHyphenate(sheet);
+    await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]);
+    const secs = $(".gz-secs", sheet);
+    const leadEl = $(".gz-lead", sheet), side = $(".gz-side", sheet), briefs = $("#gzBriefs ul", sheet);
+    const longest = () => $$(".gz-flow", sheet).filter((f) => f.children.length > 2).sort((a, b) => b.children.length - a.children.length)[0];
+    const toBrief = (a) => { const h = $("h4 a", a), sr = $(".gz-src", a); const li = document.createElement("li"); li.dataset.i = a.dataset.i; li.innerHTML = `<a href="${h.getAttribute("href")}" target="_blank" rel="noopener">${h.innerHTML}</a><small>${sr ? sr.firstChild.textContent.replace(/·\s*$/, "").trim() : ""}</small>`; briefs.appendChild(li); a.remove(); };
+    if (leadEl && side && briefs) {
+      const used = () => { const l = side.lastElementChild; return l.offsetTop + l.offsetHeight - side.offsetTop; };
+      const leadUsed = () => { const l = leadEl.lastElementChild; return l.offsetTop + l.offsetHeight - leadEl.offsetTop; };
+      $("#gzIndex ol", sheet).innerHTML = GZ_SECS.map((S) => `<li>${S[1]}<span>…</span></li>`).join("");
+      for (let k = 0; k < 12 && used() < leadUsed() - 70; k++) { const f = longest(); if (!f) break; toBrief(f.lastElementChild); }
+      if (!briefs.children.length) $("#gzBriefs", sheet).remove();
+      const ltx = $(".gz-lead-tx", leadEl);
+      if (ltx) gzFit(ltx, leadUsed, used(), 17, 30);
+    }
+    if (secs) {
+      const avail = GZ_H - 44 - 46 - secs.offsetTop;
+      secs.style.height = avail + "px";
+      $$(".gz-sec", secs).forEach((sc) => {
+        const f = $(".gz-flow", sc);
+        const need = () => f.offsetTop - sc.offsetTop + f.offsetHeight;
+        for (let k = 0; k < 60 && need() > avail && f.children.length > 1; k++) f.lastElementChild.remove();   // vazhdojnë në faqet e brendshme
+        if (need() < avail - 6) gzFit(f, need, avail - 4, 16, 27);
+      });
+    }
+
+    // ---------- Faqet e brendshme: gjithë materiali që mbetet, pa kufi ----------
+    const placed = new Set($$("[data-i]", sheet).map((e) => +e.dataset.i));
+    const left = GZ_SECS.flatMap(([g]) => items.filter((n) => n.grp === g && !placed.has(n._i)))
+      .concat(items.filter((n) => !placed.has(n._i) && !GZ_SECS.some((S) => S[0] === n.grp)));
+    const secPages = {};
+    GZ_SECS.forEach(([g]) => { if (items.some((n) => n.grp === g && placed.has(n._i))) secPages[g] = [1]; });
+    const mkInner = (no) => {
+      const sh = document.createElement("div"); sh.className = "gz-sheet gz-inner"; sh.setAttribute("lang", "sq");
+      sh.innerHTML = `<header class="gz-run"><span>Viti I · Nr. ${doy}</span><span class="gz-run-t">Fjala e Shenjtë</span><span>${dateTxt} · Faqe ${no}</span></header><div class="gz-body"></div><footer class="gz-foot"><span>Fjala e Shenjtë · Viti I · Nr. ${doy}</span><span>Themelues dhe autor: Minuel Çollaku</span><span>Faqe ${no}</span></footer>`;
+      pages.appendChild(sh); return sh;
+    };
+    // radha e materialit: titujt e seksioneve (h) dhe shkrimet (a)
+    let queue = [], lastG = null, perG = {};
+    const hEntry = (g, cont) => { const S = GZ_SECS.find((x) => x[0] === g) || [g, "Të tjera", ""]; return { t: "h", g, html: `<h3 class="gz-sh" data-g="${g}"><span>${S[1]}${cont ? " <em>(vijon)</em>" : ""}</span><small>${esc(S[2])}</small></h3>` }; };
+    left.forEach((n) => {
+      if (n.grp !== lastG) { queue.push(hEntry(n.grp, !!secPages[n.grp])); lastG = n.grp; perG[n.grp] = 0; }
+      queue.push({ t: "a", g: n.grp, n, k: perG[n.grp]++ });
+    });
+    // kolofoni (në fund të numrit)
+    const srcs = [...new Set(items.map((n) => NEWS_SRC[n.src] || n.src))];
+    queue.push({ t: "c", html: `<aside class="gz-colo"><b>Kolofoni</b><p><i>Fjala e Shenjtë</i> — gazetë e përditshme orthodhokse. Viti I, Nr. ${doy}, ${dateTxt}.</p><p>Themelues dhe autor: <b>Minuel Çollaku</b>.</p><p>Faqosur nga aplikacioni «Fjala e Shenjtë». Shkrimet janë përmbledhje të botuara nga vetë burimet: ${esc(srcs.join(", "))}. Çdo shkrim i përket burimit të shënuar poshtë tij.</p></aside>` });
+    // shkrimi kryesor i faqes: foto e madhe në krye, sipër të gjitha kolonave (majtas / djathtas me radhë)
+    const feature = (n, flip) => `<article class="gz-feat${flip ? " flip" : ""}" data-i="${n._i}" data-g="${n.grp}">
+        <div class="gz-ph"><img data-ns="${esc(n.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>
+        <div class="gz-feat-tx"><p class="gz-kick">${esc((GZ_SECS.find((x) => x[0] === n.grp) || [, ""])[1])} · ${esc(NEWS_SRC[n.src] || n.src)}</p><h2><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a></h2>${n.ex ? `<p>${dropcap(n.ex)}</p>` : ""}${srcLine(n)}</div></article>`;
+    const render = (e) => e.t === "a" ? art(e.n, e.n.img && e.k % 3 === 1, e.k === 0) : e.html;
+    let no = 1;
+    for (let guard = 0; queue.length && guard < 24; guard++) {
+      no++;
+      const sh = mkInner(no), body = $(".gz-body", sh);
+      // faqosja sipas materialit: studimet në 4 kolona me shkronja më të mëdha, lajmet në 5
+      const firstA = queue.find((e) => e.t === "a");
+      const essay = firstA && firstA.g === "studime";
+      body.classList.toggle("essay", !!essay);
+      // shkrimi kryesor: i pari me foto ndër 4 të parët e faqes
+      const fi = queue.slice(0, 5).findIndex((e) => e.t === "a" && e.n.img);
+      let featHtml = "";
+      if (fi >= 0 && queue.length > 4) { featHtml = feature(queue[fi].n, no % 2 === 1); var featE = queue.splice(fi, 1)[0]; } else featE = null;
+      body.innerHTML = featHtml + queue.map(render).join("");
+      gzHyphenate(body);
+      const W = body.clientWidth;
+      const kids = [...body.children].filter((e) => !e.classList.contains("gz-feat"));
+      let cut = kids.findIndex((e) => e.offsetLeft >= W - 2 || e.offsetTop + e.offsetHeight > body.clientHeight + 2 && e.offsetLeft + e.offsetWidth > W - 2);
+      if (cut > 0 && kids[cut - 1].tagName === "H3") cut--;                 // titulli i seksionit nuk mbetet vetëm në fund
+      const stay = cut < 0 ? kids.length : Math.max(1, cut);
+      kids.slice(stay).forEach((e) => e.remove());
+      [featE, ...queue.slice(0, stay)].forEach((e) => { if (e && e.g) (secPages[e.g] = secPages[e.g] || []).includes(no) || secPages[e.g].push(no); });
+      queue = queue.slice(stay);
+      if (queue.length && queue[0].t === "a") queue.unshift(hEntry(queue[0].g, true));   // seksioni vazhdon në faqen tjetër
+      if (!queue.length) gzFit(body, () => { const l = body.lastElementChild; return l.offsetLeft >= W - 2 ? 1e9 : 0; }, 1, essay ? 18 : 16, essay ? 24 : 22);
+    }
+    const total = pages.children.length;
+    $("#gzPgs", sheet).textContent = total > 1 ? `${total} faqe` : "Faqe 1";
+    const ix = $("#gzIndex ol", sheet);
+    if (ix) ix.innerHTML = GZ_SECS.filter(([g]) => secPages[g]).map(([g, t]) => `<li>${t}<span>faqe ${secPages[g].join(", ")}</span></li>`).join("");
+    $("#gzPc").textContent = `${total} faqe · ${items.length} shkrime · ${dateTxt}`;
+
+    NewsImg.watch(pages);
+    let zoom = 0;
+    const fit = () => {
+      const w = $("#gzWrap"); if (!w) return removeEventListener("resize", fit);
+      const sc = zoom ? [0, 0.62, 1][zoom] : w.clientWidth / GZ_W;
+      pages.style.transform = `scale(${sc})`; w.style.height = Math.ceil(pages.offsetHeight * sc) + "px";
+      w.classList.toggle("zoomed", !!zoom);
+    };
+    fit(); addEventListener("resize", fit, { passive: true });
+    $("#gzZoom").onclick = () => { zoom = (zoom + 1) % 3; haptic(6); fit(); };
+    // kërkimi: titujt dhe përmbledhjet e të gjithë numrave (në telefon + arkiva e faqes)
+    let all = null;
+    const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const loadAll = async () => {
+      if (all) return all;
+      const map = { [today]: docLive.items || [] };
+      Object.keys(arch).forEach((d) => (map[d] = map[d] || arch[d]));
+      await Promise.all(days.filter((d) => !map[d]).map(async (d) => {
+        for (const u of [LIVE_BASE + "data/gazeta/" + d + ".json", "data/gazeta/" + d + ".json"]) {
+          try { const j = await fetch(u, { credentials: "omit" }).then((r) => (r.ok ? r.json() : null)); if (j && j.items) { map[d] = j.items; return; } } catch (e) { /* */ }
+        }
+      }));
+      all = []; const seenL = new Set();
+      Object.keys(map).sort().reverse().forEach((d) => map[d].forEach((n) => { if (seenL.has(n.link)) return; seenL.add(n.link); all.push(Object.assign({ day: d, _t: norm(n.title + " " + n.ex) }, n)); }));
+      return all;
+    };
+    const res = $("#gzRes");
+    const search = async () => {
+      const q = norm($("#gzQ").value.trim());
+      if (q.length < 2) { res.hidden = true; return; }
+      res.hidden = false; res.innerHTML = `<p class="muted">Po kërkoj…</p>`;
+      const words = q.split(/\s+/), list = (await loadAll()).filter((n) => words.every((w) => n._t.includes(w))).slice(0, 60);
+      res.innerHTML = list.length ? `<p class="gz-res-n">${list.length} shkrime</p>` + list.map((n) => `<a class="gz-hit" data-out="${esc(n.link)}"><small>${esc(fmtDate(n.day))} · ${esc(NEWS_SRC[n.src] || n.src)}</small><b>${esc(n.title)}</b><span>${esc(shortText(n.ex || "", 140))}</span><em data-day="${n.day}">Hap numrin e asaj dite ›</em></a>`).join("")
+        : `<p class="muted">Asnjë shkrim për «${esc($("#gzQ").value.trim())}».</p>`;
+    };
+    $("#gzSearch").onsubmit = (e) => { e.preventDefault(); $("#gzQ").blur(); search(); };
+    let st = 0; $("#gzQ").addEventListener("input", () => { clearTimeout(st); st = setTimeout(search, 300); });
+    res.onclick = (e) => {
+      const d = e.target.closest("[data-day]"); if (d) { location.hash = "#/gazeta/" + d.dataset.day; return; }
+      const o = e.target.closest("[data-out]"); if (o) openSite(o.dataset.out);
+    };
+    // PDF: të gjitha faqet A2, një për çdo fletë
+    $("#gzPrint").onclick = () => {
+      const root = document.createElement("div"); root.id = "gzPrintRoot";
+      [...pages.children].forEach((sh) => { const c = sh.cloneNode(true); c.querySelectorAll("img[data-ns]").forEach((im) => { im.src = im.dataset.ns; im.removeAttribute("data-ns"); }); root.appendChild(c); });
+      document.body.appendChild(root); document.body.classList.add("gz-printing");
+      const done = () => { document.body.classList.remove("gz-printing"); root.remove(); };
+      setTimeout(() => {
+        if (android && android.printPage) { android.printPage("Gazeta Fjala e Shenjte " + day, true); setTimeout(done, 6000); }
+        else { addEventListener("afterprint", done, { once: true }); window.print(); }
+      }, 900);
+    };
+  }
+
+  // =====================================================================
+  //  SHKOLLA E MUZIKËS BIZANTINE · Kori bizantin «Shën Joan Kukuzeli»
+  //  Pjesët e reja nga YouTube (RSS publik i kanalit, sinkronizim automatik + njoftim në Android),
+  //  botimet / njoftimet / fotot që shton shkolla (dosja shkolla_e_re\), dhe lidhjet zyrtare.
+  // =====================================================================
+  const SHKOLLA = {
+    yt: "https://youtube.com/@theodhorpecikoribizantin",
+    fb: "https://www.facebook.com/share/1GNw3ZbJv8/",
+    ig: "https://www.instagram.com/byzanmusicschool.al",
+    rss: "https://www.youtube.com/feeds/videos.xml?channel_id=UC57U8o2eBLgiDdWq40vKcsQ",
+  };
+  function parseYtRss(xml) {
+    const d = new DOMParser().parseFromString(xml, "text/xml");
+    return [...d.getElementsByTagName("entry")].map((e) => {
+      const g = (t) => (e.getElementsByTagName(t)[0] || {}).textContent || "";
+      const id = g("yt:videoId");
+      return id ? { id, title: g("title"), date: g("published"), ex: shortText(g("media:description"), 200) } : null;
+    }).filter(Boolean);
+  }
+  async function shkollaLoad() {
+    const doc = (await liveJson("shkolla")) || { videos: [], posts: [] };
+    // në Android: lista e freskët direkt nga YouTube (pa CORS)
+    if (android && android.fetchText) {
+      try { const v = parseYtRss(await fetchHtml(SHKOLLA.rss)); if (v.length) doc.videos = v; } catch (e) { /* */ }
+    }
+    return doc;
+  }
+  async function viewShkolla() {
+    const tab = store.get("mz.tab", "pjeset");
+    listPane.innerHTML = `
+      <header class="page-head"><a class="back-btn" href="#/kisha" aria-label="Kthehu">${icon("back")}</a><h1>Shkolla e Muzikës</h1></header>
+      <section class="mz-hero">
+        <div class="mz-neume" aria-hidden="true">𝁆</div>
+        <p class="mz-kick">Shkolla e Muzikës Bizantine</p>
+        <h2>Kori bizantin «Shën Joan Kukuzeli»</h2>
+        <div class="mz-links">
+          <button class="mz-l yt" data-out="${SHKOLLA.yt}">▶ YouTube</button>
+          <button class="mz-l fb" data-out="${SHKOLLA.fb}">f Facebook</button>
+          <button class="mz-l ig" data-out="${SHKOLLA.ig}">◎ Instagram</button>
+        </div>
+      </section>
+      <section class="mz-about">
+        <h3>Rreth shkollës</h3>
+        <ul>
+          <li><b>22 tetor 2026</b> Kryepiskopi Joan inauguroi godinën e re të Shkollës së Muzikës Bizantine në Tiranë dhe bekoi me Ajazmë fillimin e vitit akademik 2026–2027. Shkolla përgatit psaltë për kishat tona. <a data-out="https://orthodoxalbania.org/2026/2026/10/22/radio-ngjallja-sot-fortlumturia-e-tij-joani-kryepiskop-i-tiranes-durresit-dhe-i-gjithe-shqiperise-kreu-inagurimin-e-godines-se-re-te-shkolles-se-muzikes-bizantine-ne-tirane/">Burimi: KOASH ↗</a></li>
+          <li><b>1998</b> Kori bizantin «Shën Joan Kukuzeli» u themelua me bekimin e Kryepiskopit Anastas. <a data-out="${SHKOLLA.yt}">Burimi: kanali i Korit ↗</a></li>
+        </ul>
+      </section>
+      <div class="lj-tabs" role="tablist">${[["pjeset", "🎼 Pjesët e reja"], ["botime", "📜 Botime e njoftime"], ["galeria", "🖼 Galeria"]].map(([k, t]) => `<button role="tab" data-mz="${k}" aria-selected="${k === tab}">${t}</button>`).join("")}</div>
+      <div id="mzBox" class="mz-box"><p class="muted" style="text-align:center;padding:30px 0">Po ngarkohen…</p></div>`;
+    enter(listPane);
+    mainPane.innerHTML = emptyMain();
+    setMode("list");
+    listPane.onclick = (e) => {
+      const t = e.target.closest("[data-mz]");
+      if (t) { haptic(6); store.set("mz.tab", t.dataset.mz); viewShkolla(); return; }
+      const v = e.target.closest("[data-vid]");
+      if (v) { playSchoolVideo(v.dataset.vid, v.dataset.t); v.classList.remove("new"); return; }
+      const o = e.target.closest("[data-out]");
+      if (o) openSite(o.dataset.out);
+    };
+    const doc = await shkollaLoad();
+    const box = $("#mzBox"); if (!box) return;
+    const seen = new Set(store.get("mz.seen", []));
+    if (tab === "pjeset") {
+      const vs = doc.videos || [];
+      box.innerHTML = vs.length ? `<div class="mz-grid">${vs.map((v, k) => `<button class="mz-v${seen.size && !seen.has(v.id) ? " new" : ""}${k === 0 ? " first" : ""}" data-vid="${esc(v.id)}" data-t="${esc(v.title)}">
+          <span class="mz-th"><img data-ns="https://i.ytimg.com/vi/${esc(v.id)}/${k === 0 ? "hqdefault" : "mqdefault"}.jpg" alt="" decoding="async"><i>▶</i></span>
+          <b>${esc(v.title)}</b><small>${esc(fmtDate(v.date))}</small></button>`).join("")}</div>`
+        : `<p class="muted" style="text-align:center;padding:30px 0">Pjesët shfaqen kur ka internet.</p>`;
+      store.set("mz.seen", vs.map((v) => v.id));
+    } else if (tab === "botime") {
+      const ps = (doc.posts || []).filter((p) => p.text || p.title);
+      const ki = doc.kisha || [];
+      const kHtml = ki.length ? `<h3 class="mz-h">Nga faqja e Kishës</h3>${ki.map((n) => `<article class="lj-card g-koash" data-out="${esc(n.link)}">${n.img ? `<div class="lj-ph"><img data-ns="${esc(n.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}<div class="lj-b"><p class="lj-meta"><span class="lj-tag">KOASH</span><span>${esc(fmtDate(n.date))}</span></p><h3>${esc(n.title)}</h3><p class="lj-ex">${esc(n.ex)}</p><p class="lj-foot"><span>Burimi: <b>${esc(n.src)}</b></span><a class="lj-go" data-out="${esc(n.link)}">Lexo ↗</a></p></div></article>`).join("")}` : "";
+      box.innerHTML = kHtml + (ps.length ? `<h3 class="mz-h">Nga shkolla</h3>` : "") + (ps.length ? ps.map((p) => `<article class="mz-post">${p.img ? `<div class="lj-ph"><img data-ns="${esc(p.img)}" alt="" decoding="async"></div>` : ""}<div class="lj-b"><p class="lj-meta"><span class="lj-tag">Shkolla</span><span>${esc(fmtDate(p.date))}</span></p>${p.title ? `<h3>${esc(p.title)}</h3>` : ""}${p.text ? `<p class="mz-tx">${esc(p.text)}</p>` : ""}${p.link ? `<p class="lj-foot"><span></span><a class="lj-go" data-out="${esc(p.link)}">Hap postimin ↗</a></p>` : ""}</div></article>`).join("")
+        : ki.length ? "" : `<div class="mz-empty"><b>Ende pa botime këtu</b><p>Botimet, njoftimet për koncerte dhe pjesët e reja të shkollës shfaqen këtu sapo shtohen. Ndërkohë i gjen te faqet zyrtare:</p><div class="mz-links"><button class="mz-l fb" data-out="${SHKOLLA.fb}">f Facebook</button><button class="mz-l ig" data-out="${SHKOLLA.ig}">◎ Instagram</button></div></div>`);
+    } else {
+      const ph = (doc.posts || []).filter((p) => p.img);
+      box.innerHTML = ph.length ? `<div class="mz-gal">${ph.map((p) => `<figure><img data-ns="${esc(p.img)}" alt="${esc(p.title || "")}" decoding="async">${p.title ? `<figcaption>${esc(p.title)}</figcaption>` : ""}</figure>`).join("")}</div>`
+        : `<div class="mz-empty"><b>Galeria mbushet së shpejti</b><p>Fotot nga shërbesat, provat dhe koncertet e Korit shfaqen këtu.</p><div class="mz-links"><button class="mz-l ig" data-out="${SHKOLLA.ig}">◎ Shih te Instagram</button></div></div>`;
+    }
+    NewsImg.watch(box);
+  }
+  function playSchoolVideo(id, title) {
+    try { if (window.Music && Music.pause) Music.pause(); if (window.Radio && Radio.playing) Radio.stop(); } catch (e) { /* */ }
+    if (android && android.openVideo) { android.openVideo("https://www.youtube.com/watch?v=" + id, title || "Kori bizantin"); return; }
+    const el = document.createElement("div");
+    el.className = "sheet mz-player";
+    el.innerHTML = `<div class="sheet-card"><div class="mz-frame"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&modestbranding=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen title="${esc(title || "")}"></iframe></div>
+      <p class="mz-pt">${esc(title || "")}</p><button class="btn" data-x>Mbyll</button></div>`;
+    document.body.appendChild(el);
+    el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-x]")) el.remove(); });
   }
 
   // ---------- Sfida 40 ditëshe ----------
@@ -4220,7 +4746,7 @@ function pickPhoto(it) {
       $("#knrPrev", el).addEventListener("click", () => go(-1));
       $("#knrNext", el).addEventListener("click", () => go(1));
     };
-    const go = (d) => { const n = i + d; if (n < 0 || n >= sec.items.length) return; i = n; haptic(10); render(d > 0 ? "fwd" : "bwd"); };
+    const go = (d) => { const n = i + d; if (n < 0 || n >= sec.items.length) return; i = n; render(d > 0 ? "fwd" : "bwd"); };
     const close = () => { el.classList.remove("open"); setTimeout(() => el.remove(), 300); };
     let x0 = null, y0 = null;
     el.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
@@ -5073,7 +5599,7 @@ function pickPhoto(it) {
     enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
     const orb = $("#brOrb"), word = $("#brWord"), sub = $("#brSub"), lvl = $("#brLevel");
     const hintIdle = () => { sub.textContent = mode === "mic"
-      ? "Mbaje telefonin afër (rreth një pëllëmbë) dhe merr frymë natyrshëm. Kur thith, thuaj në zemër “" + IN_T + "”; kur nxjerr, “" + OUT_T + "”. Zëri nuk regjistrohet."
+      ? "Mbaje telefonin afër gojës (mikrofoni është poshtë) dhe merr frymë natyrshëm; çdo nxjerrje e frymës numërohet. Kur thith, thuaj në zemër “" + IN_T + "”; kur nxjerr, “" + OUT_T + "”. Zëri nuk regjistrohet."
       : "Thith ngadalë: “" + IN_T + "”. Nxirr ngadalë: “" + OUT_T + "”."; };
     hintIdle();
     $$("[data-min]", listPane).forEach((x) => x.addEventListener("click", () => {
@@ -5127,41 +5653,63 @@ function pickPhoto(it) {
       }
       if (!run) { stream.getTracks().forEach((t) => t.stop()); return; }
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
       const src = ctx.createMediaStreamSource(stream);
-      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 250;     // pa gumëzhimën e dhomës
-      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 6000;
-      const an = ctx.createAnalyser(); an.fftSize = 1024; an.smoothingTimeConstant = 0.3;
-      src.connect(hp); hp.connect(lp); lp.connect(an);
-      Object.assign(run, { stream, ctx, an, buf: new Float32Array(an.fftSize), floor: 0, cal: [], calUntil: Date.now() + 1500,
-        on: false, phase: "out", burstAt: 0, quietAt: Date.now(), lvl: 0, lastBurst: 0 });
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 180;      // pa gumëzhimën e dhomës / dorës
+      const an = ctx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = 0.15;
+      src.connect(hp); hp.connect(an);
+      const bin = ctx.sampleRate / an.fftSize, b0 = Math.round(250 / bin), b1 = Math.round(4500 / bin);
+      // Fryma është zhurmë e gjerë (spektër i sheshtë) 250–4500 Hz; zëri dhe muzika kanë tone (spektër me maja).
+      // Pragjet mësohen vetë: “dyshemeja” (zhurma e dhomës) dhe “majat” e frymëve të fundit → punon në çdo telefon e largësi.
+      Object.assign(run, { stream, ctx, an, spec: new Float32Array(an.frequencyBinCount), floor: 0, peak: 0, cal: [], calUntil: Date.now() + 1800,
+        on: false, phase: "in", burstAt: 0, quietAt: Date.now(), env: 0, burstMax: 0, peaks: [], lastOut: 0 });
       orb.classList.add("mic");
+      setPhase("in", 2600);
       word.textContent = "Po dëgjoj zhurmën e dhomës…"; sub.textContent = "Qëndro në heshtje për një çast.";
       const loop = () => {
         if (!alive()) return stop(false);
         if (Date.now() >= run.end) return stop(true);
-        run.an.getFloatTimeDomainData(run.buf);
-        let sum = 0; for (let k = 0; k < run.buf.length; k++) sum += run.buf[k] * run.buf[k];
-        const rms = Math.sqrt(sum / run.buf.length);
-        run.lvl = run.lvl * 0.8 + rms * 0.2;
+        run.an.getFloatFrequencyData(run.spec);
+        let e = 0, lg = 0, n = 0;
+        for (let k = b0; k <= b1; k++) { const p = Math.pow(10, run.spec[k] / 10); e += p; lg += Math.log(p + 1e-20); n++; }
+        const mean = e / n, flat = Math.exp(lg / n) / (mean + 1e-20);      // 0 = ton i pastër, 1 = zhurmë e bardhë
+        const lvlDb = 10 * Math.log10(mean + 1e-20);
+        // mbështjellëse: ngrihet shpejt, bie ngadalë (fryma s'ndërpritet nga dridhjet e vogla)
+        run.env = lvlDb > run.env ? run.env * 0.4 + lvlDb * 0.6 : run.env * 0.9 + lvlDb * 0.1;
         const now = Date.now();
-        if (now < run.calUntil) { run.cal.push(rms); run.raf = requestAnimationFrame(loop); return; }
+        if (now < run.calUntil) { run.cal.push(lvlDb); run.env = lvlDb; run.raf = requestAnimationFrame(loop); return; }
         if (!run.floor) {
-          const c = run.cal.sort((x, y) => x - y); run.floor = c[Math.floor(c.length * 0.5)] || 0.002;
-          word.textContent = "Merr frymë…"; sub.textContent = "Kur thith dhe kur nxjerr, rrethi të ndjek ty.";
+          const c = run.cal.sort((x, y) => x - y); run.floor = c[Math.floor(c.length * 0.4)] || -90; run.peak = run.floor + 18;
+          word.textContent = IN_T; sub.textContent = "Thith dhe nxirr natyrshëm, me telefonin afër gojës. Çdo nxjerrje e frymës është një lutje.";
         }
-        if (!run.on) run.floor = run.floor * 0.995 + Math.min(rms, run.floor * 1.5) * 0.005;   // zhurma e dhomës ndryshon ngadalë
-        const onT = run.floor * 2.4 + 0.0025, offT = run.floor * 1.6 + 0.0015;
-        lvl.style.transform = `scale(${Math.min(1.6, 1 + (run.lvl - run.floor) * 40).toFixed(3)})`;
-        if (!run.on && run.lvl > onT && now - run.quietAt > 250) {
-          run.on = true; run.burstAt = now;
-          run.phase = run.phase === "in" ? "out" : "in";                  // frymët alternohen: thith → nxirr
-          setPhase(run.phase, run.phase === "in" ? 2600 : 3600); haptic(8);
-        } else if (run.on && run.lvl < offT && now - run.burstAt > 450) {
-          run.on = false; run.quietAt = now;
-          if (run.phase === "out") { run.n++; $("#brCount").textContent = run.n; }
-          else setPhase("hold");
+        if (!run.on) run.floor = Math.min(run.floor * 0.997 + run.env * 0.003, run.env < run.floor ? run.env : Infinity);   // dhoma ndryshon ngadalë
+        const span = Math.max(8, run.peak - run.floor);
+        const onT = run.floor + Math.max(6, span * 0.32), offT = run.floor + Math.max(3.5, span * 0.18);
+        const breathy = flat > 0.12;                                       // zhurmë frymë, jo zë / muzikë
+        lvl.style.transform = `scale(${(1 + Math.max(0, Math.min(1, (run.env - run.floor) / span)) * 0.6).toFixed(3)})`;
+        if (!run.on && run.env > onT && breathy && now - run.quietAt > 180) {
+          run.on = true; run.burstAt = now; run.burstMax = run.env;
+        } else if (run.on) {
+          run.burstMax = Math.max(run.burstMax, run.env);
+          const dur = now - run.burstAt;
+          // fillimi i nxjerrjes (pas 220 ms, që të mos e kapë një prekje / klikim)
+          if (dur > 220 && run.phase !== "out") { run.phase = "out"; setPhase("out", 3600); }
+          if (run.env < offT || dur > 9000) {
+            run.on = false; run.quietAt = now;
+            if (dur > 300) {
+              // frymë e butë (thithje e dëgjueshme, < 45% e frymëve të zakonshme) nuk numërohet si lutje
+              const med = run.peaks.length ? run.peaks.slice().sort((x, y) => x - y)[run.peaks.length >> 1] : run.burstMax;
+              const soft = run.peaks.length >= 3 && run.burstMax - run.floor < (med - run.floor) * 0.45;
+              if (!soft && now - run.lastOut > 900) {
+                run.n++; $("#brCount").textContent = run.n; run.lastOut = now;
+                run.peaks.push(run.burstMax); if (run.peaks.length > 8) run.peaks.shift();
+                run.peak = run.peak * 0.6 + run.burstMax * 0.4;
+              }
+            }
+            run.phase = "in"; setPhase("in", 2600);                     // pas nxjerrjes vjen thithja
+          }
         }
-        if (!run.on && now - run.quietAt > 12000) { sub.textContent = "Nuk po dëgjoj frymë: afroje telefonin pak më shumë."; run.quietAt = now - 6000; }
+        if (!run.on && now - run.quietAt > 12000) { sub.textContent = "Nuk po dëgjoj frymë: afroje telefonin te goja (mikrofoni është poshtë) dhe nxirr frymën pak më fort."; run.quietAt = now - 6000; run.peak = Math.max(run.floor + 8, run.peak - 4); }
         run.raf = requestAnimationFrame(loop);
       };
       loop();
@@ -5169,7 +5717,6 @@ function pickPhoto(it) {
     orb.addEventListener("click", () => {
       if (run) {
         // në mënyrën me mikrofon: prekja e rrethit gjatë lutjes rregullon fazën (thithje ↔ nxjerrje)
-        if (run.an && run.floor) { run.phase = run.phase === "in" ? "out" : "in"; setPhase(run.phase, 1200); haptic(12); return; }
         return stop(false);
       }
       try { if (window.Music && Music.pause) Music.pause(); } catch (e) { /* */ }
@@ -6191,10 +6738,11 @@ function pickPhoto(it) {
         return;
       }
       app.dataset.view = "read";
-      const navOf = { pelqyerat: "pelqyerat", shenime: "pelqyerat", kisha: "kisha", lajm: "kisha", shpirti: "shpirti", lutja: "shpirti", fjala: "shpirti", emri: "shpirti",
+      const navOf = { pelqyerat: "pelqyerat", shenime: "pelqyerat", kisha: "kisha", lajm: "kisha", lajme: "kisha", gazeta: "kisha", shkolla: "kisha", shpirti: "shpirti", lutja: "shpirti", fjala: "shpirti", emri: "shpirti",
         diptiket: "shpirti", kuiz: "shpirti", komboskini: "shpirti", rrefimi: "shpirti", autori: "shpirti", kanuni: "shpirti", kathizma: "shpirti", shqyrtimi: "shpirti", frymemarrja: "shpirti", edjela: "shpirti", ikona: "shpirti", numerimi: "shpirti", sfida: "shpirti", kungimi: "shpirti", mjekesia: "shpirti", lindja: "shpirti", lavdi: "shpirti", kalendari: "shpirti" };
     if (view === "kisha") document.querySelector('.nav-btn[data-go="kisha"]')?.classList.remove("has-new");
     if (view !== "lajm") mainPane.classList.remove("art-open");
+    if (view !== "lajme" && view !== "gazeta" && view !== "shkolla") NewsImg.stop();
     if (view !== "lutja") { clearInterval(candleTimer); Smoke.stop(); }
     if (view !== "rrefimi") Confess.lock();
     if (view !== "autori") authorOpen = false;   // paneli i autorit mbyllet kur del
@@ -6225,6 +6773,9 @@ function pickPhoto(it) {
       else if (view === "kuiz") await viewQuiz();
       else if (view === "udhetimi") await viewJourney();
       else if (view === "superlibri") viewKids();
+      else if (view === "lajme") await viewNews();
+      else if (view === "gazeta") await viewGazeta(parts[1]);
+      else if (view === "shkolla") await viewShkolla();
       else if (view === "ora") viewByzClock();
       else if (view === "kambanorja") viewBells();
       else if (view === "kandili") viewKandil();
@@ -6277,6 +6828,15 @@ function pickPhoto(it) {
     return { kind: "psaltiri", id: `ps:${p.n}:${vi + 1}`, text: p.v[vi], ref: psalmRef(p.n, vi + 1), link: `#/psaltiri/${p.n}`, n: p.n, vi };
   }
 
+  // Gazeta: kartë e madhe te Lexo; “E RE” derisa të hapet numri i sotëm
+  function gazetaCardHtml() {
+    const d = new Date(), doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5);
+    const fresh = store.get("gz.seen", "") !== isoToday();
+    return `<a class="gz-card${fresh ? " fresh" : ""}" href="#/gazeta">
+      <span class="gz-card-m">Fjala e Shenjtë</span>
+      <span class="gz-card-l"><b>Gazeta e sotme doli</b><small>Nr. ${doy} · ${d.getDate()} ${MUAJT[d.getMonth()]} ${d.getFullYear()} · lajmet e Kishës së Shqipërisë dhe të botës</small></span>
+      ${fresh ? `<span class="gz-card-new">E RE</span>` : `<span class="ib-go">›</span>`}</a>`;
+  }
   // Ikona e ditës: kartë e madhe e dedikuar në krye të faqes Lexo (lexon vetëm muajin e fundit)
   async function fillIconCard() {
     const slot = $("#icSlot");
@@ -6323,6 +6883,7 @@ function pickPhoto(it) {
       <div id="nameSlot">${nameDayBanner()}${myNameDayHtml()}</div>
       ${unbaptized() ? (() => { const [t, r] = INVITE[new Date().getDate() % INVITE.length]; return `<a class="bap-invite inv-card" href="#/biblioteka/pagezimi">${icon("cross")}<span><b>Krishti të fton${userName() ? ", " + esc(userName()) : ""}</b><q>${esc(t)}</q><small>${esc(r)} · Si të pagëzohem në Kishën Orthodhokse ›</small></span></a><button class="btn bap-done-btn wide" data-baptized>${icon("check")}<span>U pagëzova ☦</span></button>`; })() : ""}
       <div id="icSlot"></div>
+      ${gazetaCardHtml()}
       <div id="todaySlot">${todayCardHtml(t)}</div>
       <a class="kal-banner" href="#/kalendari">${icon("calendar")}<span><b>Kalendari Kishtar</b><small>Liturgjitë, kreshmët dhe leximet e çdo dite</small></span></a>
       <h2 class="hub-h">Librat</h2>
@@ -6828,8 +7389,10 @@ function pickPhoto(it) {
   });
 
   // dridhje e lehtë kur shtyp butonat (si në aplikacionet e mëdha)
-  document.addEventListener("pointerdown", (e) => {
-    if (e.target.closest("button, .btn, .chip, .tile, .rail-btn, .site-link, .nav-btn") && navigator.vibrate) {
+  // vetëm te "click" (prekje e vërtetë), kurrë te pointerdown/touchstart: rrëshqitja lart-poshtë mbetet krejt e qetë
+  document.addEventListener("click", (e) => {
+    if (android) return;   // në Android dridhjet i bën vetë aplikacioni, vetëm për veprime të qëllimshme
+    if (e.target.closest("button, .btn, .chip, .rail-btn, .site-link, .nav-btn") && navigator.vibrate) {
       try { navigator.vibrate(7); } catch (x) { /* */ }
     }
   }, { passive: true });
@@ -7128,7 +7691,7 @@ function pickPhoto(it) {
       ps.psalms.forEach((p) => p.v.forEach((v, i) => { if (v.length > 50 && v.length < 170) pool.push([p, i]); }));
       const td = Today.data;
       const days = [];
-      for (let k = 0; k < 14; k++) {
+      for (let k = 0; k < 31; k++) {
         const dt = new Date(); dt.setDate(dt.getDate() + k);
         const di = Math.floor(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()) / 86400000);
         const [p, vi] = pool[(di * 7919) % pool.length];

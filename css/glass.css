@@ -929,3 +929,246 @@ body.bible-full .nav { display: none; }
 .kd-bracket { position: absolute; left: 50%; width: 70px; height: 12px; margin-left: -35px; z-index: 2; border-radius: 0 0 40px 40px; border: 3px solid #b8862a; border-top: 0; box-shadow: 0 3px 4px #0008; }
 .kd-bracket::before { content: ""; position: absolute; left: 50%; bottom: -5px; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: #e5b84c; }
 .kd-stage { height: 520px; }
+/* kartat e Shtëpisë së lutjes, Superlibrit dhe Udhëtimit: sfond i errët që teksti i bardhë të lexohet në çdo temë */
+.kd-t { background: radial-gradient(120% 120% at 80% 0%, #7a4a12 0%, #230f04 75%); }
+.oz-t { background: radial-gradient(120% 120% at 80% 0%, #24406a 0%, #0a1324 75%); }
+.kb-t { background: radial-gradient(120% 120% at 80% 0%, #6b5418 0%, #1e1606 75%); }
+.sb-t { background: radial-gradient(120% 120% at 80% 0%, #6a2a7a 0%, #1c0b24 75%); }
+.bq-t { background: radial-gradient(120% 120% at 80% 0%, #1f5a4a 0%, #08201a 75%); }
+.lj-t { background: radial-gradient(120% 120% at 80% 0%, #3a3a3a 0%, #111 75%); }
+.mz-t { background: radial-gradient(120% 120% at 80% 0%, #6a1d2a 0%, #1f070c 75%); }
+.kd-t, .oz-t, .kb-t, .sb-t, .bq-t, .lj-t, .mz-t { color: #fff6e3; }
+
+/* Kambanorja: mënyrat e rënies + zilet e melodisë */
+.kb-pat { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.kb-p small { line-height: 1.3; }
+.kb-keys { margin: 8px 0 14px; padding: 14px; border-radius: 20px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; align-items: end; }
+.kb-key { position: relative; border: 0; background: none; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; touch-action: manipulation; }
+.kb-key i { width: 100%; max-width: 46px; aspect-ratio: 1 / 1.1; height: calc(46px - var(--h) * .18); border-radius: 46% 46% 12% 12% / 60% 60% 14% 14%;
+  background: linear-gradient(90deg, #4a2e10, #c8913a 30%, #ffe2a0 46%, #b07a2a 64%, #3a220a); box-shadow: inset 0 -4px 0 #7a5420, 0 4px 10px #0004; transform-origin: 50% 0; }
+.kb-key b { font-family: var(--font-cap); font-size: 13px; color: var(--ink); }
+.kb-key.hit i { animation: kbKey .7s ease-out; }
+@keyframes kbKey { 0% { transform: rotate(0); filter: brightness(1.5); } 25% { transform: rotate(9deg); } 55% { transform: rotate(-6deg); } 100% { transform: rotate(0); filter: none; } }
+.kb-hint2 { grid-column: 1 / -1; margin: 6px 0 0; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+#kbScale { grid-column: 1 / -1; justify-self: center; }
+
+/* ===================== Lajme Orthodhokse ===================== */
+.ch-new { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+.ch-n { display: flex; flex-direction: column; gap: 2px; padding: 14px; border-radius: 18px; color: #fff6e3; text-decoration: none; min-height: 92px; box-shadow: 0 6px 18px #0003; }
+.ch-n span { font-size: 24px; } .ch-n b { font-family: var(--font-cap); font-weight: 500; font-size: 14.5px; margin-top: auto; } .ch-n small { opacity: .8; font-size: 12px; }
+.ch-n.lj { background: radial-gradient(120% 120% at 80% 0%, #3d3d3d, #121212 75%); }
+.ch-n.gz { background: radial-gradient(120% 120% at 80% 0%, #6b5a3a, #1e170c 75%); }
+.ch-n.mz { grid-column: 1 / -1; background: radial-gradient(120% 140% at 85% 0%, #7a1f2e, #1f070c 75%); min-height: 78px; }
+.lj-gazeta { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 18px; margin-bottom: 12px; text-decoration: none;
+  background: #f4ecd8; color: #1a1408; border: 1px solid #b9a679; box-shadow: inset 0 0 0 4px #f4ecd8, inset 0 0 0 5px #1a140855; }
+.lj-gz-t { font-family: "UnifrakturMaguntia", "Old English Text MT", serif; font-size: 26px; line-height: 1; white-space: nowrap; }
+.lj-gazeta b { display: block; font-family: var(--font-cap); } .lj-gazeta small { color: #5a4a2a; font-size: 12px; } .lj-gazeta i { margin-left: auto; font-size: 26px; font-style: normal; }
+.lj-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 6px; }
+.lj-tabs button { flex: none; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 8px 15px; font-weight: 600; cursor: pointer; }
+.lj-tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: transparent; }
+.lj-up { font-size: 12px; color: var(--ink-2); margin: 2px 2px 8px; min-height: 1em; }
+.lj-list { display: grid; gap: 12px; } .lj-list.loading { opacity: .5; }
+.lj-card, .mz-post { background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; cursor: pointer; contain: content; }
+.lj-ph { aspect-ratio: 16 / 9; background: color-mix(in srgb, var(--ink) 8%, transparent); overflow: hidden; }
+.lj-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lj-ph.noimg { display: none; }
+.lj-b { padding: 12px 14px 12px; }
+.lj-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin: 0 0 4px; font-size: 11.5px; color: var(--ink-2); }
+.lj-tag { font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #fff; background: #555; border-radius: 6px; padding: 2px 7px; }
+.g-ugo .lj-tag { background: #1d5fa0; } .g-koash .lj-tag { background: #8a1c1c; } .g-bota .lj-tag { background: #2f6b3a; }
+.lj-en { border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; }
+.lj-card h3, .mz-post h3 { margin: 0 0 6px; font-size: 17.5px; line-height: 1.3; }
+.lj-ex { margin: 0 0 8px; font-size: 14.5px; line-height: 1.45; color: var(--ink-2); }
+.lj-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0; font-size: 12px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 8px; }
+.lj-go { color: var(--accent, #8a1c1c); font-weight: 700; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.lj-note { font-size: 12.5px; color: var(--ink-2); text-align: center; margin: 16px 6px 8px; line-height: 1.45; }
+
+/* ===================== Gazeta A2 ===================== */
+.gz-wrap { position: relative; overflow: hidden; border-radius: 6px; box-shadow: 0 10px 30px #0005; background: #e9dfc6; }
+.gz-wrap.zoomed { overflow: auto; -webkit-overflow-scrolling: touch; height: 78vh !important; }
+.gz-sheet { position: absolute; left: 0; top: 0; width: 1587px; height: 2245px; transform-origin: 0 0; overflow: hidden; box-sizing: border-box; padding: 54px 60px 44px;
+  color: #15110a; font-family: "Old Standard TT", "EB Garamond", Georgia, serif; font-size: 17px; line-height: 1.38;
+  background: radial-gradient(ellipse at 30% 20%, #f7f0dc 0%, #efe4c8 55%, #e3d3ae 100%); }
+.gz-sheet::after { content: ""; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: multiply; opacity: .35;
+  background: radial-gradient(circle at 12% 88%, #b8975a33 0 120px, transparent 260px), radial-gradient(circle at 92% 8%, #a0804a2a 0 90px, transparent 220px), repeating-linear-gradient(0deg, #0000 0 3px, #5a40100a 3px 4px); }
+.gz-sheet a { color: inherit; text-decoration: none; }
+.gz-load { text-align: center; padding-top: 300px; font-size: 40px; }
+.gz-mast { text-align: center; border-bottom: 6px double #15110a; padding-bottom: 10px; margin-bottom: 20px; }
+.gz-ears { display: grid; grid-template-columns: 250px 1fr 250px; align-items: center; gap: 20px; }
+.gz-ear { border: 2px solid #15110a; padding: 10px 12px; font-size: 15px; line-height: 1.3; text-align: center; font-style: italic; }
+.gz-ear b { display: block; font-style: normal; font-family: "Playfair Display", serif; text-transform: uppercase; letter-spacing: .12em; font-size: 12px; border-bottom: 1px solid #15110a; padding-bottom: 4px; margin-bottom: 6px; }
+.gz-ear small { display: block; font-style: normal; font-size: 12.5px; margin-top: 6px; letter-spacing: .04em; }
+.gz-title { margin: 0; font-family: "UnifrakturMaguntia", "Old English Text MT", serif; font-weight: 400; font-size: 168px; line-height: .95; letter-spacing: .01em; }
+.gz-tag { margin: 8px 0 8px; font-family: "Playfair Display", serif; text-transform: uppercase; letter-spacing: .32em; font-size: 15px; }
+.gz-bar { display: flex; justify-content: space-between; border-top: 2px solid #15110a; border-bottom: 1px solid #15110a; padding: 6px 4px; font-size: 14px; text-transform: uppercase; letter-spacing: .14em; }
+.gz-top { display: grid; grid-template-columns: 2fr 1fr; gap: 0; border-bottom: 3px solid #15110a; padding-bottom: 18px; margin-bottom: 14px; }
+.gz-lead { padding-right: 26px; border-right: 1px solid #15110a; }
+.gz-kick { margin: 0 0 4px; text-transform: uppercase; letter-spacing: .2em; font-size: 13px; }
+.gz-lead h2 { margin: 0 0 14px; font-family: "Playfair Display", serif; font-weight: 900; font-size: 58px; line-height: 1.02; letter-spacing: -.01em; }
+.gz-lead-tx { column-count: 2; column-gap: 26px; column-rule: 1px solid #15110a55; font-size: 19px; text-align: justify; hyphens: auto; }
+.gz-side { padding-left: 26px; display: flex; flex-direction: column; gap: 16px; }
+.gz-ph { margin: 6px 0 8px; border: 1px solid #15110a; background: #d9cba8; overflow: hidden; aspect-ratio: 4 / 3; }
+.gz-ph.big { aspect-ratio: 16 / 8.2; margin-bottom: 14px; }
+.gz-ph img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(1) contrast(1.15) brightness(1.02) sepia(.18); mix-blend-mode: multiply; }
+.gz-ph.noimg { display: none; }
+.gz-art { break-inside: avoid; margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid #15110a66; text-align: justify; hyphens: auto; }
+.gz-art h4 { margin: 0 0 6px; font-family: "Playfair Display", serif; font-weight: 700; font-size: 22px; line-height: 1.12; text-align: left; }
+.gz-second h4 { font-size: 30px; }
+.gz-art p { margin: 0; }
+.gz-dc { float: left; font-family: "UnifrakturMaguntia", serif; font-size: 64px; line-height: .8; padding: 6px 8px 0 0; }
+.gz-src { margin-top: 6px !important; font-size: 12.5px; font-style: italic; text-align: right; letter-spacing: .02em; }
+.gz-box { border: 3px double #15110a; padding: 12px 14px; }
+.gz-box b { font-family: "Playfair Display", serif; text-transform: uppercase; letter-spacing: .14em; font-size: 14px; }
+.gz-box ol { margin: 8px 0 0; padding-left: 22px; } .gz-box li { padding: 3px 0; } .gz-box li span { float: right; font-style: italic; }
+.gz-sec { margin-bottom: 8px; }
+.gz-sh { display: flex; align-items: baseline; justify-content: space-between; margin: 4px 0 12px; border-top: 3px solid #15110a; border-bottom: 1px solid #15110a; padding: 6px 0 4px; }
+.gz-sh span { font-family: "Playfair Display", serif; font-weight: 900; font-size: 26px; text-transform: uppercase; letter-spacing: .08em; }
+.gz-sh small { font-style: italic; font-size: 14px; }
+.gz-flow { column-count: 5; column-gap: 24px; column-rule: 1px solid #15110a55; }
+.gz-foot { position: absolute; left: 60px; right: 60px; bottom: 22px; border-top: 2px solid #15110a; padding-top: 6px; font-size: 12.5px; text-align: center; font-style: italic; }
+body.gz-printing .gz-wrap { overflow: visible; }
+@media print {
+  @page { size: A2 portrait; margin: 0; }
+  body.gz-printing * { visibility: hidden !important; }
+  body.gz-printing .gz-sheet, body.gz-printing .gz-sheet * { visibility: visible !important; }
+  body.gz-printing .gz-sheet { position: fixed !important; left: 0; top: 0; transform: none !important; width: 420mm; height: 594mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* ===================== Shkolla e Muzikës Bizantine ===================== */
+.mz-hero { position: relative; overflow: hidden; border-radius: 24px; padding: 22px 18px 18px; margin-bottom: 12px; color: #fff6e3;
+  background: radial-gradient(140% 120% at 90% 0%, #8a2433 0%, #3a0c14 45%, #14060a 100%); box-shadow: 0 12px 30px #0005; }
+.mz-hero::before { content: ""; position: absolute; inset: 0; opacity: .14; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 18px, #f1cc72 18px 19px); -webkit-mask: linear-gradient(90deg, transparent, #000 60%); mask: linear-gradient(90deg, transparent, #000 60%); }
+.mz-neume { position: absolute; right: 14px; top: 2px; font-size: 92px; color: #f1cc72; opacity: .35; line-height: 1; }
+.mz-kick { margin: 0; text-transform: uppercase; letter-spacing: .2em; font-size: 11.5px; color: #f1cc72; }
+.mz-hero h2 { margin: 6px 0 6px; font-family: var(--font-cap); font-weight: 500; font-size: 23px; line-height: 1.2; max-width: 85%; }
+.mz-sub { margin: 0 0 14px; font-size: 14px; opacity: .85; max-width: 90%; }
+.mz-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.mz-l { border: 0; border-radius: 999px; padding: 9px 15px; font-weight: 700; color: #fff; cursor: pointer; font-size: 14px; }
+.mz-l.yt { background: #c4302b; } .mz-l.fb { background: #1877f2; } .mz-l.ig { background: linear-gradient(45deg, #f09433, #dc2743 50%, #bc1888); }
+.mz-box { min-height: 120px; }
+.mz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mz-v { position: relative; display: flex; flex-direction: column; gap: 4px; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 0 0 10px; overflow: hidden; color: var(--ink); cursor: pointer; }
+.mz-v.first { grid-column: 1 / -1; }
+.mz-th { position: relative; aspect-ratio: 16 / 9; background: #1a0a0e; overflow: hidden; display: block; }
+.mz-th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mz-th i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: #000a; color: #fff; display: grid; place-items: center; font-style: normal; font-size: 18px; }
+.mz-v b { padding: 0 10px; font-size: 13.5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.mz-v.first b { font-size: 16px; }
+.mz-v small { padding: 0 10px; color: var(--ink-2); font-size: 11.5px; }
+.mz-v.new::after { content: "E RE"; position: absolute; top: 8px; left: 8px; background: #c4302b; color: #fff; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; padding: 3px 7px; border-radius: 6px; }
+.mz-post { cursor: default; margin-bottom: 12px; } .mz-tx { white-space: pre-line; margin: 0 0 8px; font-size: 14.5px; line-height: 1.5; }
+.mz-gal { columns: 2; column-gap: 8px; } .mz-gal figure { margin: 0 0 8px; break-inside: avoid; border-radius: 12px; overflow: hidden; background: var(--card); }
+.mz-gal img { width: 100%; display: block; min-height: 80px; } .mz-gal figcaption { padding: 6px 8px; font-size: 12.5px; }
+.mz-empty { text-align: center; padding: 26px 14px; background: var(--card); border: 1px dashed var(--line); border-radius: 18px; }
+.mz-empty p { color: var(--ink-2); font-size: 14px; } .mz-empty .mz-links { justify-content: center; }
+.mz-player { position: fixed; inset: 0; z-index: 90; background: #000c; display: grid; place-items: center; padding: 16px; }
+.mz-player .sheet-card { width: min(720px, 100%); background: #14060a; color: #fff6e3; border-radius: 18px; padding: 12px; text-align: center; }
+.mz-frame { aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #000; } .mz-frame iframe { width: 100%; height: 100%; border: 0; }
+.mz-pt { font-size: 14px; margin: 10px 4px; }
+
+.gz-title { font-size: 150px; }
+.gz-ph.big { aspect-ratio: 16 / 7; }
+.gz-lead h2 { font-size: 52px; }
+.gz-secs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; overflow: hidden; }
+.gz-secs .gz-sec { min-height: 0; overflow: hidden; padding: 0 22px; border-left: 1px solid #15110a; margin: 0; }
+.gz-secs .gz-sec:first-child { padding-left: 0; border-left: 0; } .gz-secs .gz-sec:last-child { padding-right: 0; }
+.gz-secs .gz-flow { column-count: 2; column-gap: 20px; }
+.gz-secs .gz-sh span { font-size: 22px; }
+.gz-secs .gz-art h4 { font-size: 20px; }
+.lj-gz-t { font-size: 22px; } .lj-gazeta > span:nth-child(2) { flex: 1; min-width: 0; }
+.gz-title { font-size: 132px; white-space: nowrap; }
+.gz-ears { grid-template-columns: 230px 1fr 230px; }
+
+/* gazeta me ngjyra: fotot me ngjyrat e tyre, kuqja bizantine te titujt e seksioneve */
+.gz-ph img { filter: saturate(1.05) contrast(1.03); mix-blend-mode: normal; }
+.gz-ph { background: #d9cba8; box-shadow: 0 1px 0 #15110a; }
+.gz-sh span, .gz-kick, .gz-ear b, .gz-box b, .gz-briefs > b { color: #7a1616; }
+.gz-sh { border-top-color: #7a1616; }
+.gz-dc { color: #7a1616; }
+.gz-mast { border-bottom-color: #7a1616; }
+.gz-title { color: #15110a; text-shadow: 0 1px 0 #fff8; }
+.gz-tag { color: #7a1616; }
+.gz-lead-tx.short { column-count: 1; font-size: 25px; line-height: 1.45; }
+.gz-briefs { border-top: 3px solid #15110a; padding-top: 8px; }
+.gz-briefs > b { font-family: "Playfair Display", serif; text-transform: uppercase; letter-spacing: .14em; font-size: 15px; }
+.gz-briefs ul { list-style: none; margin: 6px 0 0; padding: 0; }
+.gz-briefs li { padding: 8px 0; border-bottom: 1px dotted #15110a88; font-family: "Playfair Display", serif; font-weight: 700; font-size: 17px; line-height: 1.2; }
+.gz-briefs li small { display: block; font-family: "Old Standard TT", serif; font-weight: 400; font-style: italic; font-size: 12.5px; margin-top: 3px; color: #5a4a2a; }
+.gz-days { margin-bottom: 8px; } .gz-days a { flex: none; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 7px 14px; font-weight: 600; text-decoration: none; }
+.gz-days a[aria-selected="true"] { background: #7a1616; color: #fff; border-color: transparent; }
+
+.gz-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 12px 0 0; }
+.gz-secs .gz-art h4 { font-size: 1.22em; }
+.gz-secs .gz-src { font-size: 12.5px; }
+.gz-lead-tx.short { font-size: inherit; }
+.gz-side .gz-second p { font-size: 17px; }
+
+/* gazeta: justify i mbledhur, pa “lumenj” hapësirash; ndarja vetëm kur duhet */
+.gz-sheet p, .gz-art, .gz-lead-tx { hyphens: manual; -webkit-hyphens: manual; text-wrap: pretty; word-spacing: -0.03em; letter-spacing: -0.003em; text-justify: inter-word; }
+.gz-art p, .gz-lead-tx p { text-align: justify; text-align-last: left; }
+.gz-art h4, .gz-lead h2, .gz-briefs li { text-wrap: balance; hyphens: none; }
+.gz-flow, .gz-lead-tx { orphans: 2; widows: 2; }
+/* Shkolla: Rreth shkollës */
+.mz-about { background: var(--card); border: 1px solid var(--line); border-left: 4px solid #8a2433; border-radius: 16px; padding: 12px 14px; margin: 0 0 12px; }
+.mz-about h3 { margin: 0 0 6px; font-family: var(--font-cap); font-weight: 500; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: #8a2433; }
+.mz-about ul { margin: 0; padding: 0; list-style: none; }
+.mz-about li { padding: 6px 0; font-size: 14.5px; line-height: 1.45; border-top: 1px dashed var(--line); }
+.mz-about li:first-child { border-top: 0; }
+.mz-about li b { display: inline-block; min-width: 92px; color: var(--ink); }
+.mz-about a { color: #8a2433; font-weight: 700; cursor: pointer; white-space: nowrap; font-size: 12.5px; }
+.mz-h { font-family: var(--font-cap); font-weight: 500; letter-spacing: .06em; text-transform: uppercase; font-size: 14px; margin: 10px 2px 8px; color: var(--ink-2); }
+
+.gz-search { display: flex; gap: 6px; margin: 0 0 8px; }
+.gz-search input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 10px 16px; font: inherit; font-size: 15px; }
+.gz-search .btn { border-radius: 999px; padding: 0 14px; }
+.gz-res { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 6px 12px; margin: 0 0 10px; max-height: 60vh; overflow: auto; }
+.gz-res-n { font-size: 12px; color: var(--ink-2); margin: 6px 0; }
+.gz-hit { display: flex; flex-direction: column; gap: 2px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; color: var(--ink); text-decoration: none; }
+.gz-hit small { color: var(--ink-2); font-size: 11.5px; } .gz-hit b { font-size: 15px; line-height: 1.3; } .gz-hit span { font-size: 13.5px; color: var(--ink-2); }
+.gz-hit em { font-style: normal; font-size: 12.5px; font-weight: 700; color: #7a1616; }
+
+/* karta e Gazetës (Lexo, Kisha) */
+.gz-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin: 0 0 12px; border-radius: 18px; text-decoration: none; position: relative;
+  background: radial-gradient(ellipse at 30% 20%, #f7f0dc 0%, #efe4c8 60%, #e3d3ae 100%); color: #15110a; border: 1px solid #b9a679;
+  box-shadow: inset 0 0 0 4px #f4ecd8, inset 0 0 0 5px #15110a55, 0 6px 18px #0002; }
+.gz-card-m { font-family: "UnifrakturMaguntia", "Old English Text MT", serif; font-size: 25px; line-height: 1; white-space: nowrap; border-right: 1px solid #15110a55; padding-right: 12px; }
+.gz-card-l { flex: 1; min-width: 0; } .gz-card-l b { display: block; font-family: "Playfair Display", var(--font-cap), serif; font-size: 15.5px; color: #7a1616; }
+.gz-card-l small { display: block; font-size: 12px; color: #4a3a1a; line-height: 1.35; }
+.gz-card-new { background: #7a1616; color: #fff; font-weight: 800; font-size: 11px; letter-spacing: .1em; padding: 4px 8px; border-radius: 6px; animation: gzPulse 2s ease-in-out infinite; }
+.gz-card .ib-go { color: #15110a; }
+@keyframes gzPulse { 50% { box-shadow: 0 0 0 6px #7a161622; } }
+@media (max-width: 380px) { .gz-card-m { font-size: 20px; } }
+
+/* gazeta me shumë faqe */
+.gz-pc { font-size: 12.5px; color: var(--ink-2); margin: 0 2px 8px; min-height: 1em; }
+.gz-pages { position: absolute; left: 0; top: 0; width: 1587px; transform-origin: 0 0; }
+.gz-pages .gz-sheet { position: relative; margin: 0 0 46px; box-shadow: 0 8px 26px #0006; }
+.gz-wrap { background: #6f6450; }
+.gz-foot { display: flex; justify-content: space-between; gap: 20px; font-style: normal; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; }
+.gz-foot span:nth-child(2) { font-style: italic; text-transform: none; letter-spacing: .02em; font-size: 13px; }
+.gz-run { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 4px double #7a1616; padding-bottom: 6px; margin-bottom: 18px; text-transform: uppercase; letter-spacing: .14em; font-size: 13px; }
+.gz-run-t { font-family: "UnifrakturMaguntia", serif; font-size: 44px; text-transform: none; letter-spacing: 0; }
+.gz-body { height: 2042px; column-count: 5; column-gap: 24px; column-rule: 1px solid #15110a55; column-fill: auto; overflow: hidden; }
+.gz-body .gz-sh { column-span: none; break-after: avoid; margin-top: 0; }
+.gz-body .gz-sh span { font-size: 21px; } .gz-body .gz-sh em { font-style: italic; font-weight: 400; font-size: .7em; text-transform: none; letter-spacing: 0; }
+.gz-body .gz-sh small { display: none; }
+.gz-body .gz-art h4 { font-size: 1.22em; }
+.gz-colo { break-inside: avoid; border: 3px double #15110a; padding: 12px 14px; margin-top: 8px; font-size: 14px; line-height: 1.4; }
+.gz-colo > b { display: block; font-family: "Playfair Display", serif; text-transform: uppercase; letter-spacing: .16em; color: #7a1616; font-size: 14px; margin-bottom: 6px; }
+.gz-colo p { margin: 0 0 6px; text-align: left; }
+#gzPrintRoot { display: none; }
+@media print {
+  body.gz-printing > *:not(#gzPrintRoot) { display: none !important; }
+  body.gz-printing #gzPrintRoot { display: block !important; }
+  body.gz-printing #gzPrintRoot * { visibility: visible !important; }
+  #gzPrintRoot .gz-sheet { position: relative !important; transform: none !important; width: 420mm; height: 594mm; margin: 0; box-shadow: none; break-after: page; page-break-after: always; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+.gz-feat { column-span: all; display: grid; grid-template-columns: 1.35fr 1fr; gap: 28px; align-items: start; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 3px solid #15110a; break-inside: avoid; }
+.gz-feat.flip { grid-template-columns: 1fr 1.35fr; } .gz-feat.flip .gz-ph { order: 2; }
+.gz-feat .gz-ph { aspect-ratio: 16 / 10; margin: 0; }
+.gz-feat h2 { margin: 4px 0 12px; font-family: "Playfair Display", serif; font-weight: 900; font-size: 44px; line-height: 1.05; }
+.gz-feat-tx > p:not(.gz-kick):not(.gz-src) { font-size: 20px; text-align: justify; text-align-last: left; }
+.gz-body.essay { column-count: 4; column-gap: 30px; font-size: 18.5px; }
+.gz-body.essay .gz-art h4 { font-size: 1.3em; font-style: italic; }
