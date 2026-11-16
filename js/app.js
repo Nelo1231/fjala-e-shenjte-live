@@ -4354,7 +4354,7 @@ function pickPhoto(it) {
     const G = groups.find((g) => g.id === id) || groups[0];
     const mine = new Set(G.week.map((n) => n.link));
     const items = G.week.map((n) => Object.assign({}, n, { grp: "m" }))
-      .concat(fanar ? [] : general.filter((n) => inWeek(n) && !mine.has(n.link)).slice(0, 14).map((n) => Object.assign({}, n, { grp: "k" })));
+;
     if (wkTabs.length) wkTabs.forEach((w) => (w.href = w.href.replace("/x/", "/" + G.id + "/")));
     await viewGazeta(null, {
       kind: fanar ? "fanar" : "mitro", id: G.id, name: G.name, head, items, date: S, no: mtNo(S), range,
