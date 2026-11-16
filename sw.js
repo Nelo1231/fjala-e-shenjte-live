@@ -1,5 +1,5 @@
 /* Punon pa internet: ruan aplikacionin dhe tekstet në telefon. */
-const VERSION = "fs-v84";
+const VERSION = "fs-v86";
 const SHELL = [
   "./", "index.html", "css/app.css", "css/glass.css", "js/app.js", "js/share.js", "js/music.js",
   "data/psaltiri.js", "data/kuizi.js", "data/eterit.js", "data/ungjilli.js", "data/apostulli.js", "data/profecite.js", "data/tipikoja.js", "data/sherbesa.js", "data/imazhet.js", "data/jerontikoni.js", "data/himnet.js", "data/pasdarka.js", "js/cross.js", "js/radio.js", "manifest.webmanifest",
@@ -33,7 +33,7 @@ self.addEventListener("fetch", (e) => {
   // YouTube luhet gjithmonë drejtpërdrejt nga rrjeti
   if (/youtube|ytimg|googlevideo/.test(url.hostname)) return;
   // fotot e lajmeve (UGO.al, KOASH, Orthodox Times): zero cache, as në disk as në memorien e shërbyesit
-  if (/(^|\.)(ugo\.al|orthodoxalbania\.org|orthodoxtimes\.com)$/.test(url.hostname) || /lajme_bota\.json|shkolla\.json/.test(url.pathname)) {
+  if (/(^|\.)(ugo\.al|orthodoxalbania\.org|orthodoxtimes\.com|vaticannews\.va)$/.test(url.hostname) || /lajme_bota\.json|shkolla\.json|mitropolite\.json|vatikan\.json/.test(url.pathname)) {
     e.respondWith(fetch(e.request, { cache: "no-store" }).catch(() => new Response("", { status: 504 })));
     return;
   }

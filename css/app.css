@@ -1874,3 +1874,54 @@ html.eco .nav { background: var(--bg) !important; }
 .cs2.kind-t .censer { width: 200px; }
 .cs2.kind-t .cs-swing { width: 200px; }
 .cs2.kind-t .cs-src { top: 40%; }
+
+/* ---------- v2.8: koka e faqes nuk noton më; lupa lart majtas + «Në krye» ---------- */
+.pane > .page-head, .pane.scrolled > .page-head, .pane.hdr-hide > .page-head {
+  position: relative !important; top: auto !important; transform: none !important; opacity: 1 !important; pointer-events: auto !important;
+  background: transparent !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.pane.scrolled > .page-head h1, .pane.scrolled > .page-head h2 { font-size: 20px; }
+.pfab > button { position: fixed; z-index: 32; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; padding: 0;
+  color: var(--accent); background: color-mix(in srgb, var(--card) 86%, transparent); border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); box-shadow: 0 6px 18px rgba(30, 15, 5, .18);
+  opacity: 0; transform: scale(.7); pointer-events: none; transition: opacity .25s, transform .3s cubic-bezier(.2, .9, .25, 1.2); }
+.pfab > button svg { width: 19px; height: 19px; }
+.pf-find { left: var(--pf-l, 12px); top: calc(var(--safe-t) + 62px); }
+.pf-top { left: var(--pf-l, 12px); bottom: calc(var(--safe-b) + 78px); font: 700 20px system-ui, sans-serif; }
+.pfab.show-find .pf-find, .pfab.show-top .pf-top { opacity: 1; transform: none; pointer-events: auto; }
+.pfab.finding .pf-find { opacity: 0 !important; pointer-events: none !important; }
+.pf-bar { position: fixed; z-index: 33; left: var(--pf-l, 12px); width: var(--pf-w, calc(100vw - 24px)); top: calc(var(--safe-t) + 60px); max-width: 520px;
+  display: flex; align-items: center; gap: 6px; padding: 0 6px 0 14px; height: 46px; border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 92%, transparent); border: 1px solid var(--line); box-shadow: 0 10px 26px rgba(30, 15, 5, .2);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); animation: sheetUp .25s ease-out; }
+.pf-bar[hidden] { display: none; }
+.pf-bar input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: var(--ink); outline: none; height: 44px; }
+.pf-n { font-size: 12px; color: var(--ink-2); }
+.pf-x { width: 34px; height: 34px; border-radius: 50%; color: var(--ink-2); }
+@media (min-width: 640px) { .pf-top { bottom: calc(var(--safe-b) + 24px); } }
+/* lupa poshtë majtas (jo lart, që të mos pengojë); «Në krye» mbi të */
+.pf-find { top: auto !important; bottom: calc(var(--safe-b) + 78px); }
+.pf-top { bottom: calc(var(--safe-b) + 128px) !important; }
+.pf-bar { top: auto !important; bottom: calc(var(--safe-b) + 76px); }
+@media (min-width: 640px) { .pf-find { bottom: calc(var(--safe-b) + 20px); } .pf-top { bottom: calc(var(--safe-b) + 70px) !important; } .pf-bar { bottom: calc(var(--safe-b) + 18px); } }
+
+/* ---------- v2.8: ekran i gjerë / landscape — një faqe në gjithë gjerësinë ---------- */
+@media (min-width: 640px) {
+  .app:not(.flex-mode)[data-mode="list"] .pane-list { grid-column: 2 / 4; border-right: 0; }
+  .app:not(.flex-mode)[data-mode="list"] .pane-main { display: none; }
+  .app:not(.flex-mode)[data-mode="read"] .pane-main { grid-column: 2 / 4; }
+  .app:not(.flex-mode)[data-mode="read"] .pane-list { display: none; }
+  .app:not(.flex-mode) .back-btn { display: grid !important; }
+  .app:not(.flex-mode)[data-view="feed"] .feed-wrap { grid-column: 2 / 4; }
+  .app:not(.flex-mode)[data-view="feed"] .pane-main { display: none; }
+  .app:not(.flex-mode)[data-view="feed"].ctx-open .pane-main { display: block; grid-column: 2 / 4; grid-row: 1; z-index: 40; background: var(--bg); animation: riseBlur .35s ease both; }
+  .rail-full { display: flex !important; }
+  .ctx-close { position: fixed; z-index: 60; top: calc(var(--safe-t) + 14px); right: calc(var(--safe-r) + 18px); width: 44px; height: 44px; border-radius: 50%;
+    background: var(--card); color: var(--accent); border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(0,0,0,.18); font: 700 18px system-ui, sans-serif; }
+  .app[data-view="feed"].ctx-open .pane-main .reader { max-width: 860px; margin: 0 auto; }
+}
+.rail-full { display: none !important; }
+@media (min-width: 640px) { .rail-full { display: flex !important; } }
+@media (horizontal-viewport-segments: 2), (vertical-viewport-segments: 2), (device-posture: folded) {
+  .app .pane-list, .app .pane-main, .app .feed-wrap { grid-column: auto !important; }
+  .app[data-mode] .pane-list, .app[data-mode] .pane-main { display: block !important; }
+}

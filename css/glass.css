@@ -1172,3 +1172,59 @@ body.gz-printing .gz-wrap { overflow: visible; }
 .gz-feat-tx > p:not(.gz-kick):not(.gz-src) { font-size: 20px; text-align: justify; text-align-last: left; }
 .gz-body.essay { column-count: 4; column-gap: 30px; font-size: 18.5px; }
 .gz-body.essay .gz-art h4 { font-size: 1.3em; font-style: italic; }
+
+.ch-n.mt { grid-column: 1 / -1; background: radial-gradient(120% 140% at 85% 0%, #2d4a6b, #0b1520 75%); min-height: 78px; }
+.gz-mtabs { margin-bottom: 8px; }
+.gz-tag b { font-weight: 700; color: #7a1616; }
+/* karta e gazetës: vetëm emri + «Gazeta e sotme doli», në një rresht */
+.gz-card { flex-wrap: nowrap; padding-right: 14px; }
+.gz-card-m { font-size: clamp(18px, 5.2vw, 25px); }
+.gz-card-l b { white-space: nowrap; font-size: clamp(13px, 3.6vw, 16px); overflow: hidden; text-overflow: ellipsis; }
+.gz-card-new { position: absolute; top: -8px; right: 10px; padding: 3px 7px; font-size: 10px; }
+.gz-card-l b { white-space: normal; text-overflow: clip; line-height: 1.15; }
+/* faqja e fundit: shkrimet mund të vazhdojnë në kolonën tjetër, që kolonat të mbushen deri poshtë */
+.gz-body.last .gz-art { break-inside: auto; }
+.gz-body.last .gz-art h4, .gz-body.last .gz-ph { break-inside: avoid; break-after: avoid; }
+
+.lx-gz { margin-bottom: 14px; } .lx-gz .ch-n.gz { grid-column: 1 / -1; min-height: 78px; }
+
+/* ---------- Gazeta: një shkallë e vetme shkronjash kudo ---------- */
+.gz-sheet { --gz-tx: 18px; --gz-h4: 24px; --gz-h2: 52px; --gz-sh: 22px; }
+.gz-lead-tx, .gz-lead-tx.short, .gz-flow, .gz-body, .gz-body.essay, .gz-feat-tx > p:not(.gz-kick):not(.gz-src), .gz-side .gz-second p, .gz-art p { font-size: var(--gz-tx) !important; line-height: 1.38; }
+.gz-art h4, .gz-second h4, .gz-secs .gz-art h4, .gz-body .gz-art h4, .gz-body.essay .gz-art h4 { font-size: var(--gz-h4) !important; }
+.gz-lead h2, .gz-feat h2 { font-size: var(--gz-h2) !important; }
+.gz-sh span, .gz-secs .gz-sh span, .gz-body .gz-sh span { font-size: var(--gz-sh) !important; }
+.gz-src, .gz-secs .gz-src { font-size: 12.5px !important; }
+.gz-body.essay .gz-art h4 { font-style: normal; }
+
+.ch-n.fn { background: radial-gradient(120% 140% at 85% 0%, #8a6a1e, #241703 75%); }
+.lx-gz .ch-n.mt { grid-column: auto; }
+.ch-n.fresh::after { content: "E RE"; position: absolute; top: 10px; right: 10px; background: #7a1616; color: #fff; font: 800 10px system-ui, sans-serif; letter-spacing: .1em; padding: 3px 6px; border-radius: 6px; }
+.ch-n { position: relative; }
+.gz-cal ul { list-style: none; margin: 6px 0 0; padding: 0; }
+.gz-cal li { padding: 5px 0; border-bottom: 1px dotted #15110a88; font-size: 15px; line-height: 1.25; }
+.gz-cal li span { display: inline-block; min-width: 92px; font-family: "Playfair Display", serif; font-weight: 700; color: #7a1616; }
+.gz-cal li small { display: block; font-style: italic; font-size: 12.5px; color: #5a4a2a; }
+
+/* Lexo: butonat e gazetave, kompaktë */
+.gz-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: -2px 0 12px; }
+.gzr { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 9px 4px 8px; border-radius: 14px; text-decoration: none;
+  color: #fff6e3; background: radial-gradient(120% 120% at 80% 0%, #6b5a3a, #1e170c 80%); box-shadow: 0 4px 12px #0003; min-height: 58px; }
+.gzr:nth-child(2) { background: radial-gradient(120% 120% at 80% 0%, #2d4a6b, #0b1520 80%); }
+.gzr:nth-child(3) { background: radial-gradient(120% 120% at 80% 0%, #8a6a1e, #241703 80%); }
+.gzr:nth-child(4) { background: radial-gradient(120% 120% at 80% 0%, #6b2a2a, #1e0909 80%); }
+.gzr span { font-size: 18px; line-height: 1; } .gzr b { font-family: var(--font-cap); font-weight: 500; font-size: 11.5px; letter-spacing: .02em; white-space: nowrap; }
+.gzr.fresh::after { content: ""; position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #ff5a4a; box-shadow: 0 0 0 2px #0006; }
+
+/* Lexo: Kalendari + Gazetat, një rresht */
+.gz-row { grid-template-columns: 1fr 1fr; }
+.gzr { flex-direction: row; gap: 8px; min-height: 50px; padding: 10px 12px; justify-content: flex-start; }
+.gzr b { font-size: 13.5px; white-space: normal; text-align: left; line-height: 1.15; }
+.gzr svg { width: 20px; height: 20px; color: #f1cc72; flex: none; }
+.gzr.kal { background: radial-gradient(120% 120% at 80% 0%, #7a1f2e, #1f070c 80%); }
+.gzr:nth-child(2) { background: radial-gradient(120% 120% at 80% 0%, #6b5a3a, #1e170c 80%); }
+.ch-n.wide { grid-column: 1 / -1; min-height: 84px; }
+.ch-n.gz2 { background: radial-gradient(120% 120% at 80% 0%, #4a4232, #15110a 75%); }
+.ch-n.vt { background: radial-gradient(120% 140% at 85% 0%, #6b2a2a, #1e0909 75%); }
+
+.seg3 button { font-size: 13px; padding-left: 6px; padding-right: 6px; line-height: 1.15; }
