@@ -1632,10 +1632,9 @@ function pickPhoto(it) {
   const BIBLE_SOURCES = {
     biblapro: { label: "Bibla PRO", note: "Përkthimi i Ri nga Origjinali · me tekstin grek/hebraisht", home: "https://biblapro.com/read?book=Zan&chapter=1&verse=1" },
     albb: { label: "Shoqëria Biblike", note: "Bibla Shqip 1994 · bible.com", ver: 7, abbr: "ALBB" },
-    al1: { label: "AL1", note: "Bibla Shqip · bible.com", ver: 292, abbr: "AL1" },
-    kristo: { label: "Kristoforidhi", note: "Dhiata e Re 1879 · bible.com", ver: 4400, abbr: "DERKK79", nt: true },
   };
   let bibleSrc = store.get("bibleSrc", "biblapro");
+  if (!BIBLE_SOURCES[bibleSrc]) bibleSrc = "biblapro";
 
   function bibleUrl(src, book, ch, q) {
     const s = BIBLE_SOURCES[src];
@@ -1661,7 +1660,7 @@ function pickPhoto(it) {
         <button class="icon-btn" id="bNext" aria-label="Kapitulli tjetër"><svg style="transform:scaleX(-1)"><use href="#i-back"/></svg></button>
       </div>
       <form class="search bible-search" id="bSearch"><span>${icon("search")}</span><input id="bQ" type="search" placeholder="Kërko në Bibël…" enterkeyhint="search"></form>` : ""}
-      <div class="bible-frame-wrap"><div class="bible-loading">${icon("book")}<span>Po hapet…</span></div>
+      <div class="bible-frame-wrap"><button class="icon-btn bible-fs" aria-label="Ekran i plotë">⤢</button><div class="bible-loading">${icon("book")}<span>Po hapet…</span></div>
         <iframe id="bibleFrame" title="Bibla" src="${esc(bibleUrl(bibleSrc, cur[0], loc.ch))}" referrerpolicy="no-referrer-when-downgrade" allow="autoplay; fullscreen"></iframe></div>`;
     enter(listPane);
     mainPane.innerHTML = emptyMain();
@@ -1671,6 +1670,7 @@ function pickPhoto(it) {
       $(".bible-loading", listPane)?.remove();
       try { if (bibleSrc === "biblapro" && frame.contentWindow.location.href) store.set("bp.last", frame.contentWindow.location.href); } catch (e) { /* faqe e huaj */ }
     });
+    $(".bible-fs", listPane).addEventListener("click", (e) => { const w = e.currentTarget.parentElement; const on = w.classList.toggle("full"); e.currentTarget.textContent = on ? "✕" : "⤢"; document.body.classList.toggle("bible-full", on); haptic(10); });
     $$("[data-bsrc]", listPane).forEach((b) => b.addEventListener("click", () => { bibleSrc = b.dataset.bsrc; store.set("bibleSrc", bibleSrc); viewBible(); }));
     if (bibleSrc === "biblapro") return;
     const go = (book, ch) => {
@@ -2703,6 +2703,7 @@ function pickPhoto(it) {
   async function viewLibrary2(sub) {
     const lj = await load("lutjet");
     const tab = sub || "lutjet";
+    const kn = tab === "kanonet" ? await load("kanonet") : null;
     listPane.innerHTML = `
       <header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>Biblioteka</h1></header>
       <div class="seg bib-seg" role="tablist">
@@ -2712,11 +2713,98 @@ function pickPhoto(it) {
         tab === "fjalori" ? `<dl class="gloss">${GLOSSARY.map(([t, d]) => `<div><dt>${esc(t)}</dt><dd>${esc(d)}</dd></div>`).join("")}</dl>`
         : tab === "pyetje" ? FAQ.map(([q, a]) => `<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")
         : tab === "pagezimi" ? baptismHtml()
+        : tab === "kanonet" ? kanonetHtml(kn)
         : (lj ? lj.prayers : []).map((p) => `<details class="prayer-card"><summary>${esc(p.t)}</summary>${p.x.map((x) => `<p class="just">${esc(x)}</p>`).join("")}</details>`).join("")
       }</div>`;
     enter(listPane);
     mainPane.innerHTML = emptyMain();
     setMode("list");
+    if (tab === "kanonet") bindKanonet(kn);
+  }
+  async function viewKanonet() {
+    const kn = await load("kanonet");
+    listPane.innerHTML = `
+      <header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>Kanonet e Kishës</h1></header>
+      ${kanonetHtml(kn)}`;
+    enter(listPane);
+    mainPane.innerHTML = emptyMain();
+    setMode("list");
+    bindKanonet(kn);
+  }
+  // ================= Kanonet e Kishës: seksione, kërkim, karta të mbyllura, lexues në ekran të plotë =================
+  function kanonetHtml(kn) {
+    if (!kn) return `<p class="muted">Kanonet nuk u ngarkuan.</p>`;
+    const cur = store.get("kn.sec", kn.sections[0].id);
+    return `<div class="kn-ui">
+      <div class="kn-tabs" role="tablist">${kn.sections.map((x) => `<button role="tab" class="kn-tab" data-sec="${esc(x.id)}" aria-selected="${x.id === cur}">${esc(x.short || x.title)}<small>${x.items.length}</small></button>`).join("")}</div>
+      <div class="kn-tools">
+        <label class="kn-search">${icon("search")}<input id="knQ" type="search" placeholder="Kërko në kanone… (p.sh. agjërim, martesë, Pashkë)" autocomplete="off"></label>
+        <button class="kn-only" id="knOnly" aria-pressed="false">☦ Me interpretim</button>
+      </div>
+      <div id="knHead"></div>
+      <div class="kn-list" id="knList"></div>
+      <details class="kn-about"><summary>ℹ Burimet</summary><p>${esc(kn.burimi)}</p>${kn.sections.filter((x) => x.pidNote).map((x) => `<p>${esc(x.pidNote)}</p>`).join("")}</details>
+    </div>`;
+  }
+  function bindKanonet(kn) {
+    if (!kn || !$("#knList")) return;
+    let secId = store.get("kn.sec", kn.sections[0].id), only = false, q = "";
+    const norm = (t) => nrm(String(t || ""));
+    const draw = () => {
+      const sec = kn.sections.find((x) => x.id === secId) || kn.sections[0];
+      $$(".kn-tab", listPane).forEach((t) => t.setAttribute("aria-selected", t.dataset.sec === sec.id));
+      const done = sec.items.filter((c) => c.pid).length;
+      $("#knHead").innerHTML = `<div class="kn-sechead"><h2>${esc(sec.title)}</h2><p>${esc(sec.sub || "")}${sec.pidNote ? ` · ☦ ${done}/${sec.items.length} me interpretim` : ""}</p></div>`;
+      const nq = norm(q);
+      const list = sec.items.map((c, i) => ({ c, i })).filter(({ c }) => (!only || c.pid) && (!nq || norm(c.x + " " + (c.pid ? (c.pid.interp || []).join(" ") : "")).includes(nq)));
+      $("#knList").innerHTML = list.length ? list.map(({ c, i }) => `<button class="kn-card" data-i="${i}" style="--i:${Math.min(i, 20)}">
+          <span class="kn-num">${esc(c.n)}</span>
+          <span class="kn-prev">${esc(c.x.length > 140 ? c.x.slice(0, 137).replace(/\s+\S*$/, "") + "…" : c.x)}</span>
+          ${c.pid ? `<span class="kn-badge">☦</span>` : ""}</button>`).join("")
+        : `<p class="muted kn-none">Asnjë kanon për “${esc(q)}”.</p>`;
+      $$(".kn-card", listPane).forEach((b) => b.addEventListener("click", () => { haptic(10); kanonReader(sec, +b.dataset.i); }));
+    };
+    $$(".kn-tab", listPane).forEach((t) => t.addEventListener("click", () => { secId = t.dataset.sec; store.set("kn.sec", secId); haptic(8); draw(); }));
+    $("#knOnly").addEventListener("click", (e) => { only = !only; e.currentTarget.setAttribute("aria-pressed", only); haptic(8); draw(); });
+    let tm;
+    $("#knQ").addEventListener("input", (e) => { clearTimeout(tm); tm = setTimeout(() => { q = e.target.value.trim(); draw(); }, 200); });
+    draw();
+  }
+  // lexuesi në ekran të plotë: kanoni, interpretimi, përputhja, shënimet; ‹ › për kanonin tjetër
+  function kanonReader(sec, start) {
+    let i = start;
+    const el = document.createElement("div");
+    el.className = "knr";
+    document.body.appendChild(el);
+    const render = (dir) => {
+      const c = sec.items[i];
+      const part = (title, arr, open) => arr && arr.length ? `<details class="knr-part"${open ? " open" : ""}><summary>${title}</summary>${arr.map((x) => `<p>${esc(x)}</p>`).join("")}</details>` : "";
+      el.innerHTML = `<div class="knr-card${dir ? " " + dir : ""}">
+          <header class="knr-top"><button class="icon-btn knr-x" aria-label="Mbyll">${icon("close")}</button>
+            <div><small>${esc(sec.short || sec.title)}</small><b>Kanoni ${esc(c.n)}</b></div><span class="knr-pos">${i + 1}/${sec.items.length}</span></header>
+          <div class="knr-body">
+            <p class="knr-text">${esc(c.x)}</p>
+            ${c.pid ? part("☦ Interpretimi i Shën Nikodimit (Pidalioni)", c.pid.interp, true) + part("Përputhja me kanonet e tjera", c.pid.symf) + part("Shënim i Shën Nikodimit", c.pid.shen) : ""}
+            ${c.en ? part("Origjinali (anglisht)", [c.en]) : ""}
+          </div>
+          <footer class="knr-nav"><button class="btn" id="knrPrev" ${i === 0 ? "disabled" : ""}>${icon("back")}<span>Para</span></button>
+            <button class="btn" id="knrNext" ${i === sec.items.length - 1 ? "disabled" : ""}><span>Pas</span><svg class="ic-fwd"><use href="#i-back"/></svg></button></footer>
+        </div>`;
+      $(".knr-x", el).addEventListener("click", close);
+      $("#knrPrev", el).addEventListener("click", () => go(-1));
+      $("#knrNext", el).addEventListener("click", () => go(1));
+    };
+    const go = (d) => { const n = i + d; if (n < 0 || n >= sec.items.length) return; i = n; haptic(10); render(d > 0 ? "fwd" : "bwd"); };
+    const close = () => { el.classList.remove("open"); setTimeout(() => el.remove(), 300); };
+    let x0 = null, y0 = null;
+    el.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    el.addEventListener("touchend", (e) => {
+      if (x0 == null) return;
+      const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+      if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+    }, { passive: true });
+    render("");
+    requestAnimationFrame(() => el.classList.add("open"));
   }
   function baptismHtml() {
     return `<section class="bap-hero"><div class="bap-icon">${icon("cross")}</div>
@@ -2744,7 +2832,7 @@ function pickPhoto(it) {
         <section class="kg-hero"><div class="kg-cup">${icon("cross")}</div><h2>Hapi i parë: Pagëzimi</h2>
           <p>Kungimi Hyjnor u jepet atyre që janë pagëzuar në Kishën Orthodhokse. Krishti të pret: Pagëzimi është dera.</p></section>
         <section class="kg-plan"><p class="kg-verse">“${esc(t)}”<small>${esc(r)}</small></p>
-          <a class="btn primary" href="#/biblioteka/pagezimi">${icon("cross")}<span>Si të pagëzohem</span></a></section>
+          <a class="btn primary" href="#/biblioteka/pagezimi">${icon("cross")}<span>Si të pagëzohem</span></a> <button class="btn bap-done-btn" data-baptized>${icon("check")}<span>U pagëzova ☦</span></button></section>
         <section class="kg-plan"><p>Ndërkohë eja në Liturgjinë Hyjnore të së Dielës: dëgjo Ungjillin, lutu me besimtarët dhe merr nafurën e bekuar në fund. Fol me priftin e famullisë: ai do të të udhëheqë me dashuri.</p></section>`;
       enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
       return;
@@ -3456,6 +3544,63 @@ function pickPhoto(it) {
     });
   }
 
+  document.addEventListener("click", (e) => { if (e.target.closest("[data-baptized]")) { e.preventDefault(); baptizedSheet(); } });
+  // “U pagëzova”: emri i pagëzimit, data, kisha, kush e kreu Pagëzimin → aplikacioni hapet plotësisht
+  function baptizedSheet() {
+    if ($(".bap-sheet")) return;
+    const el = document.createElement("div");
+    el.className = "sheet update-sheet onboard bap-sheet";
+    el.innerHTML = `<div class="sheet-card update-card" role="dialog" aria-modal="true" aria-labelledby="bpT">
+        <div class="upd-icon">${icon("cross")}</div>
+        <h2 id="bpT">U pagëzova ☦</h2>
+        <form id="bpForm" class="cf-form">
+          <label>Emri i pagëzimit<input id="bpName" maxlength="30" required autocomplete="off" placeholder="p.sh. Joan, Maria"></label>
+          <label>Data e Pagëzimit<input type="date" id="bpDate" value="${isoToday()}" max="${isoToday()}" required></label>
+          <label>Kisha<input id="bpChurch" maxlength="80" autocomplete="off" placeholder="p.sh. Kisha e Shën Gjergjit, Korçë"></label>
+          <label>Kush e kreu Pagëzimin<select id="bpWho"><option>Prift (At)</option><option>Episkop</option><option>Mitropolit</option><option>Kryepiskop</option></select></label>
+          <label>Emri i klerikut<input id="bpCleric" maxlength="60" autocomplete="off" placeholder="p.sh. At Joani"></label>
+          <button class="btn primary upd-go" type="submit">${icon("check")}<span>Ruaj</span></button>
+        </form>
+        <button class="btn upd-later" type="button">Anulo</button></div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("open"));
+    setTimeout(() => $("#bpName", el)?.focus(), 350);
+    const close = () => { el.classList.remove("open"); setTimeout(() => el.remove(), 300); };
+    $(".upd-later", el).addEventListener("click", close);
+    $("#bpForm", el).addEventListener("submit", (e) => {
+      e.preventDefault();
+      const bapt = $("#bpName", el).value.trim().replace(/\s+/g, " ");
+      if (!bapt) { $("#bpName", el).classList.add("need"); return; }
+      const rec = { date: $("#bpDate", el).value || isoToday(), kisha: $("#bpChurch", el).value.trim(), grada: $("#bpWho", el).value, kleriku: $("#bpCleric", el).value.trim() };
+      store.set("pagezimi", rec);
+      store.set("me.unbaptized", false);
+      store.set("me.bapt", bapt);
+      const name = store.get("me.name", "") || bapt;
+      if (!store.get("me.name", "")) store.set("me.name", bapt);
+      const l = Persons.all().filter((y) => !y.me);
+      l.unshift({ name, bapt, key: bapt.split(" ")[0], dates: [], me: true, at: Date.now() });
+      store.set("persons", l);
+      Persons.schedule();
+      close();
+      goldBurst(); haptic([40, 60, 40, 60, 240], true);
+      toast(`☦ Urime, ${bapt}! “Sa u pagëzuat në Krishtin, me Krishtin u veshët.” Tani zgjidh kur feston emri yt.`);
+      setTimeout(() => { location.hash = "#/emri"; }, 400);
+    });
+  }
+
+  // Faqe e kyçur për të papagëzuarit: Misteret e Kishës hapen me Pagëzimin
+  function viewLocked(view) {
+    const T = { rrefimi: "Rrëfimi", shqyrtimi: "Shqyrtimi i ndërgjegjes", kungimi: "Kungimi Hyjnor" }[view] || "";
+    const [t, r] = INVITE[1];
+    listPane.innerHTML = `
+      <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>${esc(T)}</h1></header>
+      <section class="lock-hero"><div class="lock-ic">🔒</div><h2>Hapet me Pagëzimin</h2>
+        <p>${esc(T)} është pjesë e jetës mistike të Kishës për ata që janë pagëzuar në Kishën Orthodhokse. Krishti të pret: dera është Pagëzimi.</p>
+        <p class="kg-verse">“${esc(t)}”<small>${esc(r)}</small></p>
+        <a class="btn primary" href="#/biblioteka/pagezimi">${icon("cross")}<span>Si të pagëzohem</span></a> <button class="btn bap-done-btn" data-baptized>${icon("check")}<span>U pagëzova ☦</span></button></section>`;
+    enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
+  }
+
   // ---------- Shqyrtimi i ndërgjegjes (para Rrëfimit; asgjë nuk ruhet këtu) ----------
   const EXAM = [
     ["Ndaj Perëndisë", ["A e kam lënë lutjen e mëngjesit dhe të mbrëmjes?", "A jam lutur me mendje të shpërndarë, pa vëmendje e pa zemër?", "A kam munguar në Liturgjinë Hyjnore të së Dielës ose të festave pa arsye?", "A kam ardhur vonë në kishë ose kam folur kot gjatë shërbesës?", "A e kam përmendur emrin e Perëndisë kot, me mallkim ose me betime?", "A kam mohuar ose jam turpëruar ta rrëfej besimin tim?", "A kam dyshuar në Perëndinë ose në mësimin e Kishës?", "A kam besuar në fall, bestytni, horoskop, magji ose “syri i keq”?", "A kam shkuar te falltarë, magjistarë ose “hoxhallarë”?", "A e kam thyer kreshmën pa nevojë ose pa bekim?", "A jam kunguar pa përgatitje, pa rrëfim ose pa u pajtuar me të tjerët?", "A e kam lënë Shkrimin e Shenjtë dhe leximin shpirtëror pas dore?", "A kam qeshur me gjërat e shenjta, me ikonat ose me klerikët?", "A jam mbështetur te vetja, te paraja ose te njerëzit më shumë se te Perëndia?", "A e kam fshehur me vetëdije ndonjë mëkat në Rrëfim?"]],
@@ -3754,11 +3899,13 @@ function pickPhoto(it) {
     });
   }
   const authorOK = () => store.get("author", false) && isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""));
-  function checkAuthor() {
+  // ask=true VETËM kur sapo janë shkruar e ruajtur dy emrat (emri + emri i pagëzimit);
+  // në nisje dhe kudo tjetër vetëm kontrollohet: askush nuk e sheh as faqen, as kërkesën për kod.
+  function checkAuthor(ask) {
     // po s'janë më emrat e autorit, mënyra e autorit fiket dhe paneli fshihet krejt
-    if (!isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""))) { if (store.get("author", false)) store.set("author", false); authorOpen = false; return; }
-    if (store.get("author", false)) return;
-    if (isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""))) askAuthorCode(() => { location.hash = "#/autori"; });
+    if (!isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""))) { if (store.get("author", false)) store.set("author", false); authorOpen = false; $(".author-sheet")?.remove(); return; }
+    if (store.get("author", false) || ask !== true) return;
+    askAuthorCode(() => { location.hash = "#/autori"; });
   }
   function backupText() {
     const data = {};
@@ -3849,7 +3996,11 @@ function pickPhoto(it) {
   function viewSpirit() {
     const nf = nextFeasts()[0], nfDays = Math.ceil((nf.d - Date.now()) / 864e5);
     const kg = store.get("kungimi", []), ch = store.get("ch40", null);
-    const tile = (cls, href, ico, title, sub, i) => `<a class="ftile ${cls}" href="${href}" style="--i:${i}">${ico}<strong>${title}</strong><span>${sub}</span></a>`;
+    const LOCK = ["#/rrefimi", "#/shqyrtimi", "#/kungimi"];
+    const tile = (cls, href, ico, title, sub, i) => {
+      const lk = unbaptized() && LOCK.includes(href);
+      return `<a class="ftile ${cls}${lk ? " locked" : ""}" href="${href}" style="--i:${i}">${ico}<strong>${title}</strong><span>${lk ? "🔒 Pas Pagëzimit" : sub}</span></a>`;
+    };
     let i = 0;
     listPane.innerHTML = `
       <header class="page-head"><h1>Shpirti</h1>${profileChip()}</header>
@@ -4296,16 +4447,22 @@ function pickPhoto(it) {
   }
   const ndKey = (y) => (y.off != null ? "p" + y.off : y.m + "-" + y.d);
   const defFeast = (r) => r.find((y) => y.main) || r.find((y) => y.label) || r[0] || null;
+  const ND_MAX = 4;
   function dateChips(r, sel) {
-    const c = [...r.filter((y) => y.label), ...r.filter((y) => !y.label)].slice(0, 14);
-    r.forEach((y) => { if (sel.includes(ndKey(y)) && !c.includes(y)) c.push(y); });
-    return `<div class="nd-pick">${c.map((y) => `<button type="button" class="nd-chip${sel.includes(ndKey(y)) ? " on" : ""}" data-k="${ndKey(y)}" aria-pressed="${sel.includes(ndKey(y))}"><b>${y.d} ${MUAJ_G[y.m - 1].slice(0, 3)}</b><span>${esc((y.label || y.saints[0] || "").split(" · ")[0].slice(0, 46))}</span></button>`).join("")}</div>`;
+    // të gjitha datat ku kujtohet emri, sipas kalendarit; të kremtet kryesore të theksuara
+    const c = [...r].sort((a, b) => a.m - b.m || a.d - b.d);
+    return `<p class="nd-count" data-count>${sel.length} nga ${ND_MAX} të zgjedhura · ${c.length} data gjithsej</p>
+      <div class="nd-pick nd-all">${c.map((y) => `<button type="button" class="nd-chip${y.label ? " lab" : ""}${sel.includes(ndKey(y)) ? " on" : ""}" data-k="${ndKey(y)}" aria-pressed="${sel.includes(ndKey(y))}"><b>${y.d} ${MUAJ_G[y.m - 1].slice(0, 3)}</b><span>${esc((y.label || y.saints[0] || "").split(" · ")[0].slice(0, 70))}</span></button>`).join("")}</div>`;
   }
   function bindChips(box, sel) {
     $$(".nd-chip", box).forEach((b) => b.addEventListener("click", () => {
       const k = b.dataset.k, i = sel.indexOf(k);
-      if (i >= 0) { if (sel.length > 1) sel.splice(i, 1); } else { sel.push(k); if (sel.length > 2) sel.shift(); }
+      if (i >= 0) { if (sel.length > 1) sel.splice(i, 1); }
+      else if (sel.length >= ND_MAX) { toast(`Deri në ${ND_MAX} data — hiq njërën për të zgjedhur tjetër`); haptic([30, 30, 30]); return; }
+      else sel.push(k);
+      haptic(10);
       $$(".nd-chip", box).forEach((c) => { const on = sel.includes(c.dataset.k); c.classList.toggle("on", on); c.setAttribute("aria-pressed", on); });
+      const cn = $("[data-count]", box); if (cn) cn.textContent = cn.textContent.replace(/^\d+/, sel.length);
     }));
   }
   // Ndrysho emrin, emrin e pagëzimit dhe datat (për mua: i == null)
@@ -4318,7 +4475,7 @@ function pickPhoto(it) {
     el.innerHTML = `<div class="sheet-card update-card" role="dialog" aria-modal="true" aria-labelledby="edT">
         <h2 id="edT">${isMe ? "Emri im" : "Ndrysho personin"}</h2>
         <form id="edForm"><input id="edName" maxlength="40" placeholder="${isMe ? "Emri yt" : "Emri i personit"}" autocomplete="off">
-          <input id="edBapt" maxlength="30" placeholder="Emri i pagëzimit (nëse është tjetër)" autocomplete="off">
+          <input id="edBapt" maxlength="30" placeholder="Emri i pagëzimit (i detyrueshëm)" autocomplete="off" required>
           ${isMe ? `<label class="ob-check"><input type="checkbox" id="edNo"> Nuk jam pagëzuar ende</label>` : ""}
           <div id="edDates"></div>
           <button class="btn primary upd-go" type="submit">${icon("check")}<span>Ruaj</span></button></form>
@@ -4332,15 +4489,17 @@ function pickPhoto(it) {
     if (no) no.checked = !x && store.get("me.unbaptized", false);
     const sel = x && x.dates ? [...x.dates] : [];
     let lastKey = x ? x.key : null, tm;
-    const keyOf = () => ((bp.value.trim() || nm.value.trim()).split(" ")[0]);
+    // dita e emrit festohet sipas emrit të pagëzimit
+    const keyOf = () => (bp.value.trim().split(" ")[0]);
     const draw = () => {
-      if (no && no.checked) { box.innerHTML = ""; bp.hidden = true; return; }
-      bp.hidden = false;
+      if (no && no.checked) { box.innerHTML = `<p class="nd-t">Dita e emrit vjen me Pagëzimin ☦</p>`; bp.hidden = true; bp.required = false; return; }
+      bp.hidden = false; bp.required = true;
+      if (!bp.value.trim()) { box.innerHTML = `<p class="nd-t">Shkruaj emrin e pagëzimit që të dalin të gjitha datat kur feston.</p>`; return; }
       const key = keyOf();
       const r = nameStem(key).length >= 3 ? nameDays(key, tp) : [];
       if (key !== lastKey || !sel.every((k) => r.some((y) => ndKey(y) === k))) { sel.length = 0; lastKey = key; }
       if (!sel.length) { const m = defFeast(r); if (m) sel.push(ndKey(m)); }
-      box.innerHTML = r.length ? `<p class="nd-t">Kur feston? Zgjidh 1 ose 2 data</p>${dateChips(r, sel)}` : key ? `<p class="nd-t">Nuk u gjet asnjë datë për këtë emër.</p>` : "";
+      box.innerHTML = r.length ? `<p class="nd-t">Kur feston? Zgjidh 1 deri në 4 data</p>${dateChips(r, sel)}` : key ? `<p class="nd-t">Nuk u gjet asnjë datë për këtë emër.</p>` : "";
       bindChips(box, sel);
     };
     draw();
@@ -4354,6 +4513,7 @@ function pickPhoto(it) {
       if (!n) { nm.focus(); return; }
       const b = bp.value.trim().replace(/\s+/g, " ");
       const unb = !!(no && no.checked);
+      if (!unb && !b) { bp.focus(); bp.classList.add("need"); toast("Shkruaj emrin e pagëzimit: dita e emrit festohet sipas tij"); return; }
       let list = Persons.all();
       const entry = { name: n, bapt: unb ? "" : b, key: keyOf(), dates: [...sel], at: x ? x.at : Date.now() };
       if (isMe) {
@@ -4365,7 +4525,7 @@ function pickPhoto(it) {
       Persons.schedule();
       close();
       toast("U ruajt ✓");
-      if (isMe) setTimeout(checkAuthor, 600);
+      if (isMe) setTimeout(() => checkAuthor(true), 600);
       if (after) after();
     });
   }
@@ -4390,7 +4550,7 @@ function pickPhoto(it) {
     mainPane.innerHTML = emptyMain();
     setMode("list");
     const res = $("#nameRes"), q = $("#nameQ");
-    const show = (name) => {
+    const show = (name, whoKeep) => {
       name = name.trim();
       if (nameStem(name).length < 3) { res.innerHTML = ""; return; }
       const r = nameDays(name, tp);
@@ -4406,9 +4566,10 @@ function pickPhoto(it) {
           <p class="name-why">${first.label ? esc(first.label) : hl(first.saints[0], name)}</p>
           ${isSaved && feasts.length > 1 ? `<div class="name-feasts">${feasts.map((x) => `<span class="nf${x === first ? " on" : ""}"><b>${x.d} ${MUAJ_G[x.m - 1].slice(0, 3)}</b>${esc(x.label.split(" · ")[0])}</span>`).join("")}</div>` : ""}
           ${isSaved ? `<button class="btn primary" disabled>${icon("check")}<span>U ruajt — do të të njoftojmë</span></button>` : `
-          <div class="person-add"><input id="personName" maxlength="40" value="${esc(name)}" placeholder="Emri i personit (p.sh. Gjergji, vëllai)" autocomplete="off">
-          <input id="personBapt" maxlength="30" placeholder="Emri i pagëzimit (opsional)" autocomplete="off">
-          <p class="nd-t">Kur feston? Zgjidh 1 ose 2 data</p><div id="ndPick">${dateChips(r, [ndKey(first)])}</div>
+          <div class="person-add">
+          <label class="pa-l">Emri i pagëzimit<input id="personBapt" maxlength="30" value="${esc(name)}" placeholder="Emri i pagëzimit" autocomplete="off"></label>
+          <label class="pa-l">Si e thërrisni (opsional)<input id="personName" maxlength="40" value="${esc(whoKeep && whoKeep !== name ? whoKeep : "")}" placeholder="p.sh. Xhoni, gjyshi, vëllai — ose bosh" autocomplete="off"></label>
+          <p class="nd-t">Kur feston? Zgjidh 1 deri në 4 data</p><div id="ndPick">${dateChips(r, [ndKey(first)])}</div>
           <button class="btn primary" id="nameSave">${icon("bell")}<span>Ruaj personin</span></button></div>`}
         </section>
         <ul class="list name-list">${r.map((x) => `<li><a class="list-item" href="#/tipikoja/${x.m - 1}/${Math.max(0, (tp.sections[x.m - 1].items.findIndex((it) => parseInt(it.title, 10) === x.d)))}">
@@ -4418,9 +4579,12 @@ function pickPhoto(it) {
       const pick = [ndKey(first)];
       if ($("#ndPick")) bindChips($("#ndPick"), pick);
       $("#nameSave")?.addEventListener("click", (e) => {
-        const who = ($("#personName").value || name).trim();
-        const bapt = ($("#personBapt").value || "").trim();
-        Persons.add(who, bapt || name, bapt, pick);
+        const bapt = ($("#personBapt").value || "").trim().replace(/\s+/g, " ");
+        const who = (($("#personName").value || "").trim() || bapt);
+        if (!bapt) { $("#personBapt").focus(); $("#personBapt").classList.add("need"); toast("Shkruaj emrin e pagëzimit"); return; }
+        // po ndryshoi emri i pagëzimit, datat duhen kërkuar për atë emër
+        if (nameStem(bapt) !== nameStem(name)) { q.value = bapt; show(bapt, who); toast(`Datat për emrin e pagëzimit «${bapt}»`); return; }
+        Persons.add(who, bapt.split(" ")[0], bapt, pick);
         const b = e.currentTarget, rr = b.getBoundingClientRect();
         $(".person-add", res).outerHTML = `<button class="btn primary" disabled>${icon("check")}<span>U ruajt — do të të njoftojmë</span></button>`;
         goldBurst(rr.left + rr.width / 2, rr.top);
@@ -4438,7 +4602,7 @@ function pickPhoto(it) {
       const meN = store.get("me.name", ""), meX = ps.find((x) => x.me), unbp = store.get("me.unbaptized", false);
       const meM = meX && Persons.main(meX, tp);
       const meCard = `<div class="me-card">${meN ? `<span class="avatar">${esc(meN.slice(0, 1).toUpperCase())}</span>
-          <span class="lbl"><b>${esc(meN)} (unë)</b><span class="sub">${meX && meX.bapt ? `✝ Emri i pagëzimit: ${esc(meX.bapt)}` : unbp ? "Ende pa u pagëzuar" : "Pa emër pagëzimi të shënuar"}</span>${meM ? `<span class="sub">Dita e emrit: ${Persons.feasts(meX, tp).map((y) => `${y.d} ${MUAJ_G[y.m - 1]}`).join(" · ")}</span>` : ""}</span>
+          <span class="lbl"><b>${esc(meN)} (unë)</b><span class="sub">${meX && meX.bapt ? `✝ Emri i pagëzimit: ${esc(meX.bapt)}` : unbp ? "Dita e emrit vjen me Pagëzimin ☦" : "Shto emrin e pagëzimit"}</span>${meM ? `<span class="sub">Dita e emrit: ${Persons.feasts(meX, tp).map((y) => `${y.d} ${MUAJ_G[y.m - 1]}`).join(" · ")}</span>` : ""}</span>
           <button class="btn small" id="meEdit">${icon("pen")}<span>${(meX && meX.bapt) || unbp ? "Ndrysho" : "Shto emrin e pagëzimit"}</span></button>`
         : `<button class="btn primary" id="meEdit">${icon("plus")}<span>Shto emrin tënd</span></button>`}</div>`;
       box.innerHTML = meCard + (ps.some((x) => !x.me) ? `<h3 class="persons-h">${icon("bell")} Personat e mi <small>${ps.filter((x) => !x.me).length}</small></h3>
@@ -4599,7 +4763,7 @@ function pickPhoto(it) {
     if (view !== "rrefimi") Confess.lock();
     if (view !== "autori") authorOpen = false;   // paneli i autorit mbyllet kur del
     if (view !== "ikona" && view !== "lexo") freeIcons();   // ikonat e parë fshihen nga memoria   // Rrëfimi mbyllet sapo del nga faqja
-      setNav(navOf[view] || "lexo");
+      setNav(navOf[view] || "lexo"); document.body.classList.remove("bible-full");
       if (view === "lexo" || view === "sot") await viewLibrary();
       else if (view === "pelqyerat") { await viewLikes(); mineSeg("pelqyerat"); }
       else if (view === "shenime") { await viewNotes(); mineSeg("shenime"); }
@@ -4613,6 +4777,7 @@ function pickPhoto(it) {
       else if (view === "autori") viewAuthor();
       else if (view === "kanuni") await viewRule(parts[1]);
       else if (view === "kathizma") await viewKathisma(parts[1]);
+      else if ((view === "rrefimi" || view === "shqyrtimi") && unbaptized()) viewLocked(view);
       else if (view === "rrefimi") viewConfess();
       else if (view === "shqyrtimi") viewExam();
       else if (view === "frymemarrja") viewBreath();
@@ -4626,6 +4791,8 @@ function pickPhoto(it) {
       else if (view === "numerimi") viewCountdown();
       else if (view === "sfida") viewChallenge();
       else if (view === "sinaksari") await viewSynax(parts[1], parts[2]);
+      else if (view === "biblioteka" && parts[1] === "kanonet") location.replace("#/kanonet");
+      else if (view === "kanonet") await viewKanonet();
       else if (view === "biblioteka") await viewLibrary2(parts[1]);
       else if (view === "kungimi") { viewCommunion(); if (parts[1] === "pyet") askCommunion(true); }
       else if (view === "mjekesia") await viewSoul();
@@ -4650,8 +4817,10 @@ function pickPhoto(it) {
     const calm = matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.classList.contains("eco");
     if (document.startViewTransition && !calm) {
       let p;
-      document.startViewTransition(() => Promise.race([(p = run()), new Promise((r) => setTimeout(r, 320))]));
-      await p;
+      const vt = document.startViewTransition(() => Promise.race([(p = run()), new Promise((r) => setTimeout(r, 320))]));
+      // kur nis një kalim i ri para se të mbarojë i vjetri, shfletuesi e anashkalon këtë: s'është gabim
+      [vt.ready, vt.finished, vt.updateCallbackDone].forEach((q) => q && q.catch(() => {}));
+      await vt.updateCallbackDone.catch(() => {});
     } else await run();
   });
 
@@ -4694,6 +4863,7 @@ function pickPhoto(it) {
       ["profecite", "scroll", "Libri i Profecive", "Leximet e Mbrëmësoreve"],
       ["sinaksari/sot", "calendar", "Sinaksari", "Shenjtorët e çdo dite · 12 muaj"],
       ["tipikoja/sot", "calendar", "Tipikoja 2026", "Shërbesa e ditës së sotme"],
+      ["kanonet", "scroll", "Kanonet e Kishës", "Apostujt · Sinodet · Pidalioni"],
       ["biblioteka", "book", "Biblioteka", "Lutjet · Fjalori · Pyetje · Pagëzimi"],
       ["sherbesa", "candle", "Shërbesa", "Mbrëmësorja dhe Mëngjesorja"],
       ["edjela", "music", "Shërbesa e së Dielës", "Tipikoja + Tetëtingullshi i tingullit"],
@@ -4708,7 +4878,7 @@ function pickPhoto(it) {
       <header class="page-head"><h1>Lexo</h1></header>
       <p class="greet">${esc(greeting())}</p>
       <div id="nameSlot">${nameDayBanner()}${myNameDayHtml()}</div>
-      ${unbaptized() ? (() => { const [t, r] = INVITE[new Date().getDate() % INVITE.length]; return `<a class="bap-invite inv-card" href="#/biblioteka/pagezimi">${icon("cross")}<span><b>Krishti të fton${userName() ? ", " + esc(userName()) : ""}</b><q>${esc(t)}</q><small>${esc(r)} · Si të pagëzohem në Kishën Orthodhokse ›</small></span></a>`; })() : ""}
+      ${unbaptized() ? (() => { const [t, r] = INVITE[new Date().getDate() % INVITE.length]; return `<a class="bap-invite inv-card" href="#/biblioteka/pagezimi">${icon("cross")}<span><b>Krishti të fton${userName() ? ", " + esc(userName()) : ""}</b><q>${esc(t)}</q><small>${esc(r)} · Si të pagëzohem në Kishën Orthodhokse ›</small></span></a><button class="btn bap-done-btn wide" data-baptized>${icon("check")}<span>U pagëzova ☦</span></button>`; })() : ""}
       <div id="icSlot"></div>
       <div id="todaySlot">${todayCardHtml(t)}</div>
       <a class="kal-banner" href="#/kalendari">${icon("calendar")}<span><b>Kalendari Kishtar</b><small>Liturgjitë, kreshmët dhe leximet e çdo dite</small></span></a>
@@ -5222,7 +5392,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "2.2.1";
+  const APP_VERSION = "2.7.5";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
@@ -5363,7 +5533,7 @@ function pickPhoto(it) {
         <h2 id="obT">Mirë se erdhe</h2>
         <p class="upd-notes">Si të quajmë?</p>
         <form id="obForm"><input id="obName" maxlength="30" placeholder="Emri yt" autocomplete="given-name" enterkeyhint="next">
-          <input id="obBapt" maxlength="30" placeholder="Emri i pagëzimit (nëse është tjetër)" autocomplete="off" enterkeyhint="done">
+          <input id="obBapt" maxlength="30" placeholder="Emri i pagëzimit (i detyrueshëm)" autocomplete="off" enterkeyhint="done">
           <label class="ob-check"><input type="checkbox" id="obNo"> Nuk jam pagëzuar ende</label>
           <button class="btn primary upd-go" type="submit">${icon("check")}<span>Vazhdo</span></button></form>
         <button class="btn upd-later" type="button">Më vonë</button>
@@ -5378,17 +5548,18 @@ function pickPhoto(it) {
       if (!n) return;
       const bapt = $("#obBapt", el).value.trim().replace(/\s+/g, " ");
       const unb = $("#obNo", el).checked;
+      if (!unb && !bapt) { $("#obBapt", el).focus(); $("#obBapt", el).classList.add("need"); toast("Shkruaj emrin e pagëzimit (ose shëno “Nuk jam pagëzuar ende”)"); return; }
       store.set("me.name", n);
       store.set("me.bapt", unb ? "" : bapt);
       store.set("me.unbaptized", unb);
       close();
       await load("tipikoja");
       const l = Persons.all().filter((x) => !x.me);
-      if (!unb) l.unshift({ name: n, bapt: bapt || "", key: (bapt || n).split(" ")[0], me: true, at: Date.now() });
+      if (!unb) l.unshift({ name: n, bapt, key: bapt.split(" ")[0], me: true, at: Date.now() });
       store.set("persons", l);
       Persons.schedule();
       goldBurst();
-      setTimeout(checkAuthor, 900);
+      setTimeout(() => checkAuthor(true), 900);
       const me = !unb && Persons.main(l[0], data.tipikoja);
       toast(me ? `${n}, dita e emrit tënd është ${me.d} ${MUAJ_G[me.m - 1]} 🎉` : `Mirë se erdhe, ${n}!`);
       if (unb) location.hash = "#/biblioteka/pagezimi"; else route();

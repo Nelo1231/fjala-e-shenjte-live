@@ -400,3 +400,124 @@ input, textarea, select, svg, .rr-pin { text-shadow: none !important; }
 @keyframes vtOut { to { opacity: 0; transform: scale(.985); } }
 @keyframes vtIn { from { opacity: 0; transform: translateY(10px); } }
 @media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } }
+
+/* ---------- Kanonet e Kishës ---------- */
+.kn-src { margin: 4px 4px 12px; font-size: 12.5px; color: var(--ink-2); font-style: italic; }
+.kn-h { font-family: var(--font-cap); font-weight: 500; color: var(--accent); letter-spacing: .05em; font-size: 18px; margin: 10px 4px 0; }
+.kn-sub { margin: 2px 4px 10px; color: var(--ink-2); font-size: 13.5px; }
+.kn-en { margin: 8px 0 4px; } .kn-en summary { font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.kn-en p { font-size: 14px; color: var(--ink-2); font-style: italic; }
+.kn-pid { margin: 10px 0 6px; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--gold) 9%, transparent); border-left: 3px solid var(--gold); }
+.kn-pid > summary { font-family: var(--font-cap); color: var(--accent); letter-spacing: .03em; font-size: 14px; cursor: pointer; margin-bottom: 6px; }
+.kn-pid h4 { font-family: var(--font-cap); font-weight: 500; color: var(--accent); font-size: 14px; margin: 12px 0 4px; letter-spacing: .03em; }
+.kn-pid p { font-size: calc(var(--read-size) - 2px); line-height: 1.55; }
+.kn-pid-mark { font-size: 11px; color: var(--gold); font-family: var(--font); margin-left: 6px; }
+
+/* ---------- Dita e emrit: të gjitha datat ---------- */
+.nd-all { max-height: 46vh; overflow-y: auto; justify-content: flex-start; padding: 2px; }
+.nd-all .nd-chip { max-width: none; flex: 1 1 140px; align-items: flex-start; text-align: left; }
+.nd-chip.lab { border-color: color-mix(in srgb, var(--gold) 60%, transparent); }
+.nd-chip.lab b::after { content: " ★"; font-size: 10px; }
+.nd-count { margin: 0 0 6px; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+input.need { border-color: #c0392b !important; box-shadow: 0 0 0 3px rgba(192,57,43,.18) !important; }
+.ftile.locked { filter: grayscale(.55) brightness(.85); }
+.lock-hero { margin: 0 16px 14px; padding: 24px 18px; border-radius: 24px; text-align: center; color: #f6eefc; text-shadow: 0 1px 2px rgba(0,0,0,.4); background: radial-gradient(120% 130% at 50% 0%, #4b3a6b 0%, #1a1228 85%); }
+.lock-hero h2 { font-family: var(--font-cap); font-weight: 500; margin: 6px 0; }
+.lock-ic { font-size: 40px; }
+.lock-hero .kg-verse { color: #efe6ff; font-style: italic; } .lock-hero .kg-verse small { display: block; font-style: normal; font-size: 12px; opacity: .85; }
+
+/* ---------- Dita e emrit: kartat e datave dhe “Emri im” ---------- */
+.nd-t { margin: 10px 0 6px; font-size: 13.5px; opacity: .9; text-align: center; }
+.nd-pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0 0 12px; }
+.nd-chip { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; padding: 7px 11px; border-radius: 14px; border: 1px solid var(--line);
+  background: var(--bg-2); color: var(--ink); font: inherit; font-size: 12.5px; line-height: 1.3; cursor: pointer; text-align: center;
+  transition: background .2s, border-color .2s, transform .2s var(--spring), box-shadow .2s; }
+.nd-chip b { font-size: 13.5px; color: var(--gold); white-space: nowrap; }
+.nd-chip span { opacity: .9; }
+.nd-chip:active { transform: scale(.95); }
+.nd-chip.on { background: color-mix(in srgb, var(--gold) 24%, var(--bg-2)); border-color: var(--gold); box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 35%, transparent); }
+.nd-chip.on b::before { content: "✓ "; }
+.name-hero .nd-chip { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .2); color: #fff6e3; }
+.name-hero .nd-chip b { color: #f1cc72; }
+.name-hero .nd-chip.on { background: rgba(241, 204, 114, .26); border-color: rgba(241, 204, 114, .85); }
+.name-hero .nd-count, .name-hero .nd-t { color: #f4ead6; opacity: .95; }
+.name-hero .person-add input { color: var(--ink); }
+.me-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin: 14px 0 6px; border-radius: 18px; }
+.me-card .lbl { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.me-card .sub { font-size: 12.5px; opacity: .8; }
+.me-card > .btn.primary { margin: 0 auto; }
+.me-card .btn.small { padding: 7px 11px; font-size: 12.5px; white-space: nowrap; }
+#edForm input[hidden] { display: none; }
+#edDates .nd-all { max-height: 38vh; }
+
+/* ---------- Kanonet: layout i ri ---------- */
+.kn-ui { padding-bottom: 20px; }
+.kn-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 10px; scrollbar-width: none; }
+.kn-tabs::-webkit-scrollbar { display: none; }
+.kn-tab { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--glass, var(--card));
+  color: var(--ink); font: inherit; font-family: var(--font-cap); font-size: 14px; letter-spacing: .03em; transition: all .25s var(--spring); }
+.kn-tab small { font-family: var(--font); font-size: 11.5px; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--gold) 22%, transparent); }
+.kn-tab[aria-selected="true"] { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 30%, transparent); }
+.kn-tab[aria-selected="true"] small { background: rgba(255, 255, 255, .22); }
+.kn-tools { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.kn-search { flex: 1; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); }
+.kn-search svg { width: 18px; height: 18px; color: var(--ink-2); flex: none; }
+.kn-search input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-size: 15px; padding: 11px 0; color: var(--ink); outline: none; }
+.kn-only { flex: none; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--ink-2); font: inherit; font-size: 13px; }
+.kn-only[aria-pressed="true"] { background: color-mix(in srgb, var(--gold) 22%, var(--card)); color: var(--ink); border-color: var(--gold); }
+.kn-sechead h2 { font-family: var(--font-cap); font-weight: 500; color: var(--accent); font-size: 18px; letter-spacing: .04em; margin: 4px 2px 0; }
+.kn-sechead p { margin: 2px 2px 10px; font-size: 13px; color: var(--ink-2); }
+.kn-list { display: flex; flex-direction: column; gap: 8px; }
+.kn-card { display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; border-radius: 18px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink); font: inherit; box-shadow: 0 4px 14px rgba(60, 25, 10, .06); animation: tileIn .4s var(--spring) both; animation-delay: calc(var(--i, 0) * 18ms); }
+.kn-num { flex: none; min-width: 46px; text-align: center; font-family: var(--font-cap); font-size: 15px; color: var(--accent); padding: 4px 6px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.kn-prev { flex: 1; font-size: 15px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.kn-badge { flex: none; color: var(--gold); font-size: 15px; }
+.kn-none { text-align: center; padding: 20px; }
+.kn-about { margin-top: 16px; font-size: 13px; color: var(--ink-2); } .kn-about summary { cursor: pointer; }
+
+/* lexuesi në ekran të plotë */
+.knr { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-end; justify-content: center; background: rgba(20, 10, 4, .45);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); opacity: 0; transition: opacity .25s; }
+.knr.open { opacity: 1; }
+.knr-card { width: min(720px, 100%); height: calc(100% - var(--safe-t) - 18px); display: flex; flex-direction: column; border-radius: 26px 26px 0 0;
+  background: var(--bg); box-shadow: 0 -10px 40px rgba(0, 0, 0, .25); transform: translateY(30px); transition: transform .35s var(--spring); overflow: hidden; }
+.knr.open .knr-card { transform: none; }
+.knr-card.fwd { animation: knrFwd .35s var(--spring); } .knr-card.bwd { animation: knrBwd .35s var(--spring); }
+@keyframes knrFwd { from { opacity: .3; transform: translateX(40px); } }
+@keyframes knrBwd { from { opacity: .3; transform: translateX(-40px); } }
+.knr-top { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.knr-top div { flex: 1; display: flex; flex-direction: column; }
+.knr-top small { font-size: 12px; color: var(--ink-2); letter-spacing: .04em; }
+.knr-top b { font-family: var(--font-cap); font-weight: 500; font-size: 19px; color: var(--accent); letter-spacing: .04em; }
+.knr-pos { font-size: 12.5px; color: var(--ink-2); }
+.knr-body { flex: 1; overflow-y: auto; padding: 16px 18px 30px; -webkit-overflow-scrolling: touch; }
+.knr-text { font-size: calc(var(--read-size) + 1px); line-height: 1.6; margin: 0 0 16px; text-align: justify; hyphens: auto; }
+.knr-part { margin: 0 0 10px; padding: 10px 12px; border-radius: 16px; background: color-mix(in srgb, var(--gold) 8%, var(--card)); border: 1px solid color-mix(in srgb, var(--gold) 25%, transparent); }
+.knr-part > summary { cursor: pointer; font-family: var(--font-cap); color: var(--accent); font-size: 14px; letter-spacing: .03em; }
+.knr-part p { font-size: calc(var(--read-size) - 1px); line-height: 1.6; text-align: justify; margin: 8px 0 0; }
+.knr-nav { display: flex; justify-content: space-between; gap: 10px; padding: 10px 14px calc(var(--safe-b) + 10px); border-top: 1px solid var(--line); background: var(--bg); }
+.knr-nav .btn { min-width: 110px; justify-content: center; } .knr-nav .btn[disabled] { opacity: .35; }
+.bib-seg { display: flex !important; overflow-x: auto; scrollbar-width: none; }
+.bib-seg::-webkit-scrollbar { display: none; }
+.bib-seg .seg-a { flex: 1 0 auto; padding: 0 12px; white-space: nowrap; }
+.bap-done-btn { margin-top: 8px; }
+.bap-done-btn.wide { display: flex; margin: 0 16px 14px; width: calc(100% - 32px); justify-content: center; }
+.pa-l { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #f4ead6; text-align: left; margin-bottom: 8px; }
+.pa-l input { width: 100%; }
+
+
+/* ---------- Bibla: e përshtatur me faqen ---------- */
+.bible-seg { display: flex; gap: 6px; padding: 4px; border-radius: 16px; }
+.bible-seg button { border-radius: 12px; font-family: var(--font-cap); letter-spacing: .03em; }
+.bible-note { text-align: center; font-size: 12.5px; margin: 6px 2px 8px; }
+.bible-nav { padding: 6px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(60, 25, 10, .06); }
+.bible-nav select { border-radius: 10px; background: var(--bg); }
+.bible-frame-wrap { height: calc(100dvh - var(--safe-t) - var(--safe-b) - 300px); min-height: 420px; border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); box-shadow: 0 10px 30px rgba(60, 25, 10, .12); background: var(--card); }
+@media (min-width: 640px) { .bible-frame-wrap { height: calc(100dvh - 230px); } }
+.bible-fs { position: absolute; z-index: 3; right: 10px; bottom: 10px; width: 42px; height: 42px; border-radius: 50%; font-size: 18px; color: #fff;
+  background: color-mix(in srgb, var(--accent) 88%, transparent); border: 1px solid rgba(255, 255, 255, .35); box-shadow: 0 6px 16px rgba(0, 0, 0, .25); }
+.bible-frame-wrap.full { position: fixed; z-index: 90; inset: var(--safe-t) 0 0 0; height: auto; min-height: 0; border-radius: 0; border: 0; }
+.bible-frame-wrap.full .bible-fs { bottom: calc(var(--safe-b) + 14px); }
+body.bible-full .nav { display: none; }
