@@ -1311,3 +1311,128 @@ html.ar-on .pfab { display: none !important; }
   .reel-bg.icon { background-size: contain !important; background-repeat: no-repeat; background-position: center !important; animation: none !important; transform: none !important; }
 }
 .reel-bg.icon { background-position: center 8% !important; }
+
+/* ---------- Hapja e aplikacionit (v3.0.1): dritë që lind, kryqi del nga mjegulla, shkronjat një nga një, pluhur i artë ---------- */
+.splash { overflow: hidden; background: radial-gradient(ellipse at 50% 42%, #5a1414 0%, #2a0909 55%, #120404 100%) !important; }
+.splash-rays { position: absolute; left: 50%; top: 42%; width: 180vmax; height: 180vmax; margin: -90vmax 0 0 -90vmax; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 214, 130, .10) 0deg 5deg, transparent 5deg 18deg);
+  -webkit-mask: radial-gradient(circle, #000 0, rgba(0,0,0,.5) 22%, transparent 55%); mask: radial-gradient(circle, #000 0, rgba(0,0,0,.5) 22%, transparent 55%);
+  opacity: 0; animation: raysIn 1.6s .15s ease-out forwards, raysSpin 40s linear infinite; }
+@keyframes raysIn { to { opacity: 1; } }
+@keyframes raysSpin { to { transform: rotate(360deg); } }
+.splash-dust { position: absolute; inset: 0; pointer-events: none; }
+.splash-dust i { position: absolute; left: var(--x); bottom: -10px; width: var(--s); height: var(--s); border-radius: 50%;
+  background: radial-gradient(circle, #ffe9a8, rgba(255, 200, 90, 0)); box-shadow: 0 0 8px rgba(255, 210, 120, .9);
+  opacity: 0; animation: dustUp var(--t) var(--d) ease-out infinite; }
+@keyframes dustUp { 0% { transform: translateY(0) scale(.6); opacity: 0; } 15% { opacity: .95; } 100% { transform: translateY(-75vh) translateX(18px) scale(1.1); opacity: 0; } }
+.splash-cross { animation: crossIn 1.3s cubic-bezier(.2, .8, .2, 1) both, crossGlow 2.4s 1.3s ease-in-out infinite alternate !important; }
+@keyframes crossIn { 0% { opacity: 0; transform: scale(.55) translateY(14px); filter: blur(14px) drop-shadow(0 0 0 rgba(241,204,114,0)); }
+  60% { opacity: 1; filter: blur(0) drop-shadow(0 0 30px rgba(255, 214, 120, .95)); } 100% { transform: none; filter: drop-shadow(0 0 14px rgba(241, 204, 114, .55)) drop-shadow(0 0 40px rgba(241, 160, 60, .25)); } }
+@keyframes crossGlow { to { filter: drop-shadow(0 0 22px rgba(255, 220, 130, .85)) drop-shadow(0 0 60px rgba(241, 160, 60, .4)); } }
+.splash-title { animation: titleGlow 2.6s 1.6s ease-in-out infinite alternate !important; white-space: nowrap; }
+.splash-title span { display: inline-block; opacity: 0; filter: blur(8px); transform: translateY(14px);
+  animation: letterIn .7s calc(.55s + var(--i) * .055s) cubic-bezier(.2, .8, .2, 1) forwards; }
+@keyframes letterIn { to { opacity: 1; filter: blur(0); transform: none; } }
+.splash-line { display: block; width: 0; height: 1px; margin: 14px auto 0; background: linear-gradient(90deg, transparent, #f1cc72, transparent);
+  animation: lineIn 1s 1.4s ease-out forwards; }
+@keyframes lineIn { to { width: min(62vw, 280px); } }
+.splash.hide { opacity: 0; transform: scale(1.08); filter: blur(10px); transition: opacity .7s ease, transform .8s ease, filter .7s ease, visibility 0s .8s !important; }
+@media (prefers-reduced-motion: reduce) { .splash-rays, .splash-dust i, .splash-title span, .splash-cross, .splash-line { animation: none !important; opacity: 1 !important; filter: none !important; transform: none !important; width: auto; } }
+
+/* ---------- Kalimi nga një kartë te tjetra: e mëparshmja dhe e ardhshmja mjegullohen, aktivja del e qartë ---------- */
+.reel .reel-body, .reel .reel-bg { transition: filter .55s ease, opacity .55s ease, transform 1.2s cubic-bezier(.2, .8, .2, 1) !important; }
+.reel:not(.active) .reel-bg { filter: blur(10px) brightness(.65) !important; }
+.reel:not(.active) .reel-body { filter: blur(6px); opacity: .55; }
+.reel.active .reel-body { filter: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .reel:not(.active) .reel-bg, .reel:not(.active) .reel-body { filter: none !important; opacity: 1; } }
+
+/* =====================================================================
+   Kartat PREMIUM (v3.0.1): medaljon ari për ikonën, kornizë ari e hollë, dritë që rrëshqet, shigjetë
+   ===================================================================== */
+.tiles { gap: 12px; }
+.tile, .site-link {
+  position: relative; overflow: hidden; isolation: isolate;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--gold) 16%, transparent) 0%, transparent 55%),
+    linear-gradient(165deg, color-mix(in srgb, var(--card) 96%, #fff) 0%, var(--card) 60%, color-mix(in srgb, var(--card) 88%, var(--accent)) 100%) !important;
+  border: 1px solid color-mix(in srgb, var(--gold) 38%, var(--line)) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.55) inset, 0 -1px 0 color-mix(in srgb, var(--gold) 20%, transparent) inset,
+              0 6px 18px -8px rgba(60, 25, 10, .28), 0 2px 5px -2px rgba(60, 25, 10, .14) !important;
+  transition: transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease, border-color .25s ease !important;
+}
+.tile { padding: 16px 16px 15px !important; min-height: 118px; border-radius: 20px !important; gap: 5px; }
+/* vija e artë lart */
+.tile::before, .site-link::before { content: ""; position: absolute; left: 16px; right: 16px; top: 0; height: 2px; border-radius: 0 0 2px 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .75; z-index: -1; }
+/* drita që rrëshqet kur prek / kalon me maus */
+.tile::after, .site-link::after { content: ""; position: absolute; inset: -40% auto -40% -60%; width: 45%; transform: rotate(18deg) translateX(-140%);
+  background: linear-gradient(90deg, transparent, rgba(255, 240, 200, .55), transparent); z-index: -1; transition: transform .7s ease; pointer-events: none; }
+.tile:hover::after, .tile:focus-visible::after, .site-link:hover::after { transform: rotate(18deg) translateX(520%); }
+.tile:hover, .site-link:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--gold) 70%, var(--line)) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 14px 28px -12px rgba(60, 25, 10, .38), 0 4px 10px -4px rgba(60, 25, 10, .18) !important; }
+.tile:active, .site-link:active { transform: scale(.97); }
+/* medaljoni i ikonës */
+.tile > svg, .site-link > svg {
+  box-sizing: content-box; width: 22px !important; height: 22px !important; padding: 9px; border-radius: 50%;
+  color: #fff7e2 !important;
+  background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--accent) 70%, #ff9a7a) 0%, var(--accent) 55%, color-mix(in srgb, var(--accent) 70%, #000) 100%);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--gold) 85%, #fff), 0 0 0 4px color-mix(in srgb, var(--gold) 18%, transparent), 0 4px 10px -2px rgba(122, 22, 22, .45);
+}
+.tile strong { margin-top: 8px; font-size: 15.5px !important; letter-spacing: .05em; color: var(--ink) !important; }
+.tile span { font-size: 13px !important; line-height: 1.32; color: var(--ink-2); padding-right: 18px; }
+.tile:not(.soon)::marker { content: none; }
+.tile { --arrow: "›"; }
+.tile strong::after { content: "›"; position: absolute; right: 14px; bottom: 12px; font: 400 22px/1 Georgia, serif; color: var(--gold); opacity: .8; transition: transform .25s ease, opacity .25s; }
+.tile:hover strong::after { transform: translateX(3px); opacity: 1; }
+.site-links { gap: 10px !important; }
+.site-link { border-radius: 18px !important; padding: 14px 6px 12px !important; min-height: 96px !important; font-weight: 600; color: var(--ink) !important; gap: 8px !important; }
+.site-link > svg { width: 20px !important; height: 20px !important; padding: 8px; }
+.hub-h { display: flex; align-items: center; gap: 12px; font-family: var(--font-cap); letter-spacing: .14em; text-transform: uppercase; font-size: 14px; color: var(--accent); }
+.hub-h::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 70%, transparent), transparent); }
+/* tema e errët */
+:root[data-theme="dark"] .tile, :root[data-theme="dark"] .site-link { box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 8px 22px -10px rgba(0,0,0,.7) !important; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tile, :root:not([data-theme="light"]) .site-link { box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 8px 22px -10px rgba(0,0,0,.7) !important; } }
+html.eco .tile::after, html.eco .site-link::after { display: none; }
+@media (prefers-reduced-motion: reduce) { .tile::after, .site-link::after { display: none; } .tile:hover, .site-link:hover { transform: none; } }
+
+/* ---------- Seksionet e Kishës brenda aplikacionit ---------- */
+.sec-list { display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 30px; max-width: 760px; margin: 0 auto; }
+.sec-item { display: grid; grid-template-columns: 112px 1fr; gap: 14px; align-items: start; padding: 12px; border-radius: 18px; text-decoration: none; color: var(--ink);
+  background: var(--card); border: 1px solid color-mix(in srgb, var(--gold) 30%, var(--line)); box-shadow: 0 6px 16px -10px rgba(60,25,10,.3); }
+.sec-item:not(:has(.sec-ph)) { grid-template-columns: 1fr; }
+.sec-ph { width: 112px; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--bg-2); }
+.sec-ph img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; display: block; }
+.sec-b { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sec-b small { color: var(--accent); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+.sec-b b { font-family: "Playfair Display", Georgia, serif; font-size: 17px; line-height: 1.25; }
+.sec-b em { font-style: normal; color: var(--ink-2); font-size: 14px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sec-kids { display: flex; flex-direction: column; margin: 22px 0 6px; border-top: 1px solid var(--line); }
+.sec-kid { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 4px; border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none; font-weight: 600; }
+.sec-kid svg { width: 18px; height: 18px; color: var(--gold); flex: none; }
+.mz-post, .lj-card[data-href] { cursor: pointer; }
+.mz-gal figure { cursor: zoom-in; }
+/* njoftimet web */
+.wn-card { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; margin: 0 0 14px; padding: 12px 12px 12px 14px; border-radius: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 92%, #000), color-mix(in srgb, var(--accent) 70%, var(--gold))); color: #fff7e2;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 60%, transparent) inset, 0 10px 24px -12px rgba(122,22,22,.6); }
+.wn-bell { font-size: 24px; animation: wnRing 2.6s ease-in-out infinite; transform-origin: 50% 0; }
+@keyframes wnRing { 0%, 70%, 100% { transform: rotate(0); } 75% { transform: rotate(14deg); } 82% { transform: rotate(-12deg); } 89% { transform: rotate(6deg); } }
+.wn-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; } .wn-t b { font-size: 15px; } .wn-t small { font-size: 12.5px; opacity: .88; line-height: 1.3; }
+.wn-card .btn { background: #fff4d6 !important; color: var(--accent) !important; border: 0; padding: 8px 14px; font-weight: 700; }
+.wn-x { border: 0; background: transparent; color: #fff7e2; font-size: 22px; line-height: 1; padding: 4px 6px; cursor: pointer; opacity: .8; }
+
+.sec-intro { max-width: 760px; margin: 4px auto 12px; padding: 0 16px; color: var(--ink-2); font-size: 15px; line-height: 1.5; }
+.sec-list.in { padding: 18px 0 0; }
+
+/* Bibla: zgjedhësi i kapitujve */
+.bible-pick { margin-top: 12px; padding: 16px; border-radius: 20px; background: var(--card); border: 1px solid color-mix(in srgb, var(--gold) 38%, var(--line)); box-shadow: 0 8px 22px -12px rgba(60,25,10,.3); }
+.bible-cur { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+.bible-cur small { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.bible-cur b { font-family: "Playfair Display", Georgia, serif; font-size: 28px; line-height: 1.1; }
+.bible-go { width: 100%; justify-content: center; padding: 14px; font-size: 16px; }
+.bible-h { margin: 18px 0 8px; font-size: 13px; color: var(--ink-2); letter-spacing: .08em; text-transform: uppercase; }
+.bible-chs { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 8px; }
+.bch { aspect-ratio: 1; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--gold) 30%, var(--line)); background: var(--bg); color: var(--ink); font: 600 16px/1 Georgia, serif; cursor: pointer; transition: transform .15s, background .2s; }
+.bch:hover { transform: translateY(-1px); border-color: var(--gold); }
+.bch.on { background: var(--accent); color: #fff7e2; border-color: var(--accent); }
+.bible-src { margin: 14px 0 0; font-size: 12px; color: var(--ink-2); font-style: italic; text-align: center; }

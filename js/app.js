@@ -461,7 +461,8 @@ function pickPhoto(it) {
       if (!photos) {
         photos = {};
         // ikonat e Sinaksarit (me datë) dalin VETËM te “Ikona e ditës”, kurrë te shprehjet
-        ((data.imazhet || {}).images || []).filter((im) => !isDayIcon(im)).forEach((im) => (photos[im.cat] = photos[im.cat] || []).push(im.file));
+        // hartat (reliev / satelit) janë vetëm për Gjeografinë e Shenjtë, jo sfond për shprehjet
+        ((data.imazhet || {}).images || []).filter((im) => !isDayIcon(im) && im.cat !== "harta" && !/\/harta\//.test(im.file || "")).forEach((im) => (photos[im.cat] = photos[im.cat] || []).push(im.file));
       }
       // të përziera nga TË GJITHA dosjet e img/: çdo kartë merr një kategori tjetër me radhë të rastësishme,
       // dhe asnjë foto nuk përsëritet derisa të jenë shfaqur të gjitha
@@ -995,7 +996,13 @@ function pickPhoto(it) {
       if (tab) { churchTab = tab.dataset.src; store.set("churchTab", churchTab); haptic(6); if (location.hash !== "#/kisha") location.hash = "#/kisha"; else viewChurch(); return; }
       if (e.target.closest("#radioBtn")) { Radio.toggle(); return; }
       const b = e.target.closest("[data-url]");
-      if (b) { e.preventDefault(); openSite(b.dataset.url); }
+      if (b) {
+        e.preventDefault();
+        const u = b.dataset.url;
+        if (u.startsWith(SITE) && u !== SITE) { location.hash = "#/seksion/kisha/" + encodeURIComponent(u.slice(SITE.length)); return; }
+        if (u.startsWith(NGJ) && u !== NGJ) { location.hash = "#/seksion/ngj/" + encodeURIComponent(u.slice(NGJ.length)); return; }
+        openSite(u);
+      }
     };
     $("#newsRefresh").addEventListener("click", () => refreshNews(true));
     if (!cached || Date.now() - cached.at > 30 * 60 * 1000) refreshNews(false);
@@ -1240,7 +1247,12 @@ function pickPhoto(it) {
      LAJMET BRENDA APLIKACIONIT — lexuesi i artikujve + rifreskimi i vazhdueshëm
      ===================================================================== */
   const ALLOWED = new Set(["P", "H2", "H3", "H4", "STRONG", "B", "EM", "I", "U", "BLOCKQUOTE", "UL", "OL", "LI", "BR", "FIGURE", "FIGCAPTION", "IMG", "A", "SPAN", "DIV", "IFRAME", "HR"]);
+  // kodet e redaktorëve të WordPress ([fusion_builder_…], [vc_row], [caption]…) hiqen; teksti brenda tyre mbetet
+  const stripShortcodes = (h) => String(h || "")
+    .replace(/\[(\/?)[a-z][a-z0-9_\-]*(?:\s(?:[^\]"“”]|"[^"]*"|“[^”]*”|”[^”]*”)*)?\/?\]/gi, "")
+    .replace(/(<p>\s*<\/p>|<p>\s*(?:&nbsp;|\s)*<\/p>)/g, "");
   function cleanHtml(html, base) {
+    html = stripShortcodes(html);
     const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
     const walk = (node) => {
       [...node.childNodes].forEach((n) => {
@@ -1269,7 +1281,7 @@ function pickPhoto(it) {
   async function loadArticle(src, id) {
     const key = `art.${src}.${id}`;
     const cached = store.get(key, null);
-    if (cached) return { ...cached, html: ortho(cached.html) };
+    if (cached) return { ...cached, html: ortho(stripShortcodes(cached.html)) };
     let art;
     if (src === "kisha") {
       const r = await fetch(`${SITE}wp-json/wp/v2/posts/${id}?_embed=wp:featuredmedia&_fields=title,content,date,link,_links,_embedded`, { credentials: "omit" });
@@ -1301,6 +1313,92 @@ function pickPhoto(it) {
     }
     try { store.set(key, art); } catch (e) { /* hapësira */ }
     return { ...art, html: ortho(art.html) };
+  }
+
+  // Seksionet e faqes së Kishës (Besimi ynë, Katekizmi, Historia…) dhe të Radio Ngjallja, brenda aplikacionit:
+  // një kategori → lista e shkrimeve (secili hapet i plotë te #/lajm/…); një faqe → faqja e plotë.
+  async function loadSection(src, path) {
+    const key = `sec2.${src}.${path}`, cached = store.get(key, null);
+    if (cached && Date.now() - cached.at < 6 * 3600e3) return cached;
+    const txt = (h) => new DOMParser().parseFromString(stripShortcodes(h), "text/html").body.textContent.replace(/\s+/g, " ").trim();
+    let out = null;
+    if (src === "kisha") {
+      const slug = path.replace(/\/+$/, "").split("/").pop();
+      const get = (u) => fetch(SITE + "wp-json/wp/v2/" + u, { credentials: "omit" }).then((r) => (r.ok ? r.json() : []));
+      const F = "&_embed=wp:featuredmedia&_fields=id,date,link,title,excerpt,content,_links,_embedded";
+      const toItems = (posts) => (posts || []).filter((x) => !/\/2026\/(en|el|fr|it|de|es|ro|sr|bg|ar|ko|ru)\//.test(x.link || "")).map((x) => {
+        const m = ((x._embedded || {})["wp:featuredmedia"] || [])[0] || {}, sz = (m.media_details || {}).sizes || {};
+        const inBody = ((x.content || {}).rendered || "").match(/<img[^>]+(?:data-src|src)="([^"]+)"/i);
+        return { href: "#/lajm/kisha/" + x.id, title: txt((x.title || {}).rendered), ex: txt((x.excerpt || {}).rendered).slice(0, 220), date: x.date,
+          img: (sz.medium_large || sz.large || sz.medium || {}).source_url || m.source_url || (inBody ? inBody[1].replace(/&amp;/g, "&") : "") };
+      });
+      const name = ((SITE_LINKS.find((l) => l[1] === path) || [])[0] || slug.replace(/-/g, " ")).replace(/[“”"]/g, "");
+      if (/^lajme/.test(slug)) {                                                     // Lajmet: të gjitha shkrimet më të fundit
+        out = { kind: "list", title: "Lajme", items: toItems(await get("posts?per_page=40" + F)) };
+      } else {
+        const cats = await get(`categories?slug=${encodeURIComponent(slug)}&_fields=id,name`);
+        if (cats && cats[0]) out = { kind: "list", title: txt(cats[0].name), items: toItems(await get(`posts?categories=${cats[0].id}&per_page=40` + F)) };
+        else {
+          const pg = await get(`pages?slug=${encodeURIComponent(slug)}&_fields=id,title,content,link`);
+          const page = pg && pg[0];
+          const plain = page ? txt(page.content.rendered) : "";
+          const kids = page ? await get(`pages?parent=${page.id}&per_page=60&orderby=menu_order&order=asc&_fields=id,title,link`) : [];
+          const kidList = (kids || []).map((k) => ({ title: txt(k.title.rendered), path: k.link.startsWith(SITE) ? k.link.slice(SITE.length) : "" })).filter((k) => k.path);
+          // faqja ka tekst të mjaftueshëm ose nënfaqe → faqja e plotë; përndryshe (faqe «guaskë») → shkrimet e asaj teme
+          const items = plain.length >= 600 || kidList.length ? [] : toItems(await get(`posts?search=${encodeURIComponent(name)}&per_page=30` + F));
+          if (page && (plain.length >= 600 || kidList.length || !items.length))
+            out = { kind: "page", title: txt(page.title.rendered), link: page.link, html: cleanHtml(page.content.rendered, page.link), kids: kidList, items };
+          else if (items.length) out = { kind: "list", title: name, items, intro: "" };
+        }
+      }
+    } else {
+      const doc = new DOMParser().parseFromString(await fetchHtml(NGJ + path), "text/html");
+      const items = [], seen = new Set();
+      doc.querySelectorAll(".post-item-horizontal, .post-item").forEach((el) => {
+        const a = el.querySelector("h3.title a, .title a"); if (!a) return;
+        const link = a.getAttribute("href") || ""; if (!link.startsWith(NGJ) || seen.has(link)) return; seen.add(link);
+        const img = el.querySelector("img[data-src], img[src]");
+        items.push({ href: "#/lajm/ngj/" + link.slice(NGJ.length).replace(/^\/+/, ""), title: (img && img.getAttribute("alt")) || a.textContent.trim(),
+          ex: (el.querySelector(".description")?.textContent || "").trim().slice(0, 220), img: img ? img.getAttribute("data-src") || img.getAttribute("src") : "", date: null });
+      });
+      const h = doc.querySelector("h1, .page-title");
+      out = { kind: "list", title: h ? h.textContent.trim() : "", items };
+    }
+    if (!out) throw new Error("bosh");
+    out.at = Date.now();
+    try { store.set(key, out); } catch (e) { /* hapësira */ }
+    return out;
+  }
+  const secItem = (n) => `<a class="sec-item" href="${n.href}">
+          ${n.img ? `<span class="sec-ph"><img src="${esc(n.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></span>` : ""}
+          <span class="sec-b">${n.date ? `<small>${esc(fmtDate(n.date))}</small>` : ""}<b>${esc(n.title)}</b>${n.ex ? `<em>${esc(n.ex)}</em>` : ""}</span></a>`;
+  async function viewSection(src, path) {
+    setNav("kisha");
+    const name = (src === "kisha" ? SITE_LINKS : NGJ_LINKS).find((l) => l[1] === path);
+    const head = (t) => `<header class="page-head art-head"><a class="back-btn art-back" href="#/kisha" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">${esc(t)}</h2></header>`;
+    mainPane.innerHTML = head(name ? name[0] : "Kisha") + `<article class="article skeleton"><div class="sk sk-img"></div><div class="sk sk-t"></div><div class="sk sk-l"></div><div class="sk sk-l"></div></article>`;
+    mainPane.classList.add("art-open"); enter(mainPane); setMode("read"); mainPane.scrollTop = 0;
+    const back = () => $(".art-back", mainPane)?.addEventListener("click", (e) => { if (history.length > 1) { e.preventDefault(); history.back(); } });
+    back();
+    try {
+      const d = await loadSection(src, path);
+      if (!location.hash.startsWith("#/seksion/")) return;
+      const title = (name && name[0]) || d.title;
+      if (d.kind === "page") {
+        mainPane.innerHTML = head(title) + `<article class="article"><h1 class="art-title">${esc(d.title || title)}</h1><div class="art-body" lang="sq">${ortho(d.html)}</div>
+          ${(d.items || []).length ? `<div class="sec-list in">${d.items.map(secItem).join("")}</div>` : ""}
+          ${d.kids.length ? `<nav class="sec-kids">${d.kids.map((k) => `<a class="sec-kid" href="#/seksion/kisha/${encodeURIComponent(k.path)}"><span>${esc(k.title)}</span>${icon("next")}</a>`).join("")}</nav>` : ""}
+          <p class="art-src"><a href="${esc(d.link)}" target="_blank" rel="noopener">${icon("globe")} Burimi: orthodoxalbania.org</a></p></article>`;
+      } else {
+        mainPane.innerHTML = head(title) + `${d.intro ? `<p class="sec-intro">${esc(d.intro)}</p>` : ""}<div class="sec-list">${d.items.length ? d.items.map(secItem).join("") : `<p class="muted" style="text-align:center;padding:30px 0">Ky seksion nuk ka ende shkrime.</p>`}</div>`;
+      }
+      enter(mainPane); back();
+      // lidhjet brenda faqes drejt faqes së Kishës hapen gjithashtu brenda aplikacionit
+      $$(".art-body a[href]", mainPane).forEach((l) => { const h = l.getAttribute("href") || ""; if (h.startsWith(SITE) && h.length > SITE.length) { l.removeAttribute("target"); l.setAttribute("href", "#/seksion/kisha/" + encodeURIComponent(h.slice(SITE.length).split("#")[0])); } });
+    } catch (e) {
+      mainPane.innerHTML = head(name ? name[0] : "Kisha") + `<div class="empty">${icon("news")}<h3>Nuk u hap</h3><p>${navigator.onLine ? "Seksioni nuk u lexua dot tani. Provo sërish pak më vonë." : "Pa internet."}</p></div>`;
+      back();
+    }
   }
 
   async function viewArticle(src, id) {
@@ -1660,12 +1758,13 @@ function pickPhoto(it) {
     ["TIT", "Titi", 3], ["PHM", "Filemoni", 1], ["HEB", "Hebrenjve", 13], ["JAS", "Jakobi", 5], ["1PE", "1 Pjetrit", 5], ["2PE", "2 Pjetrit", 3],
     ["1JN", "1 Joanit", 5], ["2JN", "2 Joanit", 1], ["3JN", "3 Joanit", 1], ["JUD", "Juda", 1], ["REV", "Zbulesa", 22],
   ];
+  // Shoqëria Biblike Ndërkonfesionale e Shqipërisë · «Së bashku» 2020 me librat Deuterokanonikë (kanoni i plotë orthodhoks)
+  const BIBLE_BOOKS_DK = [["GEN", "Zanafilla", 50], ["EXO", "Dalja", 40], ["LEV", "Levitiku", 27], ["NUM", "Numrat", 36], ["DEU", "Ligji i përtërirë", 34], ["JOS", "Jozuehu", 24], ["JDG", "Gjyqtarët", 21], ["RUT", "Ruta", 4], ["1SA", "1 Samuelit", 31], ["2SA", "2 Samuelit", 24], ["1KI", "1 Mbretërve", 22], ["2KI", "2 Mbretërve", 25], ["1CH", "1 Kronikave", 29], ["2CH", "2 Kronikave", 36], ["EZR", "Ezra", 10], ["NEH", "Nehemia", 13], ["1ES", "1 Ezra", 9], ["TOB", "Tobia", 14], ["JDT", "Judita", 16], ["ESG", "Estera (Gr)", 10], ["1MA", "1 Makabenjve", 16], ["2MA", "2 Makabenjve", 15], ["3MA", "3 Makabenjve", 7], ["JOB", "Jobi", 42], ["PSA", "Psalmet", 150], ["PRO", "Fjalët e urta", 31], ["ECC", "Kuvendari", 12], ["SNG", "Kënga e këngëve", 8], ["WIS", "Urtia", 19], ["SIR", "Siraku", 51], ["ISA", "Isaia", 66], ["JER", "Jeremia", 52], ["LAM", "Vajtimet", 5], ["BAR", "Baruku", 7], ["EZK", "Ezekieli", 48], ["DAG", "Danieli (Gr)", 14], ["HOS", "Hosea", 14], ["JOL", "Joeli", 4], ["AMO", "Amosi", 9], ["OBA", "Abdia", 1], ["JON", "Jonai", 4], ["MIC", "Mikea", 7], ["NAM", "Naumi", 3], ["HAB", "Habakuku", 3], ["ZEP", "Sofonia", 3], ["HAG", "Hagai", 2], ["ZEC", "Zakaria", 14], ["MAL", "Malakia", 3], ["MAT", "Mateu", 28], ["MRK", "Marku", 16], ["LUK", "Luka", 24], ["JHN", "Gjoni", 21], ["ACT", "Veprat", 28], ["ROM", "Romakëve", 16], ["1CO", "1 Korintasve", 16], ["2CO", "2 Korintasve", 13], ["GAL", "Galatasve", 6], ["EPH", "Efesianëve", 6], ["PHP", "Filipianëve", 4], ["COL", "Kolosianëve", 4], ["1TH", "1 Selanikasve", 5], ["2TH", "2 Selanikasve", 3], ["1TI", "1 Timoteut", 6], ["2TI", "2 Timoteut", 4], ["TIT", "Titit", 3], ["PHM", "Filemonit", 1], ["HEB", "Hebrenjve", 13], ["JAS", "Jakobi", 5], ["1PE", "1 Pjetrit", 5], ["2PE", "2 Pjetrit", 3], ["1JN", "1 Gjonit", 5], ["2JN", "2 Gjonit", 1], ["3JN", "3 Gjonit", 1], ["JUD", "Juda", 1], ["REV", "Zbulesa", 22]];
   const BIBLE_SOURCES = {
-    biblapro: { label: "Bibla PRO", note: "Përkthimi i Ri nga Origjinali · me tekstin grek/hebraisht", home: "https://biblapro.com/read?book=Zan&chapter=1&verse=1" },
-    albb: { label: "Shoqëria Biblike", note: "Bibla Shqip 1994 · bible.com", ver: 7, abbr: "ALBB" },
+    al1: { label: "Shoqëria Biblike", note: "Bibla Shqip «Së bashku» 2020 (me DK) · Shoqëria Biblike Ndërkonfesionale e Shqipërisë", ver: 292, abbr: "AL1", books: BIBLE_BOOKS_DK },
   };
-  let bibleSrc = store.get("bibleSrc", "biblapro");
-  if (!BIBLE_SOURCES[bibleSrc]) bibleSrc = "biblapro";
+  let bibleSrc = store.get("bibleSrc", "al1");
+  if (!BIBLE_SOURCES[bibleSrc]) bibleSrc = "al1";
 
   function bibleUrl(src, book, ch, q) {
     const s = BIBLE_SOURCES[src];
@@ -1677,11 +1776,12 @@ function pickPhoto(it) {
   async function viewBible() {
     const s = BIBLE_SOURCES[bibleSrc];
     const loc = store.get("bible.loc." + bibleSrc, { book: s.nt ? "MAT" : "GEN", ch: 1 });
-    const books = BIBLE_BOOKS.filter((b, i) => !s.nt || i >= 39);
-    const cur = BIBLE_BOOKS.find((b) => b[0] === loc.book) || books[0];
+    const ALL = s.books || BIBLE_BOOKS;
+    const books = ALL.filter((b, i) => !s.nt || i >= 39);
+    const cur = ALL.find((b) => b[0] === loc.book) || books[0];
     listPane.innerHTML = `
       <header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>Bibla</h1></header>
-      <div class="seg bible-seg" role="tablist">${Object.entries(BIBLE_SOURCES).map(([k, v]) => `<button data-bsrc="${k}" aria-checked="${k === bibleSrc}">${esc(v.label)}</button>`).join("")}</div>
+      <div class="seg bible-seg" role="tablist"${Object.keys(BIBLE_SOURCES).length < 2 ? " hidden" : ""}>${Object.entries(BIBLE_SOURCES).map(([k, v]) => `<button data-bsrc="${k}" aria-checked="${k === bibleSrc}">${esc(v.label)}</button>`).join("")}</div>
       <p class="bible-note">${esc(s.note)}</p>
       ${bibleSrc !== "biblapro" ? `
       <div class="bible-nav">
@@ -1691,46 +1791,62 @@ function pickPhoto(it) {
         <button class="icon-btn" id="bNext" aria-label="Kapitulli tjetër"><svg style="transform:scaleX(-1)"><use href="#i-back"/></svg></button>
       </div>
       <form class="search bible-search" id="bSearch"><span>${icon("search")}</span><input id="bQ" type="search" placeholder="Kërko në Bibël…" enterkeyhint="search"></form>` : ""}
-      <div class="bible-frame-wrap"><button class="icon-btn bible-fs" aria-label="Ekran i plotë">⤢</button><div class="bible-loading">${icon("book")}<span>Po hapet…</span></div>
-        <iframe id="bibleFrame" title="Bibla" src="${esc(bibleUrl(bibleSrc, cur[0], loc.ch))}" referrerpolicy="no-referrer-when-downgrade" allow="autoplay; fullscreen"></iframe></div>`;
+      <section class="bible-pick">
+        <div class="bible-cur"><small>Kapitulli</small><b id="bCurT">${esc(cur[1])} ${loc.ch}</b></div>
+        <button class="btn primary bible-go" id="bGo">${icon("book")}<span>Lexo kapitullin</span></button>
+        <p class="bible-h">Kapitujt e librit</p>
+        <div class="bible-chs" id="bChs"></div>
+        <p class="bible-src">Teksti: Shoqëria Biblike Ndërkonfesionale e Shqipërisë · hapet live nga bible.com</p>
+      </section>`;
     enter(listPane);
     mainPane.innerHTML = emptyMain();
     setMode("list");
-    const frame = $("#bibleFrame");
-    frame.addEventListener("load", () => {
-      $(".bible-loading", listPane)?.remove();
-      try { if (bibleSrc === "biblapro" && frame.contentWindow.location.href) store.set("bp.last", frame.contentWindow.location.href); } catch (e) { /* faqe e huaj */ }
-    });
-    $(".bible-fs", listPane).addEventListener("click", (e) => { const w = e.currentTarget.parentElement; const on = w.classList.toggle("full"); e.currentTarget.textContent = on ? "✕" : "⤢"; document.body.classList.toggle("bible-full", on); haptic(10); });
     $$("[data-bsrc]", listPane).forEach((b) => b.addEventListener("click", () => { bibleSrc = b.dataset.bsrc; store.set("bibleSrc", bibleSrc); viewBible(); }));
-    if (bibleSrc === "biblapro") return;
-    const go = (book, ch) => {
-      const bk = BIBLE_BOOKS.find((b) => b[0] === book);
+    // bible.com nuk lejon të futet në kornizë (del bosh) → kapitulli hapet si faqe e plotë:
+    // Android: brenda aplikacionit (dritare me «‹ Kthehu»); web: skedë e re.
+    const open = (url, title) => {
+      haptic(10);
+      if (android && android.openVideo) return android.openVideo(url, title);
+      let w = null;
+      try { w = window.open(url, "_blank"); if (w) w.opener = null; } catch (e) { w = null; }
+      if (!w) location.assign(url);           // dritaret e reja të bllokuara → hapet këtu; «Kthehu» të sjell te aplikacioni
+    };
+    const L = () => store.get("bible.loc." + bibleSrc, { book: cur[0], ch: 1 });
+    const draw = () => {
+      const l = L(), bk = ALL.find((b) => b[0] === l.book) || cur;
+      $("#bBook").value = bk[0];
+      $("#bCh").innerHTML = Array.from({ length: bk[2] }, (_, i) => `<option${i + 1 === l.ch ? " selected" : ""}>${i + 1}</option>`).join("");
+      $("#bCurT").textContent = `${bk[1]} ${l.ch}`;
+      $("#bChs").innerHTML = Array.from({ length: bk[2] }, (_, i) => `<button class="bch${i + 1 === l.ch ? " on" : ""}" data-ch="${i + 1}">${i + 1}</button>`).join("");
+    };
+    const go = (book, ch, read) => {
+      const bk = ALL.find((b) => b[0] === book);
       ch = Math.max(1, Math.min(bk[2], ch));
       store.set("bible.loc." + bibleSrc, { book, ch });
-      frame.src = bibleUrl(bibleSrc, book, ch);
-      $("#bCh").innerHTML = Array.from({ length: bk[2] }, (_, i) => `<option${i + 1 === ch ? " selected" : ""}>${i + 1}</option>`).join("");
-      $("#bBook").value = book;
+      draw();
+      if (read) open(bibleUrl(bibleSrc, book, ch), `Bibla · ${bk[1]} ${ch}`);
     };
+    draw();
     $("#bBook").addEventListener("change", (e) => go(e.target.value, 1));
     $("#bCh").addEventListener("change", (e) => go($("#bBook").value, +e.target.value));
+    $("#bChs").addEventListener("click", (e) => { const b = e.target.closest("[data-ch]"); if (b) go(L().book, +b.dataset.ch, true); });
+    $("#bGo").addEventListener("click", () => { const l = L(); go(l.book, l.ch, true); });
     $("#bPrev").addEventListener("click", () => {
-      const l = store.get("bible.loc." + bibleSrc, { book: cur[0], ch: 1 });
-      if (l.ch > 1) return go(l.book, l.ch - 1);
-      const i = BIBLE_BOOKS.findIndex((b) => b[0] === l.book);
-      if (i > (s.nt ? 39 : 0)) go(BIBLE_BOOKS[i - 1][0], BIBLE_BOOKS[i - 1][2]);
+      const l = L();
+      if (l.ch > 1) return go(l.book, l.ch - 1, true);
+      const i = ALL.findIndex((b) => b[0] === l.book);
+      if (i > (s.nt ? 39 : 0)) go(ALL[i - 1][0], ALL[i - 1][2], true);
     });
     $("#bNext").addEventListener("click", () => {
-      const l = store.get("bible.loc." + bibleSrc, { book: cur[0], ch: 1 });
-      const bk = BIBLE_BOOKS.find((b) => b[0] === l.book);
-      if (l.ch < bk[2]) return go(l.book, l.ch + 1);
-      const i = BIBLE_BOOKS.findIndex((b) => b[0] === l.book);
-      if (i < BIBLE_BOOKS.length - 1) go(BIBLE_BOOKS[i + 1][0], 1);
+      const l = L(), bk = ALL.find((b) => b[0] === l.book);
+      if (l.ch < bk[2]) return go(l.book, l.ch + 1, true);
+      const i = ALL.findIndex((b) => b[0] === l.book);
+      if (i < ALL.length - 1) go(ALL[i + 1][0], 1, true);
     });
     $("#bSearch").addEventListener("submit", (e) => {
       e.preventDefault();
       const q = $("#bQ").value.trim();
-      if (q) frame.src = bibleUrl(bibleSrc, null, null, q);
+      if (q) open(bibleUrl(bibleSrc, null, null, q), "Bibla · kërkim: " + q);
     });
   }
 
@@ -3998,9 +4114,9 @@ function pickPhoto(it) {
           <h1>${esc(n.title)}</h1>
           <p class="ar-meta">${n.date ? esc(fmtDate(n.date)) : ""}</p>
           ${n.img ? `<figure class="ar-ph"><img src="${esc(n.img)}" alt="" decoding="async" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></figure>` : ""}
-          <div class="ar-text">${paras(n.ex).map((x, i) => `<p${i === 0 ? ' class="ar-first"' : ""}>${esc(x)}</p>`).join("") || `<p class="muted">Botuesi nuk ka dhënë përmbledhje për këtë shkrim.</p>`}</div>
+          <div class="ar-text">${paras(n.text ? (n.ex ? n.ex + "\n\n" : "") + n.text : n.ex).map((x, i) => `<p${i === 0 ? ' class="ar-first"' : ""}>${esc(x)}</p>`).join("") || `<p class="muted">Botuesi nuk ka dhënë përmbledhje për këtë shkrim.</p>`}</div>
           ${(() => { const al = [n.img, ...(n.imgs || [])].filter((u, k, a) => u && a.indexOf(u) === k); return al.length > 1 ? `<section class="ar-album"><h2>Albumi i fotove <small>${al.length} foto</small></h2><div class="ar-grid">${al.map((u, k) => `<button class="ar-th" data-ph="${k}" aria-label="Foto ${k + 1}"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></button>`).join("")}</div></section>` : ""; })()}
-          <footer class="ar-src">
+          <footer class="ar-src"${n.link && /^https?:/.test(n.link) ? "" : " hidden"}>
             <p>Burimi:</p>
             <a class="ar-go" data-go="${esc(n.link)}" href="${esc(n.link)}">${esc(src)} · ${esc(domainOf(n.link))} ↗</a>
           </footer>
@@ -4703,11 +4819,16 @@ function pickPhoto(it) {
       if (t) { haptic(6); store.set("mz.tab", t.dataset.mz); viewShkolla(); return; }
       const v = e.target.closest("[data-vid]");
       if (v) { playSchoolVideo(v.dataset.vid, v.dataset.t); v.classList.remove("new"); return; }
+      const hr = e.target.closest("[data-href]");
+      if (hr) { location.hash = hr.dataset.href; return; }
       const o = e.target.closest("[data-out]");
       if (o) openSite(o.dataset.out);
     };
     const doc = await shkollaLoad();
     const box = $("#mzBox"); if (!box) return;
+    // çdo botim i shkollës (Facebook, Instagram, dosja) është artikull i plotë te lexuesi, me albumin e fotove
+    (doc.posts || []).forEach((p, i) => { if (!p.link) p.link = "shkolla:" + (p.date || i); if (!p.src) p.src = "Shkolla e Muzikës"; });
+    Reader.add(doc.posts || []);
     const seen = new Set(store.get("mz.seen", []));
     if (tab === "pjeset") {
       const vs = doc.videos || [];
@@ -4719,14 +4840,17 @@ function pickPhoto(it) {
     } else if (tab === "botime") {
       const ps = (doc.posts || []).filter((p) => p.text || p.title);
       const ki = doc.kisha || [];
-      const kHtml = ki.length ? `<h3 class="mz-h">Nga faqja e Kishës</h3>${ki.map((n) => `<article class="lj-card g-koash" data-out="${esc(n.link)}">${n.img ? `<div class="lj-ph"><img data-ns="${esc(n.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}<div class="lj-b"><p class="lj-meta"><span class="lj-tag">KOASH</span><span>${esc(fmtDate(n.date))}</span></p><h3>${esc(n.title)}</h3><p class="lj-ex">${esc(n.ex)}</p><p class="lj-foot"><span>Burimi: <b>${esc(n.src)}</b></span><a class="lj-go" data-out="${esc(n.link)}">Lexo ↗</a></p></div></article>`).join("")}` : "";
-      box.innerHTML = kHtml + (ps.length ? `<h3 class="mz-h">Nga shkolla</h3>` : "") + (ps.length ? ps.map((p) => `<article class="mz-post">${p.img ? `<div class="lj-ph"><img data-ns="${esc(p.img)}" alt="" decoding="async"></div>` : ""}<div class="lj-b"><p class="lj-meta"><span class="lj-tag">Shkolla</span><span>${esc(fmtDate(p.date))}</span></p>${p.title ? `<h3>${esc(p.title)}</h3>` : ""}${p.text ? `<p class="mz-tx">${esc(p.text)}</p>` : ""}${p.link ? `<p class="lj-foot"><span></span><a class="lj-go" data-out="${esc(p.link)}">Hap postimin ↗</a></p>` : ""}</div></article>`).join("")
+      const kHtml = ki.length ? `<h3 class="mz-h">Nga faqja e Kishës</h3>${ki.map((n) => `<article class="lj-card g-koash" ${n.id ? `data-href="#/lajm/kisha/${n.id}"` : `data-out="${esc(n.link)}"`}>${n.img ? `<div class="lj-ph"><img data-ns="${esc(n.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}<div class="lj-b"><p class="lj-meta"><span class="lj-tag">KOASH</span><span>${esc(fmtDate(n.date))}</span></p><h3>${esc(n.title)}</h3><p class="lj-ex">${esc(n.ex)}</p><p class="lj-foot"><span>Burimi: <b>${esc(n.src)}</b></span><a class="lj-go" data-out="${esc(n.link)}">Lexo ↗</a></p></div></article>`).join("")}` : "";
+      box.innerHTML = kHtml + (ps.length ? `<h3 class="mz-h">Nga shkolla</h3>` : "") + (ps.length ? ps.map((p) => `<article class="mz-post" data-out="${esc(p.link)}">${p.img ? `<div class="lj-ph"><img data-ns="${esc(p.img)}" alt="" decoding="async"></div>` : ""}<div class="lj-b"><p class="lj-meta"><span class="lj-tag">Shkolla</span><span>${esc(fmtDate(p.date))}</span></p>${p.title ? `<h3>${esc(p.title)}</h3>` : ""}${p.text ? `<p class="mz-tx">${esc(p.text)}</p>` : ""}${p.link ? `<p class="lj-foot"><span></span><a class="lj-go" data-out="${esc(p.link)}">Hap postimin ↗</a></p>` : ""}</div></article>`).join("")
         : ki.length ? "" : `<div class="mz-empty"><b>Ende pa botime këtu</b><p>Botimet, njoftimet për koncerte dhe pjesët e reja të shkollës shfaqen këtu sapo shtohen. Ndërkohë i gjen te faqet zyrtare:</p><div class="mz-links"><button class="mz-l fb" data-out="${SHKOLLA.fb}">f Facebook</button><button class="mz-l ig" data-out="${SHKOLLA.ig}">◎ Instagram</button></div></div>`);
     } else {
       const ph = (doc.posts || []).filter((p) => p.img);
-      box.innerHTML = ph.length ? `<div class="mz-gal">${ph.map((p) => `<figure><img data-ns="${esc(p.img)}" alt="${esc(p.title || "")}" decoding="async">${p.title ? `<figcaption>${esc(p.title)}</figcaption>` : ""}</figure>`).join("")}</div>`
+      box.innerHTML = ph.length ? `<div class="mz-gal">${ph.map((p, k) => `<figure data-gal="${k}"><img data-ns="${esc(p.img)}" alt="${esc(p.title || "")}" decoding="async">${p.title ? `<figcaption>${esc(p.title)}</figcaption>` : ""}</figure>`).join("")}</div>`
         : `<div class="mz-empty"><b>Galeria mbushet së shpejti</b><p>Fotot nga shërbesat, provat dhe koncertet e Korit shfaqen këtu.</p><div class="mz-links"><button class="mz-l ig" data-out="${SHKOLLA.ig}">◎ Shih te Instagram</button></div></div>`;
     }
+    if (tab === "galeria") box.onclick = (e) => { const f = e.target.closest("[data-gal]"); if (!f) return; e.stopPropagation();
+      const all = (doc.posts || []).flatMap((p) => [p.img, ...(p.imgs || [])]).filter((u, k, a) => u && a.indexOf(u) === k);
+      const at = all.indexOf((doc.posts || []).filter((p) => p.img)[+f.dataset.gal].img); photoViewer(all, Math.max(0, at), "Shkolla"); };
     NewsImg.watch(box);
   }
   function playSchoolVideo(id, title) {
@@ -7157,10 +7281,10 @@ function pickPhoto(it) {
       }
       app.dataset.view = "read";
       listPane.onclick = null; mainPane.onclick = null;
-      const navOf = { pelqyerat: "pelqyerat", shenime: "pelqyerat", kisha: "kisha", lajm: "kisha", lajme: "kisha", gazeta: "lexo", mitropolite: "lexo", fanari: "lexo", vatikani: "lexo", gazetat: "lexo", shkolla: "kisha", shpirti: "shpirti", lutja: "shpirti", fjala: "shpirti", emri: "shpirti",
+      const navOf = { pelqyerat: "pelqyerat", shenime: "pelqyerat", kisha: "kisha", lajm: "kisha", seksion: "kisha", lajme: "kisha", gazeta: "lexo", mitropolite: "lexo", fanari: "lexo", vatikani: "lexo", gazetat: "lexo", shkolla: "kisha", shpirti: "shpirti", lutja: "shpirti", fjala: "shpirti", emri: "shpirti",
         diptiket: "shpirti", kuiz: "shpirti", komboskini: "shpirti", rrefimi: "shpirti", autori: "shpirti", kanuni: "shpirti", kathizma: "shpirti", shqyrtimi: "shpirti", frymemarrja: "shpirti", edjela: "shpirti", ikona: "shpirti", numerimi: "shpirti", sfida: "shpirti", kungimi: "shpirti", mjekesia: "shpirti", lindja: "shpirti", lavdi: "shpirti", kalendari: "shpirti" };
     if (view === "kisha") document.querySelector('.nav-btn[data-go="kisha"]')?.classList.remove("has-new");
-    if (view !== "lajm") mainPane.classList.remove("art-open");
+    if (view !== "lajm" && view !== "seksion") mainPane.classList.remove("art-open");
     if (view !== "lajme" && view !== "gazeta" && view !== "mitropolite" && view !== "fanari" && view !== "vatikani" && view !== "shkolla") NewsImg.stop();
     if (view !== "lutja") { clearInterval(candleTimer); Smoke.stop(); }
     if (view !== "rrefimi") Confess.lock();
@@ -7216,6 +7340,7 @@ function pickPhoto(it) {
       else if (view === "pagezimi") location.replace("#/biblioteka/pagezimi");
       else if (view === "lavdi") viewGratitude();
       else if (view === "emri") await viewNames();
+      else if (view === "seksion") await viewSection(parts[1] === "ngj" ? "ngj" : "kisha", decodeURIComponent(parts.slice(2).join("/")));
       else if (view === "lajm") await viewArticle(parts[1] === "kisha" ? "kisha" : parts[1] === "shenjt" ? "shenjt" : "ngj", parts[2]);
       else if (view === "psaltiri") await viewPsaltiri(parts[1]);
       else if (view === "eterit") await viewFathers();
@@ -7309,12 +7434,41 @@ function pickPhoto(it) {
     enter(slot);
     hydrateIcons(slot);
   }
+  // ---------- Njoftimet për versionin web: Gazeta 20:00, gazetat e javës të dielën 12:00, lajme të reja ----------
+  const WebNotify = (() => {
+    const ok = () => !android && "Notification" in window && "serviceWorker" in navigator;
+    const ping = () => navigator.serviceWorker.ready.then((r) => r.active && r.active.postMessage("fs-check")).catch(() => {});
+    async function arm() {
+      try {
+        const r = await navigator.serviceWorker.ready;
+        if (r.periodicSync) { const st = await navigator.permissions.query({ name: "periodic-background-sync" }).catch(() => null); if (!st || st.state === "granted") await r.periodicSync.register("fs-check", { minInterval: 60 * 60 * 1000 }).catch(() => {}); }
+      } catch (e) { /* */ }
+      ping();
+    }
+    function start() {
+      if (!ok()) return;
+      if (Notification.permission === "granted") arm();
+      setInterval(() => { if (Notification.permission === "granted") ping(); }, 5 * 60 * 1000);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden && Notification.permission === "granted") ping(); });
+      document.addEventListener("click", async (e) => {
+        if (e.target.closest("#wnX")) { store.set("wn.no", Date.now()); e.target.closest(".wn-card")?.remove(); return; }
+        if (!e.target.closest("#wnOn")) return;
+        const p = await Notification.requestPermission();
+        e.target.closest(".wn-card")?.remove();
+        if (p === "granted") { arm(); toast("🔔 Njoftimet u aktivizuan"); } else toast("Njoftimet mund t'i aktivizosh nga cilësimet e shfletuesit");
+      });
+    }
+    const html = () => ok() && Notification.permission === "default" && Date.now() - store.get("wn.no", 0) > 14 * 864e5
+      ? `<div class="wn-card"><span class="wn-bell">🔔</span><span class="wn-t"><b>Mos humb asgjë</b><small>Gazeta çdo ditë në 20:00 · gazetat e javës të dielën · lajmet e reja</small></span><button class="btn primary" id="wnOn">Aktivizo</button><button class="wn-x" id="wnX" aria-label="Jo tani">×</button></div>` : "";
+    return { start, html };
+  })();
+
   async function viewLibrary() {
     await load("psaltiri");
     const v = todayVerse();
     const t = Today.data || store.get("today", null);
     const tiles = [
-      ["bibla", "book", "Bibla e plotë", "Bibla PRO · Shoqëria Biblike · kërkim"],
+      ["bibla", "book", "Bibla e plotë", "«Së bashku» 2020 me DK · Shoqëria Biblike"],
       ["psaltiri", "lyre", "Psaltiri", "150 psalme · 20 kathizma"],
       ["ungjilli", "book", "Ungjilli", "Leximet e vitit kishtar"],
       ["apostulli", "letter", "Apostulli", "Veprat dhe Letrat"],
@@ -7339,6 +7493,7 @@ function pickPhoto(it) {
       <p class="greet">${esc(greeting())}</p>
       <div id="nameSlot">${nameDayBanner()}${myNameDayHtml()}</div>
       ${unbaptized() ? (() => { const [t, r] = INVITE[new Date().getDate() % INVITE.length]; return `<a class="bap-invite inv-card" href="#/biblioteka/pagezimi">${icon("cross")}<span><b>Krishti të fton${userName() ? ", " + esc(userName()) : ""}</b><q>${esc(t)}</q><small>${esc(r)} · Si të pagëzohem në Kishën Orthodhokse ›</small></span></a><button class="btn bap-done-btn wide" data-baptized>${icon("check")}<span>U pagëzova ☦</span></button>`; })() : ""}
+      ${WebNotify.html()}
       <div id="icSlot"></div>
       ${gazetaRowHtml()}
       ${gazetaCardHtml()}
@@ -8235,5 +8390,6 @@ function pickPhoto(it) {
   }, 3300);
   if ("serviceWorker" in navigator && location.protocol.startsWith("http") && !android) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
+    WebNotify.start();
   }
 })();
