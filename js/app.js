@@ -1983,76 +1983,139 @@ function pickPhoto(it) {
   const STOP = new Set("edhe dhe është janë sepse ashtu atëherë kështu prandaj mbi nga për tek në që por ose nuk mos asnjë gjithë cilët cili cila atij asaj tyre tona tuaj tënde tënd tim time sime sime".split(" "));
   async function viewQuiz() {
     const ps = await load("psaltiri");
-    const best = store.get("quiz2", { gap: 0, order: 0 });
+    // ---- të dhënat e lojtarit: rekorde, XP, medalje, sfida e ditës ----
+    const best = Object.assign({ gap: 0, order: 0, which: 0, cont: 0, odd: 0, blitz: 0, daily: 0 }, store.get("quiz2", {}));
+    const prof = Object.assign({ xp: 0, games: 0, wins: 0, maxCombo: 0, maxLevel: 0, played: {}, badges: {}, daily: {}, dstreak: 0, dlast: "" }, store.get("quiz.prof", {}));
+    const saveProf = () => store.set("quiz.prof", prof);
+    const RANKS = [[0, "Lexues"], [400, "Psalt"], [1200, "Kantor"], [3000, "Domestik"], [6000, "Protopsalt"], [11000, "Mjeshtër i Psaltirit"]];
+    const rankOf = (xp) => { let i = 0; while (i + 1 < RANKS.length && xp >= RANKS[i + 1][0]) i++; return { i, name: RANKS[i][1], from: RANKS[i][0], to: (RANKS[i + 1] || [RANKS[i][0]])[0] }; };
+    const MODES = {
+      gap: ["Fjalët që mungojnë", "Gjej me radhë fjalët e fshehura të vargut", "✍️"],
+      order: ["Rendit vargun", "Vargu u copëtua: vendosi pjesët në rregull", "🧩"],
+      which: ["Cili Psalm?", "Lexo vargun dhe gjej nga cili psalm është", "📜"],
+      cont: ["Vazhdo vargun", "Zgjidh si vazhdon vargu i nisur", "➡️"],
+      odd: ["Fjala e huaj", "Një fjalë është ndërruar: gjeje dhe preke", "🔎"],
+      blitz: ["Maratona 60\"", "Sa më shumë pyetje të përziera në 60 sekonda", "⚡"],
+    };
+    const BADGES = [
+      ["first", "🕊", "Hapi i parë", "Fito raundin e parë"],
+      ["combo5", "🔥", "Zjarr i shenjtë", "5 përgjigje radhazi"],
+      ["lvl5", "⛰", "Ngjitja", "Arrij nivelin 5"],
+      ["k1", "🏆", "Një mijë", "1000 pikë në një lojë"],
+      ["all", "🎼", "Gjithë Psaltiri", "Luaj të 6 mënyrat"],
+      ["d3", "📅", "Besnik", "Sfida e ditës 3 ditë radhazi"],
+      ["d7", "✝", "Javë e shenjtë", "Sfida e ditës 7 ditë radhazi"],
+      ["perfect", "⭐", "Pa gabim", "Sfida e ditës 7/7"],
+    ];
+    const award = (k) => { if (prof.badges[k]) return; prof.badges[k] = Date.now(); saveProf(); const b = BADGES.find((x) => x[0] === k); if (b) setTimeout(() => toast(`${b[1]} Medalje e re: ${b[2]}`), 600); };
+    // ---- rastësia: e zakonshme, ose e njëjta për të gjithë në sfidën e ditës ----
+    let R = Math.random;
+    const seeded = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const rnd = (n) => Math.floor(R() * n), shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
     const words = (v) => [...v.matchAll(/[\p{L}’']{4,}/gu)].filter((m) => !STOP.has(m[0].toLowerCase()));
-    const pickVerse = (min, max) => { for (let t = 0; t < 120; t++) { const p = ps.psalms[rand(ps.psalms.length)], vi = rand(p.v.length), v = p.v[vi]; if (v.length >= min && v.length <= max) return { p, vi, v }; } return null; };
-    let G = null, timer = 0;
+    const pickVerse = (min, max) => { for (let t = 0; t < 160; t++) { const p = ps.psalms[rnd(ps.psalms.length)], vi = rnd(p.v.length), v = p.v[vi]; if (v.length >= min && v.length <= max) return { p, vi, v }; } return null; };
+    const todayKey = isoToday();
+    let G = null, timer = 0, blitzT = 0;
     const alive = () => location.hash.startsWith("#/kuiz");
+    const stop = () => { clearInterval(timer); clearInterval(blitzT); };
+
     function home() {
-      clearInterval(timer);
+      stop(); R = Math.random;
+      const rk = rankOf(prof.xp), pct = rk.to > rk.from ? Math.min(100, (prof.xp - rk.from) / (rk.to - rk.from) * 100) : 100;
+      const dDone = prof.daily[todayKey];
+      const nb = Object.keys(prof.badges).length;
       listPane.innerHTML = `
         <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Loja e Psaltirit</h1></header>
         <section class="qz-home">
-          <div class="qz-orb">${icon("lyre")}</div>
-          <p class="qz-intro">Sa mirë i njeh Psalmet? Ke 3 zemra, koha ecën dhe çdo 3 përgjigje të sakta niveli bëhet më i vështirë.</p>
-          <button class="qz-mode glass" data-mode="gap"><b>Fjalët që mungojnë</b><span>Gjej me radhë fjalët e fshehura të vargut</span><em>🏆 ${best.gap}</em></button>
-          <button class="qz-mode glass" data-mode="order"><b>Rendit vargun</b><span>Vargu u copëtua: vendosi pjesët në rregull</span><em>🏆 ${best.order}</em></button>
+          <div class="qz-rank glass">
+            <div class="qz-orb">${icon("lyre")}</div>
+            <div class="qz-rank-t"><small>Grada jote</small><b>${rk.name}</b>
+              <div class="qz-xp"><i style="width:${pct.toFixed(1)}%"></i></div>
+              <small>${prof.xp} XP${rk.to > rk.from ? ` · edhe ${rk.to - prof.xp} për «${RANKS[rk.i + 1][1]}»` : " · grada më e lartë"}</small></div>
+          </div>
+          <button class="qz-daily${dDone ? " done" : ""}" data-mode="daily">
+            <span class="qz-daily-i">${dDone ? "✓" : "☀️"}</span>
+            <span><b>Sfida e ditës</b><small>${dDone ? `Sot: ${dDone.ok}/7 · ${dDone.score} pikë · kthehu nesër` : "7 vargje, të njëjtat për të gjithë sot"}</small></span>
+            <em>${prof.dstreak ? `🔥 ${prof.dstreak}` : ""}</em>
+          </button>
+          <div class="qz-modes">${Object.entries(MODES).map(([k, [t, d, e]], i) => `
+            <button class="qz-mode2 glass" data-mode="${k}" style="--i:${i}"><span class="qz-m-e">${e}</span><b>${t}</b><small>${d}</small><em>🏆 ${best[k] || 0}</em></button>`).join("")}</div>
+          <details class="qz-badges glass"${nb ? "" : " open"}><summary>Medaljet · ${nb}/${BADGES.length}</summary>
+            <div class="qz-bgrid">${BADGES.map(([k, e, n, d]) => `<div class="qz-b${prof.badges[k] ? " on" : ""}"><span>${e}</span><b>${n}</b><small>${d}</small></div>`).join("")}</div></details>
+          <p class="qz-stats">${prof.games} lojëra · ${prof.wins} vargje të gjetura · kombinimi më i gjatë ${prof.maxCombo}</p>
         </section>`;
       enter(listPane);
-      $$("[data-mode]", listPane).forEach((x) => x.addEventListener("click", () => { haptic(18); G = { mode: x.dataset.mode, score: 0, lives: 3, level: 1, streak: 0, combo: 0 }; round(); }));
+      $$("[data-mode]", listPane).forEach((x) => x.addEventListener("click", () => {
+        const m = x.dataset.mode;
+        if (m === "daily" && prof.daily[todayKey]) { haptic(8); toast("Sfidën e sotme e ke bërë. Kthehu nesër ☀️"); return; }
+        haptic(18); start(m);
+      }));
     }
-    const lives = () => `${"❤".repeat(G.lives)}<i>${"❤".repeat(3 - G.lives)}</i>`;
-    const hud = () => `<div class="qz-hud glass"><span class="qz-lives">${lives()}</span><span class="qz-lvl">Niveli ${G.level}</span><span class="qz-pts"><b>${G.score}</b>${G.combo > 1 ? `<small>×${G.combo}</small>` : ""}</span></div><div class="qz-time"><i id="qzBar"></i></div>`;
-    const head = () => `<header class="page-head"><button class="back-btn" id="qzQuit" aria-label="Dil">${icon("back")}</button><h1>${G.mode === "gap" ? "Fjalët që mungojnë" : "Rendit vargun"}</h1></header>`;
+    function start(mode) {
+      stop();
+      R = mode === "daily" ? seeded([...todayKey].reduce((a, c) => a * 31 + c.charCodeAt(0), 7)) : Math.random;
+      G = { mode, score: 0, lives: mode === "blitz" ? Infinity : 3, level: 1, streak: 0, combo: 0, n: 0, ok: 0, hint: 1, plus: 1, t0: Date.now() };
+      prof.played[mode] = 1; if (Object.keys(MODES).every((k) => prof.played[k])) award("all"); saveProf();
+      if (mode === "blitz") { G.end = Date.now() + 60000; blitzT = setInterval(() => { if (!alive()) return stop(); const left = (G.end - Date.now()) / 1000; const b = $("#qzBar"); if (b) { b.style.width = Math.max(0, left / 60 * 100) + "%"; b.classList.toggle("hurry", left < 10); } const s = $("#qzSec"); if (s) s.textContent = Math.max(0, Math.ceil(left)); if (left <= 0) { stop(); if (G.q) G.q.done = true; over(); } }, 200); }
+      round();
+    }
+    const title = () => G.mode === "daily" ? "Sfida e ditës" : MODES[G.mode][0];
+    const livesH = () => G.mode === "blitz" ? `<span class="qz-sec">⏱ <b id="qzSec">60</b></span>` : G.mode === "daily" ? `<span class="qz-sec">${G.n + 1}/7</span>` : `<span class="qz-lives">${"❤".repeat(G.lives)}<i>${"❤".repeat(3 - G.lives)}</i></span>`;
+    const hud = () => `<div class="qz-hud glass">${livesH()}<span class="qz-lvl">Niveli ${G.level}</span><span class="qz-pts"><b>${G.score}</b>${G.combo > 1 ? `<small>×${G.combo}</small>` : ""}</span></div><div class="qz-time"><i id="qzBar"></i></div>`;
+    const tools = () => G.mode === "blitz" ? "" : `<div class="qz-tools"><button class="qz-tool" id="qzHint"${G.hint ? "" : " disabled"}>💡 Ndihmë</button><button class="qz-tool" id="qzPlus"${G.plus && G.mode !== "daily" ? "" : " disabled"}>⏳ +8 sek</button></div>`;
+    const head = () => `<header class="page-head"><button class="back-btn" id="qzQuit" aria-label="Dil">${icon("back")}</button><h1>${title()}</h1></header>`;
+    const card = (vv, inner, cls = "") => `<section class="qz-card glass ${cls}"><p class="eyebrow">${vv ? esc(psalmRef(vv.p.n, vv.vi + 1)) : "Psalmi ?"}</p>${inner}</section>`;
+    function typeFor() {
+      if (G.mode === "blitz" || G.mode === "daily") { const ts = ["gap", "which", "cont", "odd", "order"]; return ts[(G.n + (G.mode === "daily" ? 0 : rnd(5))) % ts.length]; }
+      return G.mode;
+    }
     function round() {
       clearInterval(timer);
-      const L = G.level, secs = Math.max(9, 26 - L * 1.6);
-      let q;
-      if (G.mode === "gap") {
+      if (!alive()) return;
+      const L = G.level, type = typeFor();
+      const secs = G.mode === "blitz" ? 0 : Math.max(9, 26 - L * 1.6) + (type === "order" ? 6 : 0);
+      let q = { type };
+      if (type === "gap") {
         const gaps = L < 3 ? 1 : L < 6 ? 2 : 3;
         let vv = null;
         for (let t = 0; t < 60; t++) { vv = pickVerse(50, 200); if (vv && words(vv.v).length >= gaps + 1) break; }
         const ws = words(vv.v);
-        const chosen = ws.slice().sort(() => Math.random() - 0.5).slice(0, gaps).sort((x, y) => x.index - y.index);
+        const chosen = shuffle(ws.slice()).slice(0, gaps).sort((x, y) => x.index - y.index);
         const nOpt = Math.min(8, 3 + gaps + Math.floor(L / 3));
         const opts = new Set(chosen.map((m) => m[0]));
         for (let k = 0; k < 400 && opts.size < nOpt; k++) {
-          const w = words(pickVerse(20, 300).v);
-          if (!w.length) continue;
-          const c = w[rand(w.length)][0], ref = chosen[rand(chosen.length)][0];
-          // në nivele të larta: fjalë që ngjajnë (gjatësi e afërt, e njëjta shkronjë)
+          const w = words(pickVerse(20, 300).v); if (!w.length) continue;
+          const c = w[rnd(w.length)][0], ref = chosen[rnd(chosen.length)][0];
           if (L >= 4 && Math.abs(c.length - ref.length) > 2) continue;
-          if (L >= 7 && c[0].toLowerCase() !== ref[0].toLowerCase() && Math.random() < 0.7) continue;
+          if (L >= 7 && c[0].toLowerCase() !== ref[0].toLowerCase() && R() < 0.7) continue;
           if (!chosen.some((m) => m[0].toLowerCase() === c.toLowerCase())) opts.add(c);
         }
-        q = { ...vv, chosen, next: 0 };
+        Object.assign(q, vv, { chosen, next: 0 });
         let html = "", pos = 0;
         chosen.forEach((m, i) => { html += esc(vv.v.slice(pos, m.index)) + `<span class="qz-gap${i === 0 ? " cur" : ""}" data-g="${i}">${"＿".repeat(Math.min(7, m[0].length))}</span>`; pos = m.index + m[0].length; });
         html += esc(vv.v.slice(pos));
-        listPane.innerHTML = head() + hud() + `<section class="qz-card glass"><p class="eyebrow">${esc(psalmRef(vv.p.n, vv.vi + 1))}</p><p class="qz-verse">${html}</p></section>
-          <div class="qz-opts">${[...opts].sort(() => Math.random() - 0.5).map((o, i) => `<button class="btn qz-opt" style="--i:${i}" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div>`;
+        listPane.innerHTML = head() + hud() + card(vv, `<p class="qz-verse">${html}</p>`) + `<div class="qz-opts">${shuffle([...opts]).map((o, i) => `<button class="btn qz-opt" style="--i:${i}" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div>` + tools();
+        q.answer = () => q.chosen[q.next][0];
         $$(".qz-opt", listPane).forEach((x) => x.addEventListener("click", () => {
           if (x.disabled || q.done) return;
-          const want = q.chosen[q.next][0];
-          if (x.dataset.o === want) {
+          if (x.dataset.o === q.answer()) {
             x.disabled = true; x.classList.add("right");
-            const g = $(`.qz-gap[data-g="${q.next}"]`, listPane); g.textContent = want; g.classList.remove("cur"); g.classList.add("ok");
+            const g = $(`.qz-gap[data-g="${q.next}"]`, listPane); g.textContent = q.answer(); g.classList.remove("cur"); g.classList.add("ok");
             haptic(16); q.next++;
-            if (q.next >= q.chosen.length) win(x);
-            else $(`.qz-gap[data-g="${q.next}"]`, listPane).classList.add("cur");
-          } else { x.classList.remove("wrong"); void x.offsetWidth; x.classList.add("wrong"); miss(); }
+            if (q.next >= q.chosen.length) win(x); else $(`.qz-gap[data-g="${q.next}"]`, listPane).classList.add("cur");
+          } else bad(x);
         }));
-      } else {
+      } else if (type === "order") {
         const vv = pickVerse(60, 170);
         const ws = vv.v.split(/\s+/);
         const nChunks = Math.min(ws.length, 3 + Math.min(5, Math.floor(L / 1.5)));
         const per = Math.ceil(ws.length / nChunks), chunks = [];
         for (let i = 0; i < ws.length; i += per) chunks.push(ws.slice(i, i + per).join(" "));
         const order = chunks.map((_, i) => i);
-        do { order.sort(() => Math.random() - 0.5); } while (order.length > 1 && order.every((x, i) => x === i));
-        q = { ...vv, chunks, next: 0 };
-        listPane.innerHTML = head() + hud() + `<section class="qz-card glass"><p class="eyebrow">${esc(psalmRef(vv.p.n, vv.vi + 1))}</p><p class="qz-verse qz-built"><span class="qz-caret"></span></p></section>
-          <div class="qz-chunks">${order.map((ci, k) => `<button class="btn qz-chunk" style="--i:${k}" data-c="${ci}">${esc(chunks[ci])}</button>`).join("")}</div>`;
+        do { shuffle(order); } while (order.length > 1 && order.every((x, i) => x === i));
+        Object.assign(q, vv, { chunks, next: 0 });
+        listPane.innerHTML = head() + hud() + card(vv, `<p class="qz-verse qz-built"><span class="qz-caret"></span></p>`) + `<div class="qz-chunks">${order.map((ci, k) => `<button class="btn qz-chunk" style="--i:${k}" data-c="${ci}">${esc(chunks[ci])}</button>`).join("")}</div>` + tools();
+        q.answer = () => String(q.next);
         $$(".qz-chunk", listPane).forEach((x) => x.addEventListener("click", () => {
           if (x.disabled || q.done) return;
           if (+x.dataset.c === q.next) {
@@ -2060,82 +2123,181 @@ function pickPhoto(it) {
             $(".qz-caret", listPane).insertAdjacentHTML("beforebegin", `<span class="qz-piece">${esc(q.chunks[q.next])} </span>`);
             haptic(14); q.next++;
             if (q.next >= q.chunks.length) win(x);
-          } else { x.classList.remove("wrong"); void x.offsetWidth; x.classList.add("wrong"); miss(); }
+          } else bad(x);
+        }));
+      } else if (type === "which" || type === "cont") {
+        // Cili Psalm? — opsione me numra psalmesh (në nivele të larta: psalme fqinjë)
+        // Vazhdo vargun — gjysma e dytë e vargut midis gjysmave të vargjeve të tjera
+        const vv = pickVerse(type === "cont" ? 70 : 40, 230);
+        Object.assign(q, vv);
+        let opts, right, inner;
+        if (type === "which") {
+          const n = +vv.p.n; right = String(n);
+          const set = new Set([right]);
+          for (let k = 0; k < 200 && set.size < 4; k++) { const d = L >= 4 ? (rnd(11) - 5) : (rnd(150) + 1 - n); const m = n + d; if (m >= 1 && m <= 151 && m !== n) set.add(String(m)); }
+          opts = shuffle([...set]).map((x) => [x, `Psalmi ${x}`]);
+          inner = `<p class="qz-verse">${esc(vv.v)}</p>`;
+          q.hide = true;
+        } else {
+          const cut = (v) => { const ws = v.split(/\s+/), h = Math.max(3, Math.floor(ws.length * 0.5)); return [ws.slice(0, h).join(" "), ws.slice(h).join(" ")]; };
+          const [a, b] = cut(vv.v); right = b;
+          const set = new Set([b]);
+          for (let k = 0; k < 200 && set.size < (L >= 5 ? 5 : 4); k++) { const o = pickVerse(70, 230); if (o && o.v !== vv.v) set.add(cut(o.v)[1]); }
+          opts = shuffle([...set]).map((x) => [x, x.length > 90 ? x.slice(0, 88) + "…" : x]);
+          inner = `<p class="qz-verse">${esc(a)} <span class="qz-gap cur">…</span></p>`;
+        }
+        listPane.innerHTML = head() + hud() + card(type === "which" ? null : vv, inner) + `<div class="qz-opts${type === "cont" ? " wide" : ""}">${opts.map(([k, t], i) => `<button class="btn qz-opt" style="--i:${i}" data-o="${esc(k)}">${esc(t)}</button>`).join("")}</div>` + tools();
+        q.answer = () => right;
+        $$(".qz-opt", listPane).forEach((x) => x.addEventListener("click", () => {
+          if (x.disabled || q.done) return;
+          if (x.dataset.o === right) {
+            x.classList.add("right");
+            if (type === "which") $(".qz-card .eyebrow", listPane).textContent = psalmRef(vv.p.n, vv.vi + 1);
+            else { const g = $(".qz-gap", listPane); g.textContent = right; g.classList.remove("cur"); g.classList.add("ok"); }
+            win(x);
+          } else bad(x);
+        }));
+      } else if (type === "odd") {
+        // një fjalë e vargut zëvendësohet me një fjalë nga një varg tjetër: gjeje
+        let vv = null, ws = [];
+        for (let t = 0; t < 60; t++) { vv = pickVerse(60, 190); ws = vv ? words(vv.v) : []; if (ws.length >= 4) break; }
+        const target = ws[1 + rnd(ws.length - 2)];
+        let rep = null;
+        for (let k = 0; k < 300 && !rep; k++) { const w = words(pickVerse(20, 300).v); if (!w.length) continue; const c = w[rnd(w.length)][0]; if (c.toLowerCase() !== target[0].toLowerCase() && (L < 4 || Math.abs(c.length - target[0].length) <= 2)) rep = c; }
+        Object.assign(q, vv);
+        const tokens = []; let pos = 0;
+        for (const m of [...vv.v.matchAll(/[\p{L}’']+/gu)]) { tokens.push([vv.v.slice(pos, m.index), null]); const isT = m.index === target.index; tokens.push([isT ? rep : m[0], isT ? "x" : "w"]); pos = m.index + m[0].length; }
+        tokens.push([vv.v.slice(pos), null]);
+        listPane.innerHTML = head() + hud() + card(vv, `<p class="qz-verse qz-odd">${tokens.map(([t, k], i) => k ? `<button class="qz-w" data-k="${k}" data-i="${i}">${esc(t)}</button>` : esc(t)).join("")}</p><p class="qz-sub">Prek fjalën që nuk është e Psalmit</p>`) + tools();
+        q.answer = () => "x"; q.real = target[0];
+        $$(".qz-w", listPane).forEach((x) => x.addEventListener("click", () => {
+          if (q.done || x.classList.contains("no")) return;
+          if (x.dataset.k === "x") { x.classList.add("fixed"); x.textContent = q.real; win(x); }
+          else { x.classList.add("no"); bad(x); }
         }));
       }
       G.q = q; q.t0 = Date.now(); q.secs = secs;
       enter(listPane);
-      $("#qzQuit").addEventListener("click", home);
+      $("#qzQuit").addEventListener("click", () => { if (G.mode === "blitz" || G.score > 0) over(); else home(); });
+      bindTools();
       const bar = $("#qzBar");
+      if (G.mode === "blitz") { const left = (G.end - Date.now()) / 1000; bar.style.width = Math.max(0, left / 60 * 100) + "%"; const s = $("#qzSec"); if (s) s.textContent = Math.max(0, Math.ceil(left)); return; }
       bar.style.transition = "none"; bar.style.width = "100%"; void bar.offsetWidth;
       bar.style.transition = `width ${secs}s linear`; bar.style.width = "0%";
       timer = setInterval(() => {
         if (!alive()) return clearInterval(timer);
-        const left = secs - (Date.now() - q.t0) / 1000;
+        const left = q.secs - (Date.now() - q.t0) / 1000;
         bar.classList.toggle("hurry", left < 5);
         if (left <= 0) { clearInterval(timer); lose("Koha mbaroi ⏳"); }
       }, 250);
     }
-    function setHud() { const h = $(".qz-hud", listPane); if (h) h.outerHTML = hud().split('<div class="qz-time">')[0]; }
-    function miss() {
-      G.combo = 0; G.lives--;
+    function bindTools() {
+      $("#qzHint")?.addEventListener("click", (e) => {
+        const q = G.q; if (!G.hint || q.done) return; G.hint = 0; e.currentTarget.disabled = true; haptic(10);
+        // ndihma: hiq gjysmën e opsioneve të gabuara, ose shëno pjesën / fjalën e radhës
+        if (q.type === "odd") { const w = $$('.qz-w[data-k="w"]:not(.no)', listPane); shuffle(w).slice(0, Math.ceil(w.length * 0.6)).forEach((x) => x.classList.add("dim")); return; }
+        if (q.type === "order") { const nx = $(`.qz-chunk[data-c="${q.next}"]`, listPane); nx && nx.classList.add("glow"); return; }
+        const wrong = $$(".qz-opt:not(.right):not([disabled])", listPane).filter((x) => x.dataset.o !== q.answer());
+        shuffle(wrong).slice(0, Math.max(1, Math.floor(wrong.length / 2))).forEach((x) => { x.disabled = true; x.classList.add("gone"); });
+      });
+      $("#qzPlus")?.addEventListener("click", (e) => {
+        const q = G.q; if (!G.plus || q.done) return; G.plus = 0; e.currentTarget.disabled = true; haptic(10);
+        q.secs += 8; const bar = $("#qzBar"), left = q.secs - (Date.now() - q.t0) / 1000;
+        bar.style.transition = "none"; bar.style.width = Math.min(100, left / q.secs * 100) + "%"; void bar.offsetWidth;
+        bar.style.transition = `width ${left}s linear`; bar.style.width = "0%";
+      });
+    }
+    function setHud() { const h = $(".qz-hud", listPane); if (h) h.outerHTML = hud().split('<div class="qz-time">')[0]; if (G.mode === "blitz") { const s = $("#qzSec"); if (s) s.textContent = Math.max(0, Math.ceil((G.end - Date.now()) / 1000)); } }
+    function bad(x) {
+      if (x) { x.classList.remove("wrong"); void x.offsetWidth; x.classList.add("wrong"); }
+      G.combo = 0;
       haptic([50, 40, 90], true);
       const c = $(".qz-card", listPane); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake");
-      setHud();
+      if (G.mode === "blitz") { G.end -= 4000; setHud(); return; }
+      if (G.mode === "daily") { G.q.done = true; clearInterval(timer); reveal(); setHud(); next(`<span class="qz-miss">Jo kësaj radhe</span>`); return; }
+      G.lives--; setHud();
       if (G.lives <= 0) { clearInterval(timer); G.q.done = true; reveal(); setTimeout(over, 1100); }
     }
     function reveal() {
       const q = G.q;
-      if (G.mode === "gap") q.chosen.forEach((m, i) => { const g = $(`.qz-gap[data-g="${i}"]`, listPane); if (g && !g.classList.contains("ok")) { g.textContent = m[0]; g.classList.add("no"); } });
-      else { const v = $(".qz-built", listPane); if (v) v.innerHTML = `<span class="qz-piece no">${esc(q.v)}</span>`; }
+      if (q.type === "gap") q.chosen.forEach((m, i) => { const g = $(`.qz-gap[data-g="${i}"]`, listPane); if (g && !g.classList.contains("ok")) { g.textContent = m[0]; g.classList.add("no"); } });
+      else if (q.type === "order") { const v = $(".qz-built", listPane); if (v) v.innerHTML = `<span class="qz-piece no">${esc(q.v)}</span>`; }
+      else if (q.type === "odd") { const x = $('.qz-w[data-k="x"]', listPane); if (x) { x.classList.add("reveal"); x.textContent = q.real; } }
+      else { $$(".qz-opt", listPane).forEach((x) => { if (x.dataset.o === q.answer()) x.classList.add("right"); }); if (q.type === "which") $(".qz-card .eyebrow", listPane).textContent = psalmRef(q.p.n, q.vi + 1); }
       $$(".qz-opt, .qz-chunk", listPane).forEach((x) => (x.disabled = true));
     }
-    function after(html) {
+    function next(html) {
       const q = G.q;
+      G.n++;
+      if (G.mode === "daily" && G.n >= 7) { setTimeout(over, 1300); listPane.insertAdjacentHTML("beforeend", `<div class="qz-after">${html}</div>`); return; }
+      if (G.mode === "blitz") { setTimeout(() => { if (alive() && Date.now() < G.end) round(); }, 650); listPane.insertAdjacentHTML("beforeend", `<div class="qz-after">${html}</div>`); return; }
       listPane.insertAdjacentHTML("beforeend", `<div class="qz-after">${html}<a class="btn" href="#/psaltiri/${q.p.n}">${icon("book")}<span>Psalmi</span></a><button class="btn primary" id="qzNext">Tjetri ›</button></div>`);
       $("#qzNext").addEventListener("click", () => { haptic(12); round(); });
     }
     function win(btn) {
       clearInterval(timer);
       const q = G.q; q.done = true;
-      const left = Math.max(0, q.secs - (Date.now() - q.t0) / 1000);
-      G.combo++; G.streak++;
+      const left = G.mode === "blitz" ? 3 : Math.max(0, q.secs - (Date.now() - q.t0) / 1000);
+      G.combo++; G.streak++; G.ok++;
+      prof.wins++; award("first");
+      if (G.combo > prof.maxCombo) prof.maxCombo = G.combo;
+      if (G.combo >= 5) award("combo5");
       const pts = Math.round(10 * G.level * (1 + (G.combo - 1) * 0.25) + left * 2);
       G.score += pts;
       let up = false;
-      if (G.streak % 3 === 0) { G.level++; up = true; }
+      if (G.streak % 3 === 0) { G.level++; up = true; if (G.level > prof.maxLevel) prof.maxLevel = G.level; if (G.level >= 5) award("lvl5"); }
+      if (G.score >= 1000) award("k1");
+      saveProf();
       const r = btn.getBoundingClientRect(); goldBurst(r.left + r.width / 2, r.top);
       haptic(up ? [30, 50, 30, 50, 120] : [20, 40, 40], true);
       $(".qz-card", listPane).classList.add("won");
       setHud();
-      after(`<span class="qz-plus">+${pts}</span>${up ? `<span class="qz-up">Niveli ${G.level}!</span>` : ""}`);
+      next(`<span class="qz-plus">+${pts}</span>${up ? `<span class="qz-up">Niveli ${G.level}!</span>` : ""}`);
     }
     function lose(msg) {
       const q = G.q; if (q.done) return; q.done = true;
-      G.combo = 0; G.lives--;
+      G.combo = 0;
       haptic([60, 50, 120], true);
-      reveal(); setHud();
+      reveal();
+      if (G.mode === "daily") { setHud(); next(`<span class="qz-miss">${esc(msg)}</span>`); return; }
+      G.lives--; setHud();
       if (G.lives <= 0) return setTimeout(over, 1100);
-      after(`<span class="qz-miss">${esc(msg)}</span>`);
+      next(`<span class="qz-miss">${esc(msg)}</span>`);
     }
     function over() {
+      stop();
       if (!alive()) return;
-      const rec = G.score > (best[G.mode] || 0);
-      if (rec) { best[G.mode] = G.score; store.set("quiz2", best); }
+      const mode = G.mode, rec = G.score > (best[mode] || 0);
+      if (rec) { best[mode] = G.score; store.set("quiz2", best); }
+      const xp = G.score + G.ok * 5;
+      const before = rankOf(prof.xp).i;
+      prof.xp += xp; prof.games++;
+      let dmsg = "";
+      if (mode === "daily") {
+        const y = new Date(); y.setDate(y.getDate() - 1); const yk = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, "0")}-${String(y.getDate()).padStart(2, "0")}`;
+        prof.dstreak = prof.dlast === yk ? prof.dstreak + 1 : 1; prof.dlast = todayKey;
+        prof.daily[todayKey] = { ok: G.ok, score: G.score };
+        if (prof.dstreak >= 3) award("d3"); if (prof.dstreak >= 7) award("d7"); if (G.ok === 7) award("perfect");
+        dmsg = `<p class="qz-dres">${"⭐".repeat(Math.ceil(G.ok / 7 * 5))}${"☆".repeat(5 - Math.ceil(G.ok / 7 * 5))}<br>${G.ok}/7 të sakta · 🔥 ${prof.dstreak} ditë radhazi</p>`;
+      }
+      saveProf();
+      const rk = rankOf(prof.xp), upRank = rk.i > before;
       listPane.innerHTML = `
         <header class="page-head"><button class="back-btn" id="qzQuit" aria-label="Dil">${icon("back")}</button><h1>Loja mbaroi</h1></header>
         <section class="qz-over glass">
-          <p class="eyebrow">${G.mode === "gap" ? "Fjalët që mungojnë" : "Rendit vargun"}</p>
+          <p class="eyebrow">${esc(mode === "daily" ? "Sfida e ditës" : MODES[mode][0])}</p>
           <b class="qz-final">${G.score}</b>
-          <p>${rec ? "🏆 Rekord i ri!" : `Rekordi: ${best[G.mode]}`} · Niveli ${G.level}</p>
+          ${dmsg}
+          <p>${rec ? "🏆 Rekord i ri!" : `Rekordi: ${best[mode]}`} · Niveli ${G.level} · +${xp} XP</p>
+          ${upRank ? `<p class="qz-uprank">Grada e re: <b>${rk.name}</b> ✨</p>` : ""}
           <p class="qz-verse-s">“Fjala jote është llambë për këmbët e mia.”<small>Psalmi 118:105</small></p>
-          <div class="row"><button class="btn" id="qzHome">Mënyrat</button><button class="btn primary grow" id="qzAgain">${icon("refresh")}<span>Luaj përsëri</span></button></div>
+          <div class="row"><button class="btn" id="qzHome">Mënyrat</button>${mode === "daily" ? "" : `<button class="btn primary grow" id="qzAgain">${icon("refresh")}<span>Luaj përsëri</span></button>`}</div>
         </section>`;
       enter(listPane);
-      if (rec) goldBurst();
+      if (rec || upRank) goldBurst();
       $("#qzQuit").addEventListener("click", home);
       $("#qzHome").addEventListener("click", home);
-      $("#qzAgain").addEventListener("click", () => { G = { mode: G.mode, score: 0, lives: 3, level: 1, streak: 0, combo: 0 }; round(); });
+      $("#qzAgain")?.addEventListener("click", () => start(mode));
     }
     home();
     mainPane.innerHTML = emptyMain();
@@ -2307,36 +2469,64 @@ function pickPhoto(it) {
   let cdTimer = null;
   function nextFeasts() {
     const now = new Date(), y = now.getFullYear(), list = [];
+    // c: "z" = Zotërore, "h" = Hyjlindësore, "t" = Triodi, "p" = Pentikostari, "s" = shenjtorë
     for (const yy of [y, y + 1]) {
       const P = Fast.pascha(yy);
-      const add = (d, name, big) => { if (d > now) list.push({ d, name, big }); };
-      add(new Date(yy, 11, 25), "Krishtlindja", 1);
-      add(new Date(yy, 0, 6), "Theofania", 0);
-      add(new Date(yy, 0, 1), "Rrethprerja e Zotit", 0);
-      add(new Date(yy, 1, 2), "Ipapandia", 0);
-      add(new Date(yy, 2, 25), "Ungjillëzimi", 0);
-      add(new Date(P.getFullYear(), P.getMonth(), P.getDate()), "Pashka", 1);
-      const asc = new Date(P); asc.setDate(asc.getDate() + 39); add(new Date(asc.getFullYear(), asc.getMonth(), asc.getDate()), "Ngjitja e Zotit (Analipsi)", 0);
-      const pen = new Date(P); pen.setDate(pen.getDate() + 49); add(new Date(pen.getFullYear(), pen.getMonth(), pen.getDate()), "Pendikostia", 0);
-      add(new Date(yy, 7, 6), "Shndërrimi", 0);
-      add(new Date(yy, 7, 15), "Fjetja e Hyjlindëses", 1);
-      add(new Date(yy, 8, 8), "Lindja e Hyjlindëses", 0);
-      add(new Date(yy, 8, 14), "Lartësimi i Kryqit", 0);
-      add(new Date(yy, 10, 21), "Hyrja në Tempull", 0);
+      const add = (d, name, big, c, note) => { if (d > now) list.push({ d, name, big, c, note }); };
+      const mv = (off, name, big, c, note) => { const t = new Date(P.getFullYear(), P.getMonth(), P.getDate() + off); add(t, name, big, c, note); };
+      add(new Date(yy, 0, 1), "Rrethprerja e Zotit", 0, "z", "dhe Shën Vasili i Madh");
+      add(new Date(yy, 0, 6), "Theofania", 0, "z", "Pagëzimi i Zotit");
+      add(new Date(yy, 1, 2), "Ipapandia", 0, "z", "Kushtimi i Zotit në Tempull");
+      add(new Date(yy, 2, 25), "Ungjillëzimi i Hyjlindëses", 0, "h");
+      add(new Date(yy, 5, 29), "Apostujt Petro dhe Pavël", 0, "s");
+      add(new Date(yy, 7, 6), "Shndërrimi i Zotit", 0, "z");
+      add(new Date(yy, 7, 15), "Fjetja e Hyjlindëses", 1, "h");
+      add(new Date(yy, 8, 8), "Lindja e Hyjlindëses", 0, "h");
+      add(new Date(yy, 8, 14), "Lartësimi i Kryqit të Nderuar", 0, "z", "ditë agjërimi");
+      add(new Date(yy, 10, 21), "Hyrja në Tempull e Hyjlindëses", 0, "h");
+      add(new Date(yy, 11, 25), "Krishtlindja", 1, "z");
+      // Triodi dhe Pentikostari (lëvizin me Pashkën)
+      mv(-70, "Fillon Triodi: e Diela e Tagrambledhësit dhe e Fariseut", 0, "t", "java pa agjërim");
+      mv(-63, "E Diela e Djalit Plëngprishës", 0, "t");
+      mv(-56, "E Diela e Gjykimit (e Mishit)", 0, "t", "dita e fundit e mishit");
+      mv(-49, "E Diela e Faljes (e Djathit)", 0, "t", "Mbrëmja e Faljes");
+      mv(-48, "E Hëna e Pastër · fillon Kreshma e Madhe", 0, "t");
+      mv(-42, "E Diela e Orthodhoksisë", 0, "t");
+      mv(-35, "E Diela e Shën Grigor Pallamait", 0, "t");
+      mv(-28, "E Diela e Kryqit", 0, "t");
+      mv(-21, "E Diela e Shën Joan Klimakut", 0, "t");
+      mv(-14, "E Diela e Shën Marisë së Egjiptit", 0, "t");
+      mv(-8, "E Shtuna e Llazarit", 0, "t");
+      mv(-7, "E Diela e Dafinave (Hyrja në Jerusalem)", 0, "z");
+      mv(-2, "E Premtja e Madhe", 0, "t");
+      mv(0, "Pashka · Ngjallja e Krishtit", 1, "z");
+      mv(7, "E Diela e Thomait", 0, "p");
+      mv(24, "Mesi i Pendikostisë", 0, "p");
+      mv(39, "Ngjitja e Zotit (Analipsi)", 0, "z");
+      mv(49, "Pendikostia", 0, "z");
+      mv(50, "E Hëna e Shpirtit të Shenjtë", 0, "p");
+      mv(56, "E Diela e të Gjithë Shenjtorëve", 0, "p", "mbaron Pentikostari");
     }
     return list.sort((a, b) => a.d - b.d);
   }
   function viewCountdown() {
     clearInterval(cdTimer);
-    const fs = nextFeasts(), main = fs[0], pascha = fs.find((f) => f.name === "Pashka");
+    const fs = nextFeasts(), main = fs[0], pascha = fs.find((f) => f.name.startsWith("Pashka"));
+    const tri = fs.find((f) => f.name.startsWith("Fillon Triodi"));
+    const yearEnd = Date.now() + 366 * 864e5, CAT = { z: "Zotërore", h: "Hyjlindësore", t: "Triodi", p: "Pentikostari", s: "Shenjtorët" };
+    const tag = (f) => `<span class="cd-tag cd-${f.c}">${CAT[f.c] || ""}</span>`;
     listPane.innerHTML = `
       <header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>Deri në festë</h1></header>
       <section class="cd-hero"><p class="eyebrow">E kremtja e ardhshme</p><h2>${esc(main.name)}</h2>
         <div class="cd-digits" id="cdMain"></div><p class="cd-date">${main.d.getDate()} ${MUAJ_G[main.d.getMonth()]} ${main.d.getFullYear()}</p></section>
       ${pascha && pascha !== main ? `<section class="cd-hero pascha"><p class="eyebrow">Krishti u Ngjall!</p><h2>Pashka</h2><div class="cd-digits" id="cdPascha"></div>
         <p class="cd-date">${pascha.d.getDate()} ${MUAJ_G[pascha.d.getMonth()]} ${pascha.d.getFullYear()}</p></section>` : ""}
-      <ul class="list cd-list">${fs.slice(1, 9).map((f) => `<li class="list-item"><span class="name-d"><b>${f.d.getDate()}</b><small>${MUAJ_G[f.d.getMonth()].slice(0, 3)}</small></span>
-        <span class="lbl">${esc(f.name)}<span class="sub">pas ${Math.ceil((f.d - Date.now()) / 864e5)} ditësh</span></span></li>`).join("")}</ul>`;
+      ${tri && tri !== main ? `<section class="cd-tri"><p class="eyebrow">Triodi ${tri.d.getFullYear()}</p><b>Fillon të dielën e Tagrambledhësit dhe të Fariseut</b>
+        <span>${tri.d.getDate()} ${MUAJ_G[tri.d.getMonth()]} ${tri.d.getFullYear()} · pas ${Math.ceil((tri.d - Date.now()) / 864e5)} ditësh</span>
+        <small>Kreshma e Madhe fillon më ${(() => { const k = fs.find((f) => f.name.startsWith("E Hëna e Pastër")); return k ? k.d.getDate() + " " + MUAJ_G[k.d.getMonth()] : ""; })()}</small></section>` : ""}
+      <h2 class="hub-h">Të kremtet e vitit</h2>
+      <ul class="list cd-list">${fs.slice(1).filter((f) => f.d < yearEnd).map((f) => `<li class="list-item${f.big ? " big" : ""}"><span class="name-d"><b>${f.d.getDate()}</b><small>${MUAJ_G[f.d.getMonth()].slice(0, 3)}</small></span>
+        <span class="lbl">${esc(f.name)}<span class="sub">${tag(f)}${f.note ? esc(f.note) + " · " : ""}pas ${Math.ceil((f.d - Date.now()) / 864e5)} ditësh</span></span></li>`).join("")}</ul>`;
     enter(listPane);
     mainPane.innerHTML = emptyMain();
     setMode("list");
@@ -2383,33 +2573,120 @@ function pickPhoto(it) {
         o.connect(g).connect(c.destination); o.start(t0); o.stop(t0 + 1.4);
       });
     }
-    const bells = (n = 7) => { for (let i = 0; i < n; i++) bell(i * 0.07 + Math.random() * 0.05, 0.9 + Math.random() * 0.25); };
-    return { strike, bells };
+    const bells = (n = 7, vol = 1) => { for (let i = 0; i < n; i++) bell(i * 0.07 + Math.random() * 0.05, (0.9 + Math.random() * 0.25) * (vol < 0.6 ? 1.08 : 1)); };
+    // kërcitje e qymyrit: disa klikime të shkurtra zhurme
+    function crackle(n = 9) {
+      const c = ac(); if (!c) return;
+      for (let i = 0; i < n; i++) {
+        const t0 = c.currentTime + Math.random() * 1.2, len = 0.012 + Math.random() * 0.02;
+        const b = c.createBuffer(1, Math.ceil(c.sampleRate * len), c.sampleRate), d = b.getChannelData(0);
+        for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / d.length, 3);
+        const src = c.createBufferSource(); src.buffer = b;
+        const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 1200 + Math.random() * 2500;
+        const g = c.createGain(); g.gain.value = 0.18 + Math.random() * 0.25;
+        src.connect(hp).connect(g).connect(c.destination); src.start(t0);
+      }
+    }
+    // temjani mbi qymyr: cërcërimë e butë që shuhet
+    function sizzle(sec = 1.6) {
+      const c = ac(); if (!c) return;
+      const b = c.createBuffer(1, Math.ceil(c.sampleRate * sec), c.sampleRate), d = b.getChannelData(0);
+      for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * (Math.random() < 0.02 ? 1 : 0.25);
+      const src = c.createBufferSource(); src.buffer = b;
+      const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 5200; bp.Q.value = 0.6;
+      const g = c.createGain(), t0 = c.currentTime;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.06); g.gain.exponentialRampToValueAtTime(0.0001, t0 + sec);
+      src.connect(bp).connect(g).connect(c.destination); src.start(t0);
+    }
+    return { strike, bells, crackle, sizzle };
   })();
 
   // ---------- Ndezja me shkrepse ----------
   function matchLight(onLit) {
+    // Shkrepsja: fërkohet në kuti → flaka ndizet → afrohet saktë te fitili → fitili kap zjarrin → shkrepsja shuhet me tym
     const el = document.createElement("div");
-    el.className = "match-ov";
+    el.className = "match-ov m2";
     el.innerHTML = `<div class="match-scene">
-        <div class="mb-box"><i></i></div>
-        <div class="match" id="match"><span class="m-stick"></span><span class="m-head"></span><span class="m-flame"><i></i></span></div>
+        <div class="mb-box"><span class="mb-lid"></span><i class="mb-strip"></i></div>
+        <div class="m2-match"><div class="m2-hand"><span class="m2-stick"><b class="m2-head"></b><b class="m2-char"></b></span><span class="m2-flame"><i></i><em></em></span><span class="m2-smoke"><i></i><i></i><i></i></span></div></div>
         <div class="m-candle">${realCandle({ at: Date.now(), kind: candleKind }, true).replace('class="rc', 'class="rc unlit')}</div>
-        <p class="m-hint">Prek shkrepsen</p></div>`;
+        <p class="m-hint">Tërhiqe shkrepsen mbi kuti<br><small>ose prek</small></p></div>`;
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add("open"));
-    let done = false;
-    const go = () => {
-      if (done) return; done = true;
-      el.classList.add("strike");
-      Sfx.strike();
-      if (navigator.vibrate) try { navigator.vibrate([8, 30, 14]); } catch (e) { /* */ }
-      setTimeout(() => el.classList.add("burning"), 380);
-      setTimeout(() => el.classList.add("toCandle"), 1150);
-      setTimeout(() => { el.classList.add("lit"); const r = $(".m-candle", el).getBoundingClientRect(); goldBurst(r.left + r.width / 2, r.top + 20); }, 1900);
-      setTimeout(() => { el.classList.remove("open"); setTimeout(() => el.remove(), 400); onLit(); }, 3000);
+    const scene = $(".match-scene", el), M = $(".m2-match", el), rc = $(".m-candle .rc", el);
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches, T = reduce ? 0.45 : 1;
+    // pozicionet (në pikselat e skenës): koka e shkrepses është origjina e elementit .m2-match
+    const rel = (r) => { const s = scene.getBoundingClientRect(); return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height }; };
+    const stripPt = (f) => { const b = rel($(".mb-strip", el).getBoundingClientRect()); return { x: b.x + b.w * f, y: b.y + b.h / 2 }; };
+    const wickPt = () => { const w = rel($(".m-candle .wick", el).getBoundingClientRect()); return { x: w.x + w.w / 2, y: w.y + Math.min(4, w.h * 0.3) }; };
+    const place = (x, y, a) => { M.style.transform = `translate(${x}px, ${y}px)`; M.style.setProperty("--a", a + "deg"); };
+    const rest = () => { const p = stripPt(0); place(p.x - 12, p.y - 6, -12); };
+    rest();
+    let done = false, drag = null;
+    const anim = (from, to, ms, ease) => new Promise((res) => {
+      const t0 = performance.now(), E = ease || ((t) => 1 - Math.pow(1 - t, 3));
+      const step = (now) => {
+        const t = Math.min(1, (now - t0) / (ms * T)), e = E(t), k = {};
+        for (const key in to) k[key] = from[key] + (to[key] - from[key]) * e;
+        // hark i butë në lëvizje (si dorë e vërtetë)
+        place(k.x, k.y - (to.arc || 0) * Math.sin(Math.PI * t), k.a);
+        t < 1 ? requestAnimationFrame(step) : res();
+      };
+      requestAnimationFrame(step);
+    });
+    const sparks = (p) => {
+      for (let i = 0; i < 14; i++) {
+        const s = document.createElement("i"); s.className = "m2-spark";
+        s.style.left = p.x + "px"; s.style.top = p.y + "px";
+        s.style.setProperty("--dx", (Math.random() * 90 + 10) + "px"); s.style.setProperty("--dy", (-Math.random() * 70 - 10) + "px");
+        s.style.animationDelay = (Math.random() * 0.12) + "s";
+        scene.appendChild(s); setTimeout(() => s.remove(), 900);
+      }
     };
-    el.addEventListener("click", go);
+    const cur = () => { const m = M.style.transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/) || [0, 0, 0]; return { x: +m[1], y: +m[2], a: parseFloat(M.style.getPropertyValue("--a")) || 0 }; };
+    async function go() {
+      if (done) return; done = true;
+      el.classList.add("striking");
+      // 1) fërkimi mbi shiritin e kutisë
+      const a = stripPt(0.12), b = stripPt(0.88);
+      await anim(cur(), { x: a.x - 4, y: a.y - 3, a: -20 }, 160);
+      Sfx.strike(); haptic([8, 30, 14]);
+      const sweep = anim({ x: a.x - 4, y: a.y - 3, a: -20 }, { x: b.x + 18, y: b.y - 12, a: -14 }, 190, (t) => t);
+      setTimeout(() => sparks(stripPt(0.6)), 90);
+      await sweep;
+      // 2) flaka shpërthen, pastaj qetësohet
+      el.classList.add("flare");
+      await anim(cur(), { x: b.x + 34, y: b.y - 60, a: -32 }, 420);
+      el.classList.remove("flare"); el.classList.add("burning");
+      await new Promise((r) => setTimeout(r, 380 * T));
+      // 3) afrohu saktë te fitili: flaka (mbi kokë) mbështjell majën e fitilit
+      const w = wickPt();
+      await anim(cur(), { x: w.x - 3, y: w.y + 13, a: -38, arc: 46 }, 1050, (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+      el.classList.add("touch");
+      // dridhje e vogël e dorës ndërsa fitili kap
+      await anim(cur(), { x: w.x - 1, y: w.y + 11, a: -35 }, 260, (t) => Math.sin(t * Math.PI));
+      await new Promise((r) => setTimeout(r, 380 * T));
+      rc.classList.add("catching");
+      await new Promise((r) => setTimeout(r, 420 * T));
+      rc.classList.remove("unlit"); rc.classList.add("igniting");
+      haptic([10, 40, 20]);
+      { const r = $(".m-candle .wick", el).getBoundingClientRect(); goldBurst(r.left + r.width / 2, r.top - 6); }
+      // 4) tërhiq shkrepsen dhe shuaje me një lëvizje dore
+      await new Promise((r) => setTimeout(r, 300 * T));
+      el.classList.remove("touch");
+      const p = cur();
+      await anim(p, { x: p.x - 70, y: p.y + 70, a: -55 }, 500);
+      el.classList.add("shake");
+      await new Promise((r) => setTimeout(r, 420 * T));
+      el.classList.remove("burning", "shake"); el.classList.add("out");
+      await new Promise((r) => setTimeout(r, 900 * T));
+      el.classList.remove("open"); setTimeout(() => el.remove(), 420); onLit();
+    }
+    // tërhiqe vetë shkrepsen mbi shirit, ose thjesht prek
+    M.addEventListener("pointerdown", (e) => { if (done) return; drag = { x: e.clientX, y: e.clientY }; M.setPointerCapture(e.pointerId); e.stopPropagation(); });
+    M.addEventListener("pointermove", (e) => { if (!drag || done) return; const dx = e.clientX - drag.x; if (Math.abs(dx) > 26) { drag = null; go(); } });
+    M.addEventListener("pointerup", () => { if (drag && !done) { drag = null; go(); } });
+    el.addEventListener("click", (e) => { if (!done && !e.target.closest(".m2-match")) go(); });
   }
 
   // ---------- Temjanica ----------
@@ -2429,14 +2706,19 @@ function pickPhoto(it) {
       g.addColorStop(0, "rgba(214,214,222,.5)"); g.addColorStop(0.4, "rgba(196,198,210,.2)"); g.addColorStop(1, "rgba(190,192,205,0)");
       s.fillStyle = g; s.fillRect(0, 0, 128, 128);
     }
-    function emit(el, seconds) { setup(); srcEl = el; emitUntil = Date.now() + seconds * 1000; if (!raf) raf = requestAnimationFrame(loop); }
+    let dens = 0.85;
+    function emit(el, seconds) { addMode = false; setup(); srcEl = el; dens = 0.85; emitUntil = Date.now() + seconds * 1000; if (!raf) raf = requestAnimationFrame(loop); }
+    // temjani: çdo kokërr shton kohë tymi; sa më shumë kohë mbetet, aq më i dendur tymi
+    let addMode = false;
+    function add(el, seconds) { addMode = true; setup(); srcEl = el; emitUntil = Math.max(Date.now(), emitUntil) + seconds * 1000; if (!raf) raf = requestAnimationFrame(loop); }
     function loop() {
       raf = 0;
       if (document.hidden) { raf = requestAnimationFrame(loop); return; }
       const now = Date.now();
       if (srcEl && now < emitUntil && srcEl.isConnected) {
         const r = srcEl.getBoundingClientRect();
-        if (Math.random() < 0.85) parts.push({ x: r.left + r.width / 2 + (Math.random() - 0.5) * 10, y: r.top + 6, vx: (Math.random() - 0.5) * 0.5, vy: -0.7 - Math.random() * 0.8,
+        const left = (emitUntil - now) / 5000, d = dens === 0.85 && addMode ? Math.min(3.2, 0.45 + left * 0.42) : dens;
+        for (let n = Math.floor(d) + (Math.random() < d % 1 ? 1 : 0); n > 0; n--) parts.push({ x: r.left + r.width / 2 + (Math.random() - 0.5) * (10 + d * 6), y: r.top + 6, vx: (Math.random() - 0.5) * 0.5, vy: -0.7 - Math.random() * 0.8,
           s: 10 + Math.random() * 8, a: 0.3 + Math.random() * 0.2, life: 0, max: 380 + Math.random() * 260, rot: Math.random() * 6, sw: Math.random() * 6 });
       }
       ctx.clearRect(0, 0, innerWidth, innerHeight);
@@ -2456,68 +2738,1062 @@ function pickPhoto(it) {
       else { cv.remove(); cv = null; }
     }
     const stop = () => { emitUntil = 0; };
-    return { emit, stop };
+    function puff(el, n = 26) {
+      setup(); const r = el.getBoundingClientRect();
+      for (let i = 0; i < n; i++) parts.push({ x: r.left + (Math.random() - 0.5) * 40, y: r.top + 4 + Math.random() * 6, vx: (Math.random() - 0.5) * 1.6, vy: -0.6 - Math.random() * 1.6,
+        s: 12 + Math.random() * 14, a: 0.35 + Math.random() * 0.25, life: 0, max: 260 + Math.random() * 240, rot: Math.random() * 6, sw: Math.random() * 6 });
+      if (!raf) raf = requestAnimationFrame(loop);
+    }
+    const remaining = () => Math.max(0, emitUntil - Date.now()) / 1000;
+    return { emit, add, stop, puff, remaining };
   })();
+  // ---- ari dhe argjendi i përbashkët për temjanicën dhe kacinë ----
+  const CS_DEFS = `
+    <linearGradient id="csGold" x1="0" x2="1"><stop offset="0" stop-color="#5a3a0e"/><stop offset=".16" stop-color="#a87a22"/><stop offset=".36" stop-color="#ffeaa8"/><stop offset=".52" stop-color="#e5b84c"/><stop offset=".78" stop-color="#9a6a1c"/><stop offset="1" stop-color="#4e320b"/></linearGradient>
+    <linearGradient id="csGoldV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset=".45" stop-color="#d9a93f"/><stop offset="1" stop-color="#6b4612"/></linearGradient>
+    <linearGradient id="csSilver" x1="0" x2="1"><stop offset="0" stop-color="#5d6369"/><stop offset=".18" stop-color="#b9bfc6"/><stop offset=".36" stop-color="#ffffff"/><stop offset=".55" stop-color="#d8dce1"/><stop offset=".8" stop-color="#8a9097"/><stop offset="1" stop-color="#555b61"/></linearGradient>
+    <radialGradient id="csBellG" cx=".34" cy=".3" r=".75"><stop offset="0" stop-color="#fff7cf"/><stop offset=".3" stop-color="#f3cd62"/><stop offset=".7" stop-color="#b3821f"/><stop offset="1" stop-color="#5e3d0c"/></radialGradient>
+    <radialGradient id="csCoalG" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff2b0"/><stop offset=".35" stop-color="#ff8a1a"/><stop offset=".75" stop-color="#b3260a"/><stop offset="1" stop-color="#3a0d05" stop-opacity="0"/></radialGradient>
+    <radialGradient id="csShine" cx=".3" cy=".35" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>`;
+  const csBell = (x, y, r, k) => `<g class="cs-bell" style="--d:${(k * 0.05).toFixed(2)}s"><path d="M${x} ${y - r - 4} v4" stroke="#b8862a" stroke-width="1.6"/><circle cx="${x}" cy="${y}" r="${r}" fill="url(#csBellG)" stroke="#6b4612" stroke-width=".5"/>
+    <path d="M${x - r * .75} ${y + r * .15} Q${x} ${y + r * .5} ${x + r * .75} ${y + r * .15}" stroke="#4a2e08" stroke-width="${(r * .22).toFixed(1)}" fill="none" stroke-linecap="round"/><circle cx="${x}" cy="${y + r * .62}" r="${(r * .2).toFixed(1)}" fill="#3a2406"/></g>`;
+  const csChain = (x1, y1, x2, y2) => `<path class="cs-chain" d="M${x1} ${y1} L${x2} ${y2}"/><path class="cs-chain2" d="M${x1} ${y1} L${x2} ${y2}"/>`;
+  // Temjanica: kupë argjendi me brinjë ari, kapak i shpuar me medalione kryqi, kube argjendi e kapitonuar, kryq në majë, 4 zinxhirë me 12 zile
   function censerSvg() {
-    const chain = (x) => `<path class="cs-chain" d="M100 8 L${x} 150" />`;
-    return `<svg class="censer" viewBox="0 0 200 330" aria-hidden="true">
-      <defs>
-        <linearGradient id="csGold" x1="0" x2="1"><stop offset="0" stop-color="#7a5418"/><stop offset=".35" stop-color="#f3d27a"/><stop offset=".6" stop-color="#c8962e"/><stop offset="1" stop-color="#6b4612"/></linearGradient>
-        <radialGradient id="csCoalG" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff2b0"/><stop offset=".35" stop-color="#ff8a1a"/><stop offset=".75" stop-color="#b3260a"/><stop offset="1" stop-color="#3a0d05" stop-opacity="0"/></radialGradient>
+    const lugs = [46, 72, 128, 154], RIM = 174;
+    const bells = [];
+    lugs.forEach((x, c) => [0.13, 0.27, 0.41].forEach((t, j) => { const px = 100 + (x - 100) * t, py = 10 + (RIM - 10) * t; bells.push(csBell(+(px + (c < 2 ? -6 : 6)).toFixed(1), +(py + 6).toFixed(1), 6.4, c * 3 + j)); }));
+    const ribs = [-4, -3, -2, -1, 0, 1, 2, 3, 4].map((i) => `<path d="M${100 + i * 11.5} 180 Q${100 + i * 14} 214 ${100 + i * 6.5} 246" stroke="url(#csGoldV)" stroke-width="2.6" fill="none"/>`).join("");
+    const quilt = [];
+    for (let k = -6; k <= 6; k++) { quilt.push(`M${100 + k * 9 - 40} 70 l40 52`, `M${100 + k * 9 + 40} 70 l-40 52`); }
+    const holes = [[62, 152, 4.5, 8], [80, 146, 4, 7.5], [120, 146, 4, 7.5], [138, 152, 4.5, 8], [70, 163, 3, 3], [130, 163, 3, 3]];
+    return `<svg class="censer temj" data-coal="171" data-drop="40" data-cx="100" viewBox="0 0 200 340" aria-hidden="true">
+      <defs>${CS_DEFS}
+        <clipPath id="csBowlC"><path d="M50 178 C46 204 58 238 86 247 L114 247 C142 238 154 204 150 178 Z"/></clipPath>
+        <clipPath id="csDomeC"><path d="M82 120 C70 108 74 84 100 78 C126 84 130 108 118 120 Q100 125 82 120 Z"/></clipPath>
       </defs>
-      <circle cx="100" cy="8" r="7" fill="url(#csGold)"/>
-      ${[56, 82, 118, 144].map(chain).join("")}
-      ${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((k) => { const x = [56, 82, 118, 144][k % 4], yy = 34 + Math.floor(k / 4) * 36, px = 100 + (x - 100) * (yy - 8) / 142;
-        return `<g class="cs-bell" style="--d:${(k * 0.06).toFixed(2)}s"><circle cx="${px.toFixed(1)}" cy="${yy}" r="5.2" fill="url(#csGold)"/><circle cx="${px.toFixed(1)}" cy="${yy + 3}" r="1.3" fill="#3b2a10"/></g>`; }).join("")}
-      <path d="M52 150 Q100 132 148 150 L140 172 Q100 160 60 172 Z" fill="url(#csGold)"/>
-      <path class="cs-lid" d="M60 150 Q100 70 140 150 Z" fill="url(#csGold)" opacity=".92"/>
-      <path d="M70 140 Q100 98 130 140" fill="none" stroke="#5a3a10" stroke-width="2" stroke-dasharray="3 5"/>
-      <ellipse class="cs-coal" cx="100" cy="168" rx="30" ry="8" fill="url(#csCoalG)"/>
-      <path d="M56 172 Q100 186 144 172 Q140 228 100 236 Q60 228 56 172 Z" fill="url(#csGold)"/>
-      <path d="M64 190 Q100 204 136 190" fill="none" stroke="#5a3a10" stroke-width="1.6" opacity=".7"/>
-      <path d="M86 236 L80 252 L120 252 L114 236 Z" fill="url(#csGold)"/>
-      <text x="100" y="222" text-anchor="middle" font-size="16" fill="#5a3a10" font-family="serif">✝</text>
+      <circle cx="100" cy="9" r="6" fill="none" stroke="url(#csGold)" stroke-width="3"/>
+      ${csChain(100, 12, 72, RIM)}${csChain(100, 12, 128, RIM)}
+      <ellipse cx="100" cy="${RIM - 1}" rx="46" ry="8" fill="#140b05"/>
+      <g class="cs-coals">${[[84, 170, 10, 5], [100, 167, 11, 6], [116, 170, 10, 5], [92, 173, 9, 4], [108, 174, 9, 4], [72, 173, 6, 3], [128, 173, 6, 3]].map(([x, y, rx, ry], k) => `<ellipse class="cs-lump" style="--k:${k}" cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"/>`).join("")}</g>
+      <ellipse class="cs-coal" cx="100" cy="170" rx="40" ry="10" fill="url(#csCoalG)"/>
+      <g class="cs-grains"></g>
+      <path d="M50 178 C46 204 58 238 86 247 L114 247 C142 238 154 204 150 178 Z" fill="url(#csSilver)"/>
+      <g clip-path="url(#csBowlC)">${ribs}<ellipse cx="78" cy="204" rx="14" ry="26" fill="url(#csShine)"/></g>
+      <path d="M46 ${RIM} Q100 ${RIM + 12} 154 ${RIM} L153 ${RIM + 7} Q100 ${RIM + 19} 47 ${RIM + 7} Z" fill="url(#csGold)"/>
+      <path d="M48 ${RIM + 3.5} Q100 ${RIM + 15} 152 ${RIM + 3.5}" stroke="#fff3c4" stroke-width=".7" fill="none" opacity=".7"/>
+      ${lugs.map((x) => `<circle cx="${x}" cy="${RIM + 1}" r="4.2" fill="none" stroke="url(#csGold)" stroke-width="2.2"/>`).join("")}
+      <path d="M86 247 Q100 251 114 247 L110 258 Q100 261 90 258 Z" fill="url(#csGold)"/>
+      <ellipse cx="100" cy="262" rx="11" ry="4" fill="url(#csGold)"/>
+      <path d="M93 264 L107 264 L109 280 L91 280 Z" fill="url(#csGold)"/>
+      <path d="M91 279 C88 292 72 300 60 308 L140 308 C128 300 112 292 109 279 Z" fill="url(#csGold)"/>
+      <path d="M70 302 Q100 292 130 302" stroke="url(#csSilver)" stroke-width="5" fill="none"/>
+      ${[74, 86, 100, 114, 126].map((x, k) => `<circle cx="${x}" cy="${299 - (k === 2 ? 2.5 : k % 2 ? 1.6 : 0)}" r="1.7" fill="#7a5418"/>`).join("")}
+      <ellipse cx="100" cy="309" rx="42" ry="4.5" fill="url(#csGold)"/>
+      ${csChain(100, 12, 46, RIM)}${csChain(100, 12, 154, RIM)}
+      <g class="cs-lidg">
+        <path d="M48 172 C44 152 60 132 80 128 L120 128 C140 132 156 152 152 172 Q100 160 48 172 Z" fill="url(#csGold)"/>
+        ${holes.map(([x, y, rx, ry]) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#2a1607"/>`).join("")}
+        <g class="cs-holes">${holes.map(([x, y, rx, ry]) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#ff8a2a"/>`).join("")}</g>
+        <path d="M56 160 q6 -14 16 -10 q-8 4 -4 12 M144 160 q-6 -14 -16 -10 q8 4 4 12 M86 136 q-10 4 -8 14 M114 136 q10 4 8 14" stroke="#fff0b8" stroke-width="1.1" fill="none" opacity=".75"/>
+        <circle cx="100" cy="149" r="13" fill="url(#csSilver)" stroke="url(#csGold)" stroke-width="2.4"/>
+        <path d="M100 139 V159 M90 149 H110" stroke="url(#csGoldV)" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M84 128 Q100 123 116 128 L113 119 Q100 115 87 119 Z" fill="url(#csGold)"/>
+        <path d="M82 120 C70 108 74 84 100 78 C126 84 130 108 118 120 Q100 125 82 120 Z" fill="url(#csSilver)"/>
+        <g clip-path="url(#csDomeC)"><path d="${quilt.join(" ")}" stroke="#c8962e" stroke-width="1.1" fill="none"/><ellipse cx="91" cy="94" rx="9" ry="13" fill="url(#csShine)"/></g>
+        <ellipse cx="100" cy="78" rx="8" ry="4" fill="url(#csGold)"/>
+        <ellipse cx="100" cy="72" rx="4.5" ry="5" fill="url(#csGold)"/>
+        <path d="M100 68 V44 M92 54 H108" stroke="url(#csGold)" stroke-width="3" stroke-linecap="round"/>
+        ${[[100, 42], [90, 54], [110, 54]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="url(#csGold)"/>`).join("")}
+        <path d="M100 62 q-9 -2 -11 4 q7 1 11 -2 q4 3 11 2 q-2 -6 -11 -4" fill="url(#csSilver)"/>
+      </g>
+      ${bells.join("")}
+    </svg>`;
+  }
+  // Kacia: temjanica e dorës, me dorezë të gdhendur me ikonë dhe 7 zile
+  function kaciaSvg() {
+    const bells = [138, 162, 186, 210, 234, 258].map((x, k) => csBell(x, 186, 7.4, k)).join("") + csBell(26, 156, 7, 6);
+    return `<svg class="censer kac" data-coal="139" data-drop="16" data-cx="78" viewBox="0 0 320 270" aria-hidden="true">
+      <defs>${CS_DEFS}<clipPath id="kcBowlC"><path d="M36 142 C34 170 52 192 78 196 C104 192 122 170 120 142 Z"/></clipPath></defs>
+      <ellipse cx="78" cy="140" rx="42" ry="7" fill="#140b05"/>
+      <g class="cs-coals">${[[66, 138, 8, 4], [80, 136, 9, 5], [93, 139, 8, 4], [72, 142, 7, 3], [88, 143, 7, 3]].map(([x, y, rx, ry], k) => `<ellipse class="cs-lump" style="--k:${k}" cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"/>`).join("")}</g>
+      <ellipse class="cs-coal" cx="78" cy="139" rx="36" ry="9" fill="url(#csCoalG)"/>
+      <g class="cs-grains"></g>
+      <path d="M36 142 C34 170 52 192 78 196 C104 192 122 170 120 142 Z" fill="url(#csGold)"/>
+      <g clip-path="url(#kcBowlC)">
+        ${[[52, 166], [78, 172], [104, 166]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="10" ry="12" fill="url(#csSilver)" opacity=".9"/><path d="M${x} ${y - 8} V${y + 8} M${x - 6} ${y} H${x + 6}" stroke="#a87a22" stroke-width="2"/>`).join("")}
+        <ellipse cx="56" cy="160" rx="8" ry="18" fill="url(#csShine)"/></g>
+      <path d="M34 140 Q78 152 122 140 L121 147 Q78 159 35 147 Z" fill="url(#csGold)"/>
+      <path d="M68 196 L88 196 L84 214 L72 214 Z" fill="url(#csGold)"/>
+      <ellipse cx="78" cy="216" rx="10" ry="3.5" fill="url(#csGold)"/>
+      <path d="M72 218 C70 232 56 240 46 248 L110 248 C100 240 86 232 84 218 Z" fill="url(#csSilver)"/>
+      <path d="M52 244 Q78 234 104 244" stroke="url(#csGold)" stroke-width="3" fill="none"/>
+      <ellipse cx="78" cy="249" rx="34" ry="4" fill="url(#csGold)"/>
+      <path d="M112 136 C132 124 150 130 168 128 L250 128 C268 126 282 132 296 138 L312 141 L296 146 C282 152 268 160 250 162 L168 162 C150 162 134 166 116 154 Z" fill="url(#csSilver)" stroke="url(#csGold)" stroke-width="3"/>
+      <path d="M122 140 C136 134 150 138 164 136 M122 152 C136 158 150 154 164 156 M256 134 C270 134 282 138 292 141 M256 156 C270 156 282 148 292 143" stroke="#c8962e" stroke-width="1.5" fill="none"/>
+      <rect x="176" y="131" width="68" height="28" rx="3" fill="url(#csSilver)" stroke="url(#csGold)" stroke-width="2.2"/>
+      <path d="M210 136 V154 M201 145 H219" stroke="url(#csGoldV)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="270" cy="145" r="6" fill="none" stroke="url(#csGold)" stroke-width="2"/>
+      <path d="M262 160 L262 212 Q268 216 274 212 L274 160 Z" fill="url(#csGold)"/>
+      <g class="cs-lidg">
+        <path d="M38 140 C30 116 52 96 64 84 C70 76 72 64 78 56 C84 64 86 76 92 84 C104 96 126 116 118 140 Q78 130 38 140 Z" fill="url(#csGold)"/>
+        <path d="M50 124 C56 108 70 100 78 86 C86 100 100 108 106 124" stroke="#fff0b8" stroke-width="1.2" fill="none" opacity=".7"/>
+        ${[[56, 122], [78, 112], [100, 122]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="7" fill="url(#csSilver)" stroke="#a87a22" stroke-width="1"/>`).join("")}
+        <g class="cs-holes">${[[56, 122], [78, 112], [100, 122]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#ff8a2a"/>`).join("")}</g>
+        <ellipse cx="66" cy="100" rx="5" ry="10" fill="url(#csShine)"/>
+        <ellipse cx="78" cy="56" rx="5" ry="3" fill="url(#csGold)"/>
+        <path d="M78 54 V30 M71 40 H85" stroke="url(#csGold)" stroke-width="2.8" stroke-linecap="round"/>
+        <circle cx="78" cy="28" r="2.6" fill="url(#csGold)"/>
+      </g>
+      <path d="M26 146 V140 Q30 138 36 140" stroke="#b8862a" stroke-width="1.6" fill="none"/>
+      ${bells}
     </svg>`;
   }
   function renderCenser() {
     const box = $("#censerBody");
     if (!box) return;
-    const st = { coal: false, incense: 0 };
+    const st = { coal: 0, incense: 0 };
+    const kind = store.get("censer.kind", "t") === "k" ? "k" : "t";
+    try { Smoke.stop(); } catch (e) {}
     box.innerHTML = `
-      <section class="cs-stage" id="csStage">
-        <div class="cs-swing" id="csSwing">${censerSvg()}<span class="cs-src" id="csSrc"></span></div>
-        <p class="cs-hint" id="csHint">Ndiz qymyrin, hidh temjan, pastaj prek temjanicën për ta tundur.</p>
+      <div class="seg cs-kind" role="tablist"><button data-ck="t" aria-checked="${kind === "t"}">Temjanica</button><button data-ck="k" aria-checked="${kind === "k"}">Kacia</button></div>
+      <section class="cs-stage cs2 kind-${kind}" id="csStage">
+        <div class="cs-glow" id="csGlow"></div>
+        <div class="cs-swing" id="csSwing">${kind === "k" ? kaciaSvg() : censerSvg()}<span class="cs-src" id="csSrc"></span><span class="cs-embers" id="csEmb"></span></div>
+        <p class="cs-hint" id="csHint">Ndiz qymyrin dhe hidh temjan. Pastaj tërhiqe ${kind === "k" ? "kacinë" : "temjanicën"} me gisht, ose prek për bekimin me tri tundje.</p>
+        <p class="cs-count" id="csCount" hidden></p>
       </section>
       <div class="cs-actions">
         <button class="btn" id="csCoal">${icon("candle")}<span>Ndiz qymyrin</span></button>
         <button class="btn primary" id="csInc" disabled>${icon("plus")}<span>Hidh temjan</span></button>
       </div>
       <p class="cs-prayer">“Le të drejtohet lutja ime si temjan përpara teje.” <small>Psalmi 140:2</small></p>`;
-    const sw = $("#csSwing"), svg = $(".censer", box), hint = $("#csHint");
+    const stage = $("#csStage"), sw = $("#csSwing"), svg = $(".censer", box), hint = $("#csHint"), emb = $("#csEmb");
+    $$("[data-ck]", box).forEach((b) => b.addEventListener("click", () => { if (b.dataset.ck === kind) return; haptic(8); store.set("censer.kind", b.dataset.ck); renderCenser(); }));
+    const CY = +svg.dataset.coal, DY = +svg.dataset.drop, CX = +svg.dataset.cx;
+    // ---- qymyri: nxehet ngadalë, kërcet, nxjerr xixa ----
     $("#csCoal").addEventListener("click", (e) => {
       if (st.coal) return;
-      st.coal = true;
-      svg.classList.add("coal-on");
-      e.currentTarget.disabled = true;
-      $("#csInc").disabled = false;
-      hint.textContent = "Qymyri u ndez. Hidh temjan.";
-      Sfx.strike();
+      st.coal = 1; e.currentTarget.disabled = true;
+      Sfx.strike(); setTimeout(() => Sfx.crackle(12), 250);
+      svg.classList.add("lid-open", "coal-lighting"); stage.classList.add("warm1");
+      hint.textContent = "Qymyri po ndizet…";
+      setTimeout(() => svg.classList.remove("lid-open"), 2600);
+      setTimeout(() => { svg.classList.remove("coal-lighting"); svg.classList.add("coal-on"); stage.classList.add("warm"); st.coal = 2; $("#csInc").disabled = false; hint.textContent = "Qymyri u ndez. Hidh temjan."; }, 1600);
+      // xixa që ngrihen herë pas here nga qymyri
+      const spark = () => { if (!emb.isConnected || !st.coal) return; const i = document.createElement("i"); i.style.left = (40 + Math.random() * 20) + "%"; i.style.setProperty("--dx", (Math.random() * 30 - 15) + "px"); emb.appendChild(i); setTimeout(() => i.remove(), 1600); setTimeout(spark, 260 + Math.random() * 700); };
+      spark();
     });
+    // ---- temjani: një kokërr bie mbi qymyr → kapaku hapet → tym ----
     $("#csInc").addEventListener("click", () => {
+      if (st.coal < 2) return;
       st.incense++;
-      svg.classList.remove("drop"); void svg.offsetWidth; svg.classList.add("drop", "smoking");
-      setTimeout(() => Smoke.emit($("#csSrc"), 22 + st.incense * 6), 450);
-      hint.textContent = "Prek temjanicën për ta tundur.";
+      const G = $(".cs-grains", svg), NS = "http://www.w3.org/2000/svg";
+      svg.classList.add("lid-open", "smoking");
+      [0].forEach((k) => {
+        const g = document.createElementNS(NS, "ellipse");
+        const x = CX - 8 + Math.random() * 16;
+        g.setAttribute("cx", x); g.setAttribute("cy", DY); g.setAttribute("rx", 3.2); g.setAttribute("ry", 2.4);
+        g.setAttribute("class", "cs-g2"); g.style.animationDelay = (0.35 + k * 0.12) + "s";
+        g.style.setProperty("--land", ((CY - 6 + Math.random() * 5 - DY)) + "px");
+        G.appendChild(g);
+        setTimeout(() => g.classList.add("melt"), 1150 + k * 120);
+        setTimeout(() => g.remove(), 4200);
+      });
+      setTimeout(() => svg.classList.remove("lid-open"), 2300);
+      setTimeout(() => { Sfx.sizzle(1.8); Smoke.puff($("#csSrc"), 14 + Math.min(30, Math.round(Smoke.remaining() * 1.5))); Smoke.add($("#csSrc"), 5); haptic(8); }, 1000);
+      const c = $("#csCount"); c.hidden = false;
+      clearInterval(st.cT); const upd = () => { const r = Smoke.remaining(); c.textContent = `Kokrra: ${st.incense} · tym edhe ${Math.ceil(r)} sek`; if (r <= 0 && st.cT) { clearInterval(st.cT); c.textContent = `Kokrra: ${st.incense} · temjani u dogj`; } };
+      setTimeout(() => { upd(); st.cT = setInterval(() => { if (!c.isConnected) return clearInterval(st.cT); upd(); }, 500); }, 1050);
+      hint.textContent = `Tërhiqe ${kind === "k" ? "kacinë" : "temjanicën"} me gisht ose prek për bekimin.`;
     });
-    let swinging = false;
-    sw.addEventListener("click", () => {
-      if (swinging) return;
-      swinging = true;
-      sw.classList.remove("swing"); void sw.offsetWidth; sw.classList.add("swing");
-      Sfx.bells(5); setTimeout(() => Sfx.bells(6), 620); setTimeout(() => Sfx.bells(5), 1240);
-      if (navigator.vibrate) try { navigator.vibrate([6, 90, 6, 90, 6]); } catch (e) { /* */ }
-      setTimeout(() => { swinging = false; }, 1900);
+    // ---- lavjerrësi: θ'' = −(g/L)·sin θ − b·θ' ----
+    const P = { th: 0, w: 0, drag: null, raf: 0, lastSign: 0, lastT: 0, kicks: [] };
+    const KAC = kind === "k", K = KAC ? 30 : 15.4, DAMP = KAC ? 1.1 : 0.42, MAX = KAC ? 0.55 : 1.2;
+    const pivot = () => { const r = sw.getBoundingClientRect(); return KAC ? { x: r.left + r.width * 0.94, y: r.top + r.height * 0.54 } : { x: r.left + r.width / 2, y: r.top + 4 }; };
+    const draw = () => { sw.style.transform = `rotate(${(-P.th * 180 / Math.PI).toFixed(2)}deg)`; };
+    function ring(amp) {
+      if (amp < 0.1) return;
+      const n = Math.min(8, Math.round(2 + amp * 7));
+      Sfx.bells(n, amp);
+      sw.classList.remove("jingle"); void sw.offsetWidth; sw.classList.add("jingle");
+      if (amp > 0.35) haptic(6);
+    }
+    function tick(now) {
+      P.raf = 0;
+      if (!sw.isConnected) return;
+      const dt = Math.min(0.033, (now - (P.lastT || now)) / 1000); P.lastT = now;
+      if (!P.drag) {
+        while (P.kicks.length && P.kicks[0].at <= now) { const k = P.kicks.shift(); P.w += (Math.sign(P.w) || 1) * k.dv; }
+        const acc = -K * Math.sin(P.th) - DAMP * P.w;
+        P.w += acc * dt; P.th += P.w * dt;
+        P.th = Math.max(-MAX, Math.min(MAX, P.th));
+        const sgn = Math.sign(P.w);
+        if (sgn && P.lastSign && sgn !== P.lastSign) ring(Math.abs(P.th));   // zilet në skajin e lëkundjes
+        P.lastSign = sgn;
+      }
+      draw();
+      if (P.drag || P.kicks.length || Math.abs(P.th) > 0.002 || Math.abs(P.w) > 0.003) P.raf = requestAnimationFrame(tick);
+      else { P.th = 0; P.w = 0; P.lastT = 0; draw(); }
+    }
+    const run = () => { if (!P.raf) { P.lastT = 0; P.raf = requestAnimationFrame(tick); } };
+    sw.addEventListener("pointerdown", (e) => {
+      sw.setPointerCapture(e.pointerId);
+      P.drag = { x0: e.clientX, y0: e.clientY, t: performance.now(), moved: 0, th: P.th };
+      P.kicks = []; run();
     });
+    sw.addEventListener("pointermove", (e) => {
+      const d = P.drag; if (!d) return;
+      const pv = pivot(), dx = e.clientX - pv.x, dy = e.clientY - pv.y;
+      const th = Math.max(-MAX, Math.min(MAX, KAC ? Math.atan2(dy, Math.max(30, -dx)) : Math.atan2(dx, Math.max(30, dy))));
+      const now = performance.now(), dtt = Math.max(0.008, (now - d.t) / 1000);
+      P.w = (th - P.th) / dtt * 0.6 + P.w * 0.4; P.th = th; d.t = now;
+      d.moved += Math.abs(e.clientX - d.x0) + Math.abs(e.clientY - d.y0); d.x0 = e.clientX; d.y0 = e.clientY;
+    });
+    const end = () => {
+      const d = P.drag; if (!d) return; P.drag = null;
+      if (d.moved < 10) {
+        // prekje: bekimi me tri tundje
+        haptic([6, 90, 6, 90, 6]);
+        const t = performance.now(); P.w += KAC ? 3.4 : 2.6;
+        P.kicks = KAC ? [{ at: t + 560, dv: 2.4 }, { at: t + 1120, dv: 2.4 }] : [{ at: t + 800, dv: 1.6 }, { at: t + 1600, dv: 1.6 }];
+      }
+      P.lastSign = Math.sign(P.w); run();
+    };
+    sw.addEventListener("pointerup", end); sw.addEventListener("pointercancel", end);
+  }
+
+  // ---------- Udhëtimi në Shkrim: kuiz me 1000 nivele, 3 jetë (1 kthehet çdo 3 orë), ndihma, talanta ----------
+  // Çdo pyetje ndërtohet VETËM nga fjali fjalë për fjalë të teksteve të aplikacionit (data/kuizi.json).
+  async function viewJourney() {
+    const K = await load("kuizi");
+    if (!K) { listPane.innerHTML = `<div class="empty"><h3>Kuizi nuk u hap</h3></div>`; enter(listPane); return; }
+    const H3 = 3 * 3600e3, MAXL = 1000, MAXLIVES = 5;
+    const WORLDS = ["Kopshti i Edenit", "Arka e Noesë", "Mali Moria", "Egjipti", "Deti i Kuq", "Mali Sinai", "Shkretëtira", "Lumi Jordan", "Jeriko", "Betlehemi",
+      "Nazareti", "Kana e Galilesë", "Liqeni i Gjenisaretit", "Mali Tabor", "Betania", "Jerusalemi", "Gjetsemania", "Golgota", "Varri i Zbrazët", "Jerusalemi Qiellor"];
+    const WCOL = ["#6f9a52", "#7d6a4f", "#9a7d55", "#c49a4a", "#3f7fa6", "#8a6d5a", "#c08a50", "#4f8fa0", "#a0794a", "#b07a3d",
+      "#7a8a5a", "#9b4a5a", "#3f86a8", "#6a8a6a", "#8a7a5a", "#b8963f", "#4d6a4a", "#8e3a3a", "#c9a24a", "#d6b056"];
+    const today = isoToday();
+    const S = Object.assign({ lvl: 1, stars: {}, lives: 3, lifeAt: 0, tal: 30, inv: { h: 3, s: 2, t: 3 }, gift: "", amen: "", games: 0, right: 0 }, store.get("bq", {}));
+    S.inv = Object.assign({ h: 0, s: 0, t: 0 }, S.inv);
+    const save = () => store.set("bq", S);
+    function regen() {
+      if (S.lives >= 3) { S.lifeAt = 0; return; }
+      const now = Date.now(); if (!S.lifeAt) S.lifeAt = now;
+      const n = Math.floor((now - S.lifeAt) / H3);
+      if (n > 0) { S.lives = Math.min(3, S.lives + n); S.lifeAt = S.lives >= 3 ? 0 : S.lifeAt + n * H3; save(); }
+    }
+    const lifeIn = () => (S.lives >= 3 || !S.lifeAt ? 0 : Math.max(0, S.lifeAt + H3 - Date.now()));
+    const hms = (ms) => { const s = Math.ceil(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return `${h}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+    const alive = () => location.hash.startsWith("#/udhetimi");
+    let tick = 0, timer = 0;
+    const stopAll = () => { clearInterval(tick); clearInterval(timer); };
+
+    // ---- të dhënat ----
+    const B = K.books, V = K.v;
+    const noQuote = (s) => !/[“”«»"]/.test(s);
+    const byCat = [[], [], [], []], byBook = {};
+    V.forEach((r, i) => { byCat[B[r[1]][2]].push(i); (byBook[r[1]] = byBook[r[1]] || []).push(i); });
+    const rnd = (n) => Math.floor(Math.random() * n);
+    const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const WRE = /[\p{L}’']+/gu;
+    const goodWord = (w, min) => w.length >= min && !STOP.has(w.toLowerCase());
+    // fjalor fjalësh sipas gjatësisë, për zgjedhjet e gabuara
+    const lex = {};
+    for (let i = 0; i < V.length; i += 3) for (const m of V[i][0].matchAll(WRE)) { const w = m[0]; if (w.length >= 4 && !STOP.has(w.toLowerCase()) && w[0] === w[0].toLowerCase()) (lex[w.length] = lex[w.length] || new Set()).add(w); }
+    const lexArr = {}; Object.keys(lex).forEach((k) => (lexArr[k] = [...lex[k]]));
+    function similarWords(w, n) {
+      const out = new Set(), low = w.toLowerCase(), cap = w[0] !== low[0];
+      for (let t = 0; t < 200 && out.size < n; t++) {
+        const len = w.length + rnd(3) - 1, arr = lexArr[len]; if (!arr) continue;
+        let c = arr[rnd(arr.length)]; if (c.toLowerCase() === low) continue;
+        if (cap) c = c[0].toUpperCase() + c.slice(1);
+        out.add(c);
+      }
+      return [...out];
+    }
+
+    // ---- vështirësia sipas nivelit ----
+    function cfg(L) {
+      const boss = L % 10 === 0;
+      const cats = L < 15 ? [0, 2] : L < 40 ? [0, 1, 2] : [0, 1, 2, 3];
+      const types = ["cat", "gap"];
+      if (L >= 6) types.push("cont"); if (L >= 16) types.push("tf"); if (L >= 28) types.push("book");
+      if (L >= 45) types.push("odd"); if (L >= 70) types.push("order"); if (L >= 120) types.push("psn");
+      return {
+        boss, cats, types,
+        nq: Math.min(10, 5 + Math.floor(L / 150)) + (boss ? 2 : 0),
+        time: Math.max(8, Math.round(24 - L / 45)) - (boss ? 2 : 0),
+        opts: L < 25 ? 3 : 4,
+        minW: 4 + Math.min(4, Math.floor(L / 140)),
+        errs: boss ? 2 : 3,
+      };
+    }
+    const pickRow = (C, pred) => { for (let t = 0; t < 300; t++) { const cat = C.cats[rnd(C.cats.length)], pool = byCat[cat], i = pool[rnd(pool.length)]; if (!pred || pred(V[i])) return i; } return rnd(V.length); };
+    const refOf = (i) => K.refs[V[i][2]];
+    const bookShort = (i) => B[V[i][1]][1];
+
+    // ---- pyetjet ----
+    function makeQ(C, type) {
+      if (type === "cat") {
+        const i = pickRow(C, (r) => noQuote(r[0]));
+        const all = K.cats.map((c, k) => k), ans = B[V[i][1]][2];
+        const opts = shuffle([ans, ...shuffle(all.filter((k) => k !== ans)).slice(0, C.opts - 1)]);
+        return { type, i, q: "Nga cila pjesë e Shkrimit është ky varg?", text: V[i][0], opts: opts.map((k) => K.cats[k]), ans: opts.indexOf(ans) };
+      }
+      if (type === "book") {
+        const i = pickRow(C, (r) => noQuote(r[0]) && B[r[1]][2] !== 2);
+        const cat = B[V[i][1]][2], same = Object.keys(byBook).map(Number).filter((b) => b !== V[i][1] && B[b][2] === cat);
+        const others = shuffle(same).slice(0, C.opts - 1).map((b) => B[b][1]);
+        if (others.length < C.opts - 1) return makeQ(C, "cat");
+        const opts = shuffle([bookShort(i), ...others]);
+        return { type, i, q: "Nga cili libër është ky varg?", text: V[i][0], opts, ans: opts.indexOf(bookShort(i)) };
+      }
+      if (type === "psn") {
+        const pool = byCat[2], i = pool[rnd(pool.length)], n = +(/Psalmi (\d+)/.exec(refOf(i)) || [0, 1])[1];
+        const set = new Set([n]); while (set.size < C.opts) { const d = n + (rnd(2) ? 1 : -1) * (1 + rnd(12)); if (d >= 1 && d <= 151) set.add(d); }
+        const opts = shuffle([...set]);
+        return { type, i, q: "Nga cili psalm është ky varg?", text: V[i][0], opts: opts.map((x) => "Psalmi " + x), ans: opts.indexOf(n) };
+      }
+      if (type === "tf") {
+        const i = pickRow(C, (r) => noQuote(r[0])), truth = Math.random() < 0.5;
+        let b = B[V[i][1]][0];
+        if (!truth) { const cands = Object.keys(byBook).map(Number).filter((k) => B[k][0] !== b); b = B[cands[rnd(cands.length)]][0]; }
+        return { type, i, q: `A është ky varg nga ${b}?`, text: V[i][0], opts: ["Po, është", "Jo, nuk është"], ans: truth ? 0 : 1 };
+      }
+      if (type === "gap") {
+        for (let t = 0; t < 40; t++) {
+          const i = pickRow(C), ws = [...V[i][0].matchAll(WRE)].filter((m) => goodWord(m[0], C.minW));
+          if (!ws.length) continue;
+          const m = ws[rnd(ws.length)], wrong = similarWords(m[0], C.opts - 1);
+          if (wrong.length < C.opts - 1) continue;
+          const opts = shuffle([m[0], ...wrong]), s = V[i][0];
+          return { type, i, q: "Cila fjalë mungon?", html: esc(s.slice(0, m.index)) + `<span class="bq-gap">＿＿＿</span>` + esc(s.slice(m.index + m[0].length)), opts, ans: opts.indexOf(m[0]), word: m[0] };
+        }
+        return makeQ(C, "cat");
+      }
+      if (type === "cont") {
+        for (let t = 0; t < 40; t++) {
+          const i = pickRow(C, (r) => r[0].length > 70), s = V[i][0], cut = s.indexOf(" ", Math.floor(s.length * 0.45));
+          if (cut < 0) continue;
+          const tail = (x) => { const c = x.indexOf(" ", Math.floor(x.length * 0.45)); return c < 0 ? null : x.slice(c + 1); };
+          const pool = byBook[V[i][1]], wrong = new Set();
+          for (let k = 0; k < 60 && wrong.size < C.opts - 1; k++) { const j = pool[rnd(pool.length)]; if (j === i) continue; const tl = tail(V[j][0]); if (tl && tl.length < 130 && tl !== s.slice(cut + 1)) wrong.add(tl); }
+          if (wrong.size < C.opts - 1) continue;
+          const right = s.slice(cut + 1), opts = shuffle([right, ...wrong]);
+          return { type, i, q: "Si vazhdon vargu?", html: esc(s.slice(0, cut)) + " …", opts, ans: opts.indexOf(right), wide: true };
+        }
+        return makeQ(C, "gap");
+      }
+      if (type === "odd") {
+        for (let t = 0; t < 40; t++) {
+          const i = pickRow(C), s = V[i][0], toks = s.split(/(\s+)/), idx = [];
+          toks.forEach((tk, k) => { const w = (tk.match(WRE) || [""])[0]; if (goodWord(w, 5) && w === tk.replace(/[^\p{L}’']/gu, "")) idx.push(k); });
+          if (idx.length < 3) continue;
+          const k = idx[rnd(idx.length)], w = (toks[k].match(WRE) || [""])[0], rep = similarWords(w, 1)[0];
+          if (!rep) continue;
+          const orig = toks[k]; toks[k] = toks[k].replace(w, rep);
+          return { type, i, q: "Një fjalë është ndërruar. Preke!", toks, odd: k, orig };
+        }
+        return makeQ(C, "gap");
+      }
+      if (type === "order") {
+        for (let t = 0; t < 40; t++) {
+          const i = pickRow(C, (r) => r[0].length > 60 && r[0].length < 170), ws = V[i][0].split(" ");
+          const n = Math.min(5, 3 + Math.floor(Math.random() * 2) + (C.opts > 3 ? 1 : 0)); if (ws.length < n * 2) continue;
+          const parts = []; for (let p = 0; p < n; p++) parts.push(ws.slice(Math.round(p * ws.length / n), Math.round((p + 1) * ws.length / n)).join(" "));
+          const ord = shuffle(parts.map((_, k) => k)); if (ord.every((v, k) => v === k)) ord.reverse();
+          return { type, i, q: "Rendit pjesët e vargut", parts, ord, next: 0 };
+        }
+        return makeQ(C, "cont");
+      }
+      return makeQ(C, "cat");
+    }
+
+    // ---- harta e botës ----
+    let world = Math.min(19, Math.floor((S.lvl - 1) / 50));
+    function home() {
+      stopAll(); regen();
+      const w0 = world * 50 + 1, done = Object.keys(S.stars).filter((l) => +l >= w0 && +l < w0 + 50).length;
+      const totStars = Object.values(S.stars).reduce((a, b) => a + b, 0);
+      const giftOk = S.gift !== today, amenOk = S.amen !== today;
+      const nodes = [];
+      for (let k = 49; k >= 0; k--) {
+        const L = w0 + k, st = S.stars[L] || 0, cur = L === S.lvl, lock = L > S.lvl, boss = L % 10 === 0;
+        const x = 50 + Math.sin(k * 0.78) * 32;
+        nodes.push(`<button class="bq-node${cur ? " cur" : ""}${lock ? " lock" : ""}${boss ? " boss" : ""}${st ? " done" : ""}" data-l="${L}" style="--x:${x.toFixed(1)}%;--y:${(49 - k) * 74 + 40}px"${lock ? " disabled" : ""}>
+          ${boss ? `<em>👑</em>` : ""}<b>${lock ? "🔒" : L}</b>${st ? `<span class="bq-st">${"★".repeat(st)}<i>${"★".repeat(3 - st)}</i></span>` : ""}</button>`);
+      }
+      listPane.innerHTML = `
+        <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Udhëtimi në Shkrim</h1></header>
+        <section class="bq-home" style="--wc:${WCOL[world]}">
+          <div class="bq-bar glass">
+            <span class="bq-lives" id="bqLives">${"❤".repeat(Math.min(S.lives, MAXLIVES))}<i>${"❤".repeat(Math.max(0, 3 - S.lives))}</i></span>
+            <small class="bq-regen" id="bqRegen"></small>
+            <span class="bq-tal">🪙 <b>${S.tal}</b></span>
+          </div>
+          <div class="bq-inv"><span>💡 ${S.inv.h}</span><span>⏭ ${S.inv.s}</span><span>⏳ ${S.inv.t}</span><span>★ ${totStars}</span><button class="btn" id="bqShop">🛒 Dyqani</button></div>
+          ${giftOk || amenOk ? `<div class="bq-daily">
+            ${giftOk ? `<button class="bq-gift glass" id="bqGift"><span>🎁</span><b>Dhurata e ditës</b><small>Hape!</small></button>` : ""}
+            ${amenOk ? `<button class="bq-amen glass" id="bqAmen"><span>🙏</span><b>Vargu i ditës</b><small>Lexoje · +1 ❤</small></button>` : ""}
+          </div>` : ""}
+          <div class="bq-world glass">
+            <button class="icon-btn" id="bqPrev"${world ? "" : " disabled"} aria-label="Bota e mëparshme">${icon("back")}</button>
+            <div><small>Bota ${world + 1} nga 20 · nivelet ${w0}–${w0 + 49}</small><b>${WORLDS[world]}</b><div class="bq-wprog"><i style="width:${done * 2}%"></i></div></div>
+            <button class="icon-btn" id="bqNext"${world < 19 && S.lvl >= w0 + 50 ? "" : " disabled"} aria-label="Bota tjetër"><svg style="transform:scaleX(-1)"><use href="#i-back"/></svg></button>
+          </div>
+          <div class="bq-map" style="height:${50 * 74 + 60}px"><svg class="bq-path" viewBox="0 0 100 ${50 * 74 + 60}" preserveAspectRatio="none"><path d="${Array.from({ length: 50 }, (_, k) => `${k ? "L" : "M"}${(50 + Math.sin((49 - k) * 0.78) * 32).toFixed(1)} ${k * 74 + 40 + 26}`).join(" ")}"/></svg>${nodes.join("")}</div>
+          <p class="bq-foot">${S.games} lojëra · ${S.right} përgjigje të sakta · niveli ${Math.min(S.lvl, MAXL)} nga ${MAXL}</p>
+        </section>`;
+      enter(listPane);
+      const cur = $(".bq-node.cur", listPane) || $(".bq-node.done", listPane);
+      if (cur) setTimeout(() => cur.scrollIntoView({ block: "center", behavior: "smooth" }), 250);
+      const upd = () => { if (!alive() || !$("#bqRegen")) return clearInterval(tick); regen(); const ms = lifeIn(); $("#bqRegen").textContent = ms ? `+1 ❤ pas ${hms(ms)}` : S.lives >= 3 ? "Jetët plot" : ""; };
+      upd(); tick = setInterval(upd, 1000);
+      $("#bqPrev").onclick = () => { world--; haptic(8); home(); };
+      $("#bqNext").onclick = () => { world++; haptic(8); home(); };
+      $("#bqShop").onclick = shop;
+      $("#bqGift")?.addEventListener("click", (e) => {
+        const g = [["h", "💡 Ndihmë"], ["s", "⏭ Kalim"], ["t", "⏳ Kohë"]][rnd(3)], tal = 10 + rnd(16);
+        S.inv[g[0]]++; S.tal += tal; S.gift = today; save();
+        const r = e.currentTarget.getBoundingClientRect(); goldBurst(r.left + r.width / 2, r.top + r.height / 2); Sfx.bells(5, 0.6); haptic([10, 40, 10]);
+        toast(`🎁 ${g[1]} + ${tal} talanta`); setTimeout(home, 700);
+      });
+      $("#bqAmen")?.addEventListener("click", amen);
+      $$(".bq-node", listPane).forEach((b) => b.addEventListener("click", () => { haptic(12); preview(+b.dataset.l); }));
+    }
+    // vargu i ditës: lexohet, thuhet "Amin" → +1 jetë
+    function amen() {
+      const seed = [...today].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0, i = seed % V.length;
+      listPane.innerHTML = `<header class="page-head"><button class="back-btn" id="bqBack" aria-label="Kthehu">${icon("back")}</button><h1>Vargu i ditës</h1></header>
+        <section class="bq-amen-card glass"><p class="eyebrow">${esc(refOf(i))}</p><blockquote>${esc(V[i][0])}</blockquote>
+        <p class="bq-amen-h">Lexoje ngadalë, me zemër. Pastaj thuaj:</p><button class="btn primary bq-amin" id="bqAmin">☦ Amin</button></section>`;
+      enter(listPane);
+      $("#bqBack").onclick = home;
+      $("#bqAmin").onclick = (e) => {
+        S.amen = today; S.lives = Math.min(MAXLIVES, S.lives + 1); if (S.lives >= 3) S.lifeAt = 0; save();
+        const r = e.currentTarget.getBoundingClientRect(); goldBurst(r.left + r.width / 2, r.top); Sfx.bells(4, 0.5); haptic(14);
+        toast("+1 ❤ · Lavdi Perëndisë!"); setTimeout(home, 800);
+      };
+    }
+    function shop() {
+      const items = [["h", "💡", "Ndihmë", "Heq gjysmën e përgjigjeve të gabuara", 20], ["s", "⏭", "Kalim", "Kalon pyetjen si të saktë", 30], ["t", "⏳", "Kohë", "+10 sekonda për pyetjen", 15], ["life", "❤", "Jetë", `Një jetë (deri në ${MAXLIVES})`, 45]];
+      listPane.innerHTML = `<header class="page-head"><button class="back-btn" id="bqBack" aria-label="Kthehu">${icon("back")}</button><h1>Dyqani</h1><span class="bq-tal">🪙 <b id="bqTal">${S.tal}</b></span></header>
+        <p class="bq-shop-n">Talantat fitohen me yje (★), me nivelet 👑 dhe me dhuratën e ditës.</p>
+        <div class="bq-shop">${items.map(([k, e, n, d, p]) => `<button class="bq-item glass" data-k="${k}" data-p="${p}"><span>${e}</span><b>${n}</b><small>${d}</small><em>🪙 ${p}</em><i>${k === "life" ? S.lives : S.inv[k]}</i></button>`).join("")}</div>`;
+      enter(listPane);
+      $("#bqBack").onclick = home;
+      $$(".bq-item", listPane).forEach((b) => b.addEventListener("click", () => {
+        const k = b.dataset.k, p = +b.dataset.p;
+        if (S.tal < p) { haptic(30); toast("Nuk ke mjaft talanta"); return; }
+        if (k === "life" && S.lives >= MAXLIVES) { toast("Jetët janë plot"); return; }
+        S.tal -= p; if (k === "life") { S.lives++; if (S.lives >= 3) S.lifeAt = 0; } else S.inv[k]++; save();
+        haptic(10); $("#bqTal").textContent = S.tal; $("i", b).textContent = k === "life" ? S.lives : S.inv[k];
+        b.classList.remove("got"); void b.offsetWidth; b.classList.add("got");
+      }));
+    }
+    function preview(L) {
+      const C = cfg(L), st = S.stars[L] || 0;
+      const TN = { cat: "Pjesa e Shkrimit", gap: "Fjala që mungon", cont: "Vazhdo vargun", tf: "Po apo Jo", book: "Cili libër?", odd: "Fjala e huaj", order: "Rendit vargun", psn: "Cili psalm?" };
+      const sh = $("#bqSheet") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "bqSheet", className: "bq-sheet" }));
+      sh.innerHTML = `<div class="bq-pv glass" style="--wc:${WCOL[Math.floor((L - 1) / 50)]}">
+        <small>${WORLDS[Math.floor((L - 1) / 50)]}</small><h2>${C.boss ? "👑 " : ""}Niveli ${L}</h2>
+        <div class="bq-pv-st">${"★".repeat(st)}<i>${"★".repeat(3 - st)}</i></div>
+        <ul><li>${C.nq} pyetje · ${C.time} sek secila</li><li>${C.errs - 1 ? `Deri në ${C.errs - 1} gabime` : "Pa asnjë gabim"}${C.boss ? " · nivel sfide" : ""}</li><li>${C.types.map((t) => TN[t]).join(" · ")}</li></ul>
+        ${S.lives > 0 ? `<button class="btn primary" id="bqGo">Fillo · −❤ vetëm nëse humb</button>` : `<button class="btn" disabled>Pa jetë · +1 ❤ pas ${hms(lifeIn())}</button>`}
+        <button class="btn" id="bqX">Mbyll</button></div>`;
+      sh.hidden = false; requestAnimationFrame(() => sh.classList.add("on"));
+      const close = () => { sh.classList.remove("on"); setTimeout(() => (sh.hidden = true), 250); };
+      sh.onclick = (e) => { if (e.target === sh) close(); };
+      $("#bqX").onclick = close;
+      $("#bqGo")?.addEventListener("click", () => { close(); haptic(18); play(L); });
+    }
+
+    // ---- loja ----
+    let G = null;
+    function play(L) {
+      stopAll();
+      const C = cfg(L);
+      G = { L, C, n: 0, ok: 0, errs: 0, combo: 0, best: 0, q: null, plus: 0 };
+      next();
+    }
+    function hud() {
+      const C = G.C;
+      return `<header class="page-head"><button class="back-btn" id="bqQuit" aria-label="Dil">${icon("back")}</button><h1>${C.boss ? "👑 " : ""}Niveli ${G.L}</h1></header>
+        <div class="bq-hud glass"><span class="bq-err">${"✕".repeat(G.errs)}<i>${"○".repeat(C.errs - G.errs)}</i></span>
+          <span class="bq-dots">${Array.from({ length: C.nq }, (_, k) => `<i class="${k < G.n ? "ok" : k === G.n ? "now" : ""}"></i>`).join("")}</span>
+          <span class="bq-combo">${G.combo > 1 ? `🔥×${G.combo}` : ""}</span></div>
+        <div class="qz-time"><i id="bqBarT"></i></div>`;
+    }
+    const tools = () => `<div class="qz-tools bq-tools"><button class="qz-tool" id="bqH"${S.inv.h ? "" : " disabled"}>💡 ${S.inv.h}</button><button class="qz-tool" id="bqS"${S.inv.s ? "" : " disabled"}>⏭ ${S.inv.s}</button><button class="qz-tool" id="bqT"${S.inv.t ? "" : " disabled"}>⏳ ${S.inv.t}</button></div>`;
+    function next() {
+      clearInterval(timer);
+      if (!alive()) return;
+      if (G.errs >= G.C.errs) return finish(false);
+      if (G.n >= G.C.nq) return finish(true);
+      const C = G.C, type = C.types[(G.n + rnd(C.types.length)) % C.types.length], q = G.q = makeQ(C, type);
+      q.done = false;
+      let body = "";
+      if (q.type === "odd") body = `<p class="qz-verse bq-odd">${q.toks.map((tk, k) => /\s/.test(tk) ? tk : `<button class="qz-w" data-k="${k}">${esc(tk)}</button>`).join("")}</p>`;
+      else if (q.type === "order") body = `<p class="qz-verse bq-built" id="bqBuilt"><span class="bq-ph">Prek pjesët me radhë…</span></p><div class="bq-chunks">${q.ord.map((k) => `<button class="qz-chunk" data-k="${k}">${esc(q.parts[k])}</button>`).join("")}</div>`;
+      else body = `<p class="qz-verse">${q.html || esc(q.text)}</p><div class="qz-opts${q.wide || q.opts.some((o) => o.length > 22) ? " wide" : ""}">${q.opts.map((o, k) => `<button class="qz-opt" data-k="${k}">${esc(o)}</button>`).join("")}</div>`;
+      listPane.innerHTML = hud() + `<section class="qz-card glass bq-card"><p class="eyebrow">${esc(q.q)}</p>${body}</section>${tools()}<div id="bqAfter"></div>`;
+      $("#bqQuit").onclick = () => { if (confirm("Të dalësh nga niveli? Nuk humb jetë.")) { stopAll(); home(); } };
+      // koha
+      let left = C.time * 1000; const t0 = Date.now(); let base = left;
+      const bar = $("#bqBarT");
+      timer = setInterval(() => {
+        if (!alive()) return stopAll();
+        const rem = base - (Date.now() - t0) + G.plus * 1000;
+        bar.style.width = Math.max(0, rem / (C.time * 1000 + G.plus * 1000) * 100) + "%"; bar.classList.toggle("hurry", rem < 4000);
+        if (rem <= 0 && !q.done) answer(false, "Koha mbaroi");
+      }, 100);
+      G.plus = 0;
+      // përgjigjet
+      if (q.opts) $$(".qz-opt", listPane).forEach((b) => b.addEventListener("click", () => { if (q.done) return; const ok = +b.dataset.k === q.ans; b.classList.add(ok ? "right" : "wrong"); answer(ok); }));
+      if (q.type === "odd") $$(".qz-w", listPane).forEach((b) => b.addEventListener("click", () => { if (q.done) return; const ok = +b.dataset.k === q.odd; b.classList.add(ok ? "fixed" : "no"); if (ok) b.textContent = q.orig; answer(ok); }));
+      if (q.type === "order") $$(".qz-chunk", listPane).forEach((b) => b.addEventListener("click", () => {
+        if (q.done || b.disabled) return;
+        if (q.parts[+b.dataset.k] === q.parts[q.next]) { b.disabled = true; b.classList.add("used"); const bu = $("#bqBuilt"); $(".bq-ph", bu)?.remove(); bu.insertAdjacentHTML("beforeend", `<span>${esc(q.parts[q.next])} </span>`); q.next++; haptic(6); if (q.next >= q.parts.length) answer(true); }
+        else { b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake"); answer(false); }
+      }));
+      // ndihmat
+      $("#bqH").onclick = () => {
+        if (!S.inv.h || q.done || q.usedH) return; q.usedH = 1; S.inv.h--; save(); haptic(8); $("#bqH").innerHTML = "💡 " + S.inv.h; $("#bqH").disabled = true;
+        if (q.opts) { const wrong = $$(".qz-opt", listPane).filter((b) => +b.dataset.k !== q.ans); shuffle(wrong).slice(0, Math.max(1, Math.floor(wrong.length / 2))).forEach((b) => b.classList.add("gone")); }
+        else if (q.type === "odd") { const ws = $$(".qz-w", listPane).filter((b) => +b.dataset.k !== q.odd); shuffle(ws).slice(0, Math.floor(ws.length * 0.6)).forEach((b) => b.classList.add("dim")); }
+        else if (q.type === "order") { const b = $(`.qz-chunk[data-k="${q.next}"]`, listPane); b?.classList.add("glow"); }
+      };
+      $("#bqS").onclick = () => { if (!S.inv.s || q.done) return; S.inv.s--; save(); haptic(8); toast("⏭ U kalua"); answer(true, null, true); };
+      $("#bqT").onclick = () => { if (!S.inv.t || q.done) return; S.inv.t--; save(); haptic(8); base += 10000; $("#bqT").innerHTML = "⏳ " + S.inv.t; toast("+10 sekonda"); };
+    }
+    function answer(ok, why, skipped) {
+      const q = G.q; if (q.done) return; q.done = true; clearInterval(timer);
+      if (ok) { G.ok++; G.combo++; G.best = Math.max(G.best, G.combo); S.right++; haptic(10); }
+      else { G.errs++; G.combo = 0; haptic([30, 40, 30]); }
+      // trego të saktën
+      if (q.opts) $$(".qz-opt", listPane).forEach((b) => { b.disabled = true; if (+b.dataset.k === q.ans) b.classList.add("right"); });
+      if (q.type === "odd") { const b = $(`.qz-w[data-k="${q.odd}"]`, listPane); if (b && !b.classList.contains("fixed")) { b.classList.add("reveal"); b.textContent = q.orig; } }
+      if (q.type === "order" && !ok) { $("#bqBuilt").innerHTML = esc(V[q.i][0]); $$(".qz-chunk", listPane).forEach((b) => (b.disabled = true)); }
+      if (q.type === "gap") { const g = $(".bq-gap", listPane); if (g) { g.textContent = q.word; g.classList.add(ok ? "ok" : "no"); } }
+      $$(".qz-tool", listPane).forEach((b) => (b.disabled = true));
+      G.n++;
+      const last = G.errs >= G.C.errs || G.n >= G.C.nq;
+      $("#bqAfter").innerHTML = `<div class="qz-after bq-after"><p class="bq-src">${ok ? (skipped ? "⏭" : "✓") : "✕ " + (why || "")} <span>${esc(V[q.i][0].length > 0 ? refOf(q.i) : "")}</span></p><button class="btn primary" id="bqNx">${last ? "Përfundo" : "Tjetra ›"}</button></div>`;
+      $("#bqNx").onclick = next;
+      $(".bq-hud .bq-err", listPane).innerHTML = `${"✕".repeat(G.errs)}<i>${"○".repeat(Math.max(0, G.C.errs - G.errs))}</i>`;
+      $(".bq-hud .bq-combo", listPane).textContent = G.combo > 1 ? `🔥×${G.combo}` : "";
+    }
+    function finish(won) {
+      stopAll(); S.games++;
+      const L = G.L, C = G.C;
+      let html;
+      if (won) {
+        const stars = G.errs === 0 ? 3 : G.errs === 1 ? 2 : 1, prev = S.stars[L] || 0;
+        const gain = Math.max(0, stars - prev) * 5 + (C.boss && !prev ? 25 : 0) + 2;
+        S.stars[L] = Math.max(prev, stars); S.tal += gain;
+        const first = L === S.lvl; if (first && S.lvl < MAXL) S.lvl++;
+        let bonus = "";
+        if (C.boss && !prev) { const g = ["h", "s", "t"][rnd(3)]; S.inv[g]++; bonus = `<p class="bq-bonus">👑 Shpërblimi i sfidës: ${g === "h" ? "💡 Ndihmë" : g === "s" ? "⏭ Kalim" : "⏳ Kohë"}</p>`; }
+        const newWorld = first && (L % 50 === 0);
+        save();
+        html = `<section class="bq-res win glass"><div class="bq-res-st">${[0, 1, 2].map((k) => `<span class="${k < stars ? "on" : ""}" style="--k:${k}">★</span>`).join("")}</div>
+          <h2>${L >= MAXL ? "Udhëtimi u plotësua! Lavdi Perëndisë!" : newWorld ? `Bota e re: ${WORLDS[Math.min(19, L / 50)]}` : "Bravo!"}</h2>
+          <p>${G.ok}/${C.nq} të sakta · kombinimi ${G.best} · 🪙 +${gain}</p>${bonus}
+          <div class="row"><button class="btn" id="bqMap">${icon("back")}<span>Harta</span></button>${L < MAXL ? `<button class="btn primary" id="bqNext2">Niveli ${L + 1} ›</button>` : ""}</div></section>`;
+      } else {
+        if (S.lives >= 3) S.lifeAt = Date.now();
+        S.lives = Math.max(0, S.lives - 1); save();
+        html = `<section class="bq-res lose glass"><div class="bq-res-h">💔</div><h2>Niveli ${L} nuk u kalua</h2>
+          <p>Humbe një jetë. Të mbeten ${S.lives} ❤${S.lives < 3 ? ` · +1 pas ${hms(lifeIn())}` : ""}</p>
+          <p class="bq-res-v">«${esc(V[G.q.i][0])}»<small>${esc(refOf(G.q.i))}</small></p>
+          <div class="row"><button class="btn" id="bqMap">${icon("back")}<span>Harta</span></button>${S.lives ? `<button class="btn primary" id="bqAgain">Provo përsëri</button>` : `<button class="btn primary" id="bqAm2">🙏 Vargu i ditës</button>`}</div></section>`;
+      }
+      listPane.innerHTML = `<header class="page-head"><button class="back-btn" id="bqQuit" aria-label="Kthehu">${icon("back")}</button><h1>Niveli ${L}</h1></header>` + html;
+      enter(listPane);
+      if (won) { const r = $(".bq-res-st", listPane).getBoundingClientRect(); setTimeout(() => goldBurst(r.left + r.width / 2, r.top + 20), 300); Sfx.bells(G.errs ? 4 : 7, 0.6); }
+      $("#bqQuit").onclick = home; $("#bqMap").onclick = home;
+      $("#bqNext2")?.addEventListener("click", () => { world = Math.min(19, Math.floor(L / 50)); preview(L + 1); home(); preview(L + 1); });
+      $("#bqAgain")?.addEventListener("click", () => play(L));
+      $("#bqAm2")?.addEventListener("click", () => (S.amen === today ? (toast("Vargun e sotëm e ke lexuar. Prit jetën që kthehet."), home()) : amen()));
+    }
+    home();
+    mainPane.innerHTML = emptyMain();
+    setMode("list");
+  }
+
+  // ---------- Për fëmijët: Superlibri (episodet zyrtare në shqip, CBN · superbookkids.com) ----------
+  // [sezoni, [[slug, titulli, emoji, numri i episodit, id e luajtësit në faqen shqip], …]] — vetëm episodet e publikuara në shqip.
+  // Sezoni 1–2: faqja shqip e CBN (sq.superbook.cbn.com, kërkon llogari falas). Sezoni 3–4: vetëm superbookkids.com.
+  const SUPERBOOK = [[1, [["ne-fillim", "Në fillim", "🌍", 101, "5768135065001"], ["prova", "Prova!", "⛰", 102, "5768124419001"], ["jakobi-dhe-esau", "Jakobi dhe Esau", "🍲", 103, "5768130784001"], ["lere-popullin-tim-te-shkoje", "Lëre popullin tim të shkojë!", "🌊", 104, "5768130785001"], ["dhjete-urdherimet", "Dhjetë urdhërimet", "📜", 105, "5768130157001"], ["aventure-me-gjigant", "Aventurë me Gjigant", "🪨", 106, "5768130158001"], ["vrumbullima-e-luanit", "Vrumbullima e Luanit!", "🦁", 107, "5768124420001"], ["krishtlindja-e-pare", "Krishtlindja e parë", "⭐", 108, "5768129460001"], ["mrekullite-e-jezusit", "Mrekullitë e Jezusit", "✨", 109, "5768129961001"], ["darka-e-fundit", "Darka e fundit", "🍞", 110, "5768130786001"], ["ai-eshte-ngritur", "Ai është ngritur!", "✝", 111, "5768133075001"], ["rruga-damask", "Rruga për Damask", "💡", 112, "5768135066001"], ["zbulesa-beteja-e-fundit", "Zbulesa: Beteja e fundit!", "🌟", 113, "5768129962001"]]], [2, [["jona", "Jona", "🐋", 201, "6205010280001"], ["jozefi-dhe-endrra-e-faraonit", "Jozefi dhe ëndrra e Faraonit", "🌾", 202, "6205010762001"], ["sprova-e-zjarrit", "Sprova e zjarrit", "🔥", 203, "6205006790001"], ["rahabi-dhe-muret-e-jerikos", "Rahabi dhe muret e Jerikos", "🧱", 204, "6205008354001"], ["esteri-nje-kohe-te-tille", "Esteri: Për një kohë të tillë", "👸", 205, "6205008353001"], ["gjon-pagezori", "Gjon Pagëzori", "💧", 206, "6205006473001"], ["pali-dhe-mbytja-e-anijes", "Pali dhe mbytja e anijes", "⛵", 207, "6205010475001"], ["jobi", "Jobi", "🙏", 208, "6205010055001"], ["noeu-dhe-arka", "Noeu dhe arka", "🌈", 209, "6205006576001"], ["gedeoni-nje-hero-i-pazakonte", "Gedeoni, një hero i pazakontë", "🏺", 210, "6205008355001"], ["mohimi-i-pjetrit", "Mohimi i Pjetrit", "🐓", 211, "6205005632001"], ["djali-plangprishes", "Djali plangprishës", "🏡", 212, "6205010476001"], ["elia-dhe-profetet-e-baalit", "Elia dhe profetët e Baalit", "🔥", 213, "6205008356001"]]], [3, [["kulla-e-babelit-dhe-dita-e-pesedhjete-pentekosti", "Kulla e Babelit dhe Dita e Pesëdhjetë (Pentekosti)", "🗼", 302, ""], ["lindja-e-gjon-pagezuesit", "Lindja e Gjon Pagëzuesit", "👶", 303, ""], ["isak-dhe-rebeka", "Isak dhe Rebeka", "💧", 304, ""], ["samuel-dhe-thirrje-e-zotit", "Samueli dhe thirrja e Zotit", "🕯", 306, ""], ["david-dhe-saul", "David dhe Saul", "🎵", 307, ""], ["nehemia", "Nehemia", "🧱", 308, ""], ["elisha-dhe-sirian", "Elisha dhe sirianët", "🐎", 309, ""], ["lazari", "Lazari", "🌅", 310, ""], ["mbreti-solomon", "Mbreti Solomon", "👑", 311, ""], ["endrra-e-nebukadnezarit", "Ëndrra e Nebukadnezarit", "🗿", 312, ""], ["samaritani-i-mire", "Samaritani i mirë", "🫶", 313, ""]]], [4, [["jezusi-ushqen-te-uriturit", "Jezusi ushqen të uriturit", "🐟", 401, ""], ["pjetri-dhe-korneliu", "Pjetri dhe Korneliu", "🕊", 402, ""], ["pali-dhe-sila", "Pali dhe Sila", "🎶", 403, ""], ["tempulli-i-solominit", "Tempulli i Solomonit", "🏛", 404, ""], ["arratisja-e-pjetrit", "Arratisja e Pjetrit", "⛓", 405, ""], ["jezusi-sheron-te-verberin", "Jezusi shëron të verbërin", "👁", 406, ""], ["jozua-dhe-kalebi", "Jozua dhe Kalebi", "🍇", 407, ""], ["elia-dhe-veja", "Elia dhe veja", "🫓", 408, ""], ["me-meso-te-lutem", "Më mëso të lutem", "🙏", 409, ""], ["jeremia-alb", "Jeremia", "🏺", 410, ""], ["jezusi-ne-shkretetire", "Jezusi në shkretëtirë", "🏜", 411, ""], ["pali-dhe-barnaba", "Pali dhe Barnaba", "🚶", 412, ""]]]];
+  const SB_SEASON = { 1: "#c0392b", 2: "#2e86c1", 3: "#7d3c98", 4: "#1e8449" };
+  function viewKids() {
+    const seen = store.get("sb.seen", {});
+    const all = SUPERBOOK.reduce((n, g) => n + g[1].length, 0), nSeen = Object.keys(seen).filter((k) => SUPERBOOK.some((g) => g[1].some((e) => e[0] === k))).length;
+    const tab = Math.max(0, Math.min(SUPERBOOK.length, +store.get("sb.tab", 1) || 0));
+    const open = (slug, title) => {
+      const ep = SUPERBOOK.flatMap((g) => g[1]).find((e) => e[0] === slug);
+      const url = ep && ep[4] ? "https://sq.superbook.cbn.com/episode_player?v=" + ep[4] : "https://www.superbookkids.com/sq/video/episode/" + slug;
+      seen[slug] = Date.now(); store.set("sb.seen", seen);
+      if (android && android.openVideo) android.openVideo(url, title);
+      else if (android && android.openExternal) android.openExternal(url);
+      else window.open(url, "_blank", "noopener");
+    };
+    const list = tab ? SUPERBOOK.filter((g) => g[0] === tab) : SUPERBOOK;
+    listPane.innerHTML = `
+      <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Superlibri</h1></header>
+      <section class="sb-hero glass"><span class="sb-book">📖</span><div><b>Histori nga Bibla për fëmijë</b><small>${all} episode në shqip · ${SUPERBOOK.length} sezone${nSeen ? ` · parë ${nSeen}/${all}` : ""}</small>
+        <div class="bq-wprog"><i style="width:${(nSeen / all * 100).toFixed(1)}%"></i></div></div></section>
+      <div class="sb-tabs" role="tablist">${SUPERBOOK.map(([k]) => `<button role="tab" data-st="${k}" aria-selected="${tab === k}" style="--sc:${SB_SEASON[k]}">Sezoni ${k}</button>`).join("")}<button role="tab" data-st="0" aria-selected="${!tab}">Të gjitha</button></div>
+      ${list.map(([k, eps]) => `<h2 class="hub-h sb-sh" style="--sc:${SB_SEASON[k]}">Sezoni ${k} <small>${eps.length} episode · ${eps[0][3]}–${eps[eps.length - 1][3]}${k > 2 ? " · vetëm në superbookkids.com" : ""}</small></h2>
+        ${k > 2 ? `<p class="sb-warn">Ky sezon është dubluar në shqip, por gjendet vetëm në faqen e re superbookkids.com. Nga Shqipëria, faqja zakonisht të çon te faqja shqip e Superlibrit, ku ky sezon ende nuk është.</p>` : ""}
+        <div class="sb-grid">${eps.map(([slug, t, e, n]) => `<button class="sb-ep${seen[slug] ? " seen" : ""}" data-sb="${slug}" data-t="${esc(t)}" style="--h:${(n * 47) % 360}"><span class="sb-n">${n}</span><span class="sb-e">${e}</span><b>${esc(t)}</b><i>${seen[slug] ? "✓ Parë" : "▶ Shiko"}</i></button>`).join("")}</div>`).join("")}
+      <p class="sb-note">Episodet janë të serisë «Superbook» (Superlibri) të CBN-së dhe luhen nga faqja e tyre zyrtare${android && android.openVideo ? ", brenda aplikacionit" : ""}. Për episodet e plota faqja shqip kërkon një llogari Superbook falas: hyn një herë dhe aplikacioni të mban të identifikuar. Për prindërit: shihini bashkë me fëmijët dhe lexoni pastaj ngjarjen në Shkrimin e Shenjtë.</p>`;
+    $$("[data-st]", listPane).forEach((b) => b.addEventListener("click", () => { haptic(6); store.set("sb.tab", +b.dataset.st); viewKids(); }));
+    $$("[data-sb]", listPane).forEach((b) => b.addEventListener("click", () => { haptic(10); open(b.dataset.sb, b.dataset.t); b.classList.add("seen"); $("i", b).textContent = "✓ Parë"; }));
+    enter(listPane);
+    mainPane.innerHTML = emptyMain();
+    setMode("list");
+  }
+
+  // =====================================================================
+  //  ORA BIZANTINE — koha sipas Kishës: 12 orë dite (nga lindja në perëndim të diellit)
+  //  dhe 12 orë nate, me gjatësi që ndryshon sipas stinës; shërbesa e orës.
+  // =====================================================================
+  const SunCalc = (() => {
+    const rad = Math.PI / 180, dayMs = 864e5, J1970 = 2440588, J2000 = 2451545, e = rad * 23.4397, J0 = 0.0009;
+    const toDays = (ms) => ms / dayMs - 0.5 + J1970 - J2000, fromJulian = (j) => (j + 0.5 - J1970) * dayMs;
+    const M = (d) => rad * (357.5291 + 0.98560028 * d);
+    const L = (m) => m + rad * (1.9148 * Math.sin(m) + 0.02 * Math.sin(2 * m) + 0.0003 * Math.sin(3 * m)) + rad * 102.9372 + Math.PI;
+    const dec = (l) => Math.asin(Math.sin(e) * Math.sin(l));
+    const transit = (ds, m, l) => J2000 + ds + 0.0053 * Math.sin(m) - 0.0069 * Math.sin(2 * l);
+    function times(dayMs0, lat, lng) {
+      const lw = rad * -lng, phi = rad * lat, d = toDays(dayMs0), n = Math.round(d - J0 - lw / (2 * Math.PI));
+      const ds = J0 + lw / (2 * Math.PI) + n, m = M(ds), l = L(m), dc = dec(l), Jn = transit(ds, m, l);
+      const w = Math.acos((Math.sin(-0.833 * rad) - Math.sin(phi) * Math.sin(dc)) / (Math.cos(phi) * Math.cos(dc)));
+      if (isNaN(w)) { const nn = fromJulian(Jn); return { rise: nn - 6 * 36e5, set: nn + 6 * 36e5, noon: nn }; }
+      const Js = transit(J0 + (w + lw) / (2 * Math.PI) + n, m, l);
+      return { rise: fromJulian(Jn - (Js - Jn)), set: fromJulian(Js), noon: fromJulian(Jn) };
+    }
+    // mosha e hënës në ditë (0 = hënë e re, ~14.8 = hënë e plotë)
+    const moonAge = (ms) => { const s = 29.530588853, a = ((ms - Date.UTC(2000, 0, 6, 18, 14)) / dayMs) % s; return a < 0 ? a + s : a; };
+    return { times, moonAge };
+  })();
+  const CANON_HOURS = [
+    // [fillimi, mbarimi] në shkallën 0–24 të orëve bizantine (0 = lindja e diellit, 12 = perëndimi)
+    { a: 0, b: 2, n: "Ora e Parë", d: "Fillimi i ditës: kërkojmë që Zoti të drejtojë veprat e duarve tona.", ic: "🌅" },
+    { a: 2, b: 5, n: "Ora e Tretë", d: "Kujton zbritjen e Shpirtit të Shenjtë mbi Apostujt.", ref: "Veprat e Apostujve 2:15", ic: "🕊" },
+    { a: 5, b: 8, n: "Ora e Gjashtë", d: "Kujton Kryqëzimin e Zotit, kur errësira mbuloi dheun.", ref: "Ungjilli sipas Llukait 23:44", ic: "✝" },
+    { a: 8, b: 10.5, n: "Ora e Nëntë", d: "Kujton vdekjen e Zotit mbi Kryq.", ref: "Ungjilli sipas Markut 15:34", ic: "🕯" },
+    { a: 10.5, b: 13, n: "Mbrëmësorja", d: "Falënderimi në mbarim të ditës. Me perëndimin e diellit nis dita liturgjike e re.", go: "#/sherbesa", ic: "🌇" },
+    { a: 13, b: 17, n: "Pasdarka", d: "Lutja para gjumit, që Zoti të na ruajë gjatë natës.", go: "#/pasdarka", ic: "🌙" },
+    { a: 17, b: 20, n: "Mesnata", d: "Zgjimi në mesnatë, në pritje të Dhëndrit që vjen.", ref: "Ungjilli sipas Mattheut 25:6", ic: "✨" },
+    { a: 20, b: 24, n: "Mëngjesorja", d: "Lavdërimi para agimit, për dritën që vjen.", go: "#/sherbesa", ic: "☀️" },
+  ];
+  const DITET_J = ["e Diela", "e Hëna", "e Marta", "e Mërkura", "e Enjtja", "e Premtja", "e Shtuna"];
+  const ORDINAL = ["", "e parë", "e dytë", "e tretë", "e katërt", "e pestë", "e gjashtë", "e shtatë", "e tetë", "e nëntë", "e dhjetë", "e njëmbëdhjetë", "e dymbëdhjetë"];
+  function byzNow(now, lat, lng) {
+    const day0 = new Date(now); day0.setHours(12, 0, 0, 0);
+    const T = SunCalc.times(day0.getTime(), lat, lng), Ty = SunCalc.times(day0.getTime() - 864e5, lat, lng), Tt = SunCalc.times(day0.getTime() + 864e5, lat, lng);
+    let isDay, from, to;
+    if (now >= T.rise && now < T.set) { isDay = true; from = T.rise; to = T.set; }
+    else if (now >= T.set) { isDay = false; from = T.set; to = Tt.rise; }
+    else { isDay = false; from = Ty.set; to = T.rise; }
+    const unit = (to - from) / 12, x = (now - from) / unit;            // 0–12
+    const pos = isDay ? x : 12 + x;                                     // 0–24
+    const cur = CANON_HOURS.find((c) => pos >= c.a && pos < c.b) || CANON_HOURS[0];
+    return { T, Ty, Tt, isDay, from, to, unit, h: Math.floor(x) + 1, frac: x % 1, pos, cur };
+  }
+  function viewByzClock() {
+    let loc = store.get("ora.loc", { lat: 41.3275, lng: 19.8187, name: "Tiranë" });
+    let raf = 0, lastMin = -1;
+    const alive = () => location.hash.startsWith("#/ora");
+    const fmt = (ms) => new Date(ms).toLocaleTimeString("sq-AL", { hour: "2-digit", minute: "2-digit" });
+    const R = 118, C = 150;
+    const ang = (ms) => { const d = new Date(ms), h = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600; return (h / 24) * 2 * Math.PI + Math.PI / 2; };
+    const pt = (a, r) => [C + Math.cos(a) * r, C + Math.sin(a) * r];
+    const arc = (a1, a2, r1, r2) => {
+      while (a2 < a1) a2 += 2 * Math.PI;
+      const big = a2 - a1 > Math.PI ? 1 : 0, [x1, y1] = pt(a1, r2), [x2, y2] = pt(a2, r2), [x3, y3] = pt(a2, r1), [x4, y4] = pt(a1, r1);
+      return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${r2} ${r2} 0 ${big} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L${x3.toFixed(2)} ${y3.toFixed(2)} A${r1} ${r1} 0 ${big} 0 ${x4.toFixed(2)} ${y4.toFixed(2)}Z`;
+    };
+    function dial(B) {
+      const segs = [];
+      for (let k = 0; k < 12; k++) {
+        const ds = B.T.rise + (B.T.set - B.T.rise) / 12 * k, de = ds + (B.T.set - B.T.rise) / 12;
+        segs.push(`<path class="oz-seg day${k % 2 ? " alt" : ""}" d="${arc(ang(ds), ang(de), R - 26, R)}"/>`);
+        const [tx, ty] = pt((ang(ds) + ang(de)) / 2 + (ang(de) < ang(ds) ? Math.PI : 0), R - 13);
+        segs.push(`<text class="oz-num" x="${tx.toFixed(1)}" y="${(ty + 4).toFixed(1)}">${k + 1}</text>`);
+      }
+      const nS = B.T.set, nE = B.Tt.rise;
+      for (let k = 0; k < 12; k++) {
+        const ds = nS + (nE - nS) / 12 * k, de = ds + (nE - nS) / 12;
+        segs.push(`<path class="oz-seg night${k % 2 ? " alt" : ""}" d="${arc(ang(ds), ang(de), R - 26, R)}"/>`);
+        let a1 = ang(ds), a2 = ang(de); if (a2 < a1) a2 += 2 * Math.PI;
+        const [tx, ty] = pt((a1 + a2) / 2, R - 13);
+        segs.push(`<text class="oz-num n" x="${tx.toFixed(1)}" y="${(ty + 4).toFixed(1)}">${k + 1}</text>`);
+      }
+      // orët e shërbesave si harqe të brendshme
+      const posMs = (p) => p < 12 ? B.T.rise + (B.T.set - B.T.rise) / 12 * p : nS + (nE - nS) / 12 * (p - 12);
+      const canon = CANON_HOURS.map((c, i) => `<path class="oz-can${c === B.cur ? " on" : ""}" style="--i:${i}" d="${arc(ang(posMs(c.a)), ang(posMs(c.b)), R - 40, R - 31)}"/>`).join("");
+      const ticks = Array.from({ length: 24 }, (_, h) => { const a = (h / 24) * 2 * Math.PI + Math.PI / 2, [x1, y1] = pt(a, R + 3), [x2, y2] = pt(a, R + (h % 6 ? 7 : 12)); return `<line class="oz-tick" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>` + (h % 6 ? "" : `<text class="oz-civ" x="${pt(a, R + 22)[0].toFixed(1)}" y="${(pt(a, R + 22)[1] + 4).toFixed(1)}">${String(h).padStart(2, "0")}</text>`); }).join("");
+      const age = SunCalc.moonAge(Date.now()), ph = age / 29.53, lit = (1 - Math.cos(ph * 2 * Math.PI)) / 2;
+      return `<svg class="oz-dial" viewBox="0 0 300 300" role="img" aria-label="Ora bizantine">
+        <defs><radialGradient id="ozSky" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="var(--oz-c1)"/><stop offset="1" stop-color="var(--oz-c2)"/></radialGradient>
+          <radialGradient id="ozSun" cx=".4" cy=".4" r=".6"><stop offset="0" stop-color="#fff7d0"/><stop offset=".5" stop-color="#ffcf4a"/><stop offset="1" stop-color="#e08a12"/></radialGradient>
+          <filter id="ozGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+        <circle cx="${C}" cy="${C}" r="${R + 30}" fill="url(#ozSky)"/>
+        ${ticks}${segs.join("")}${canon}
+        <g class="oz-moon" transform="translate(${C} ${C + 46})"><circle r="11" fill="#2b3550"/><path d="${(() => { const r = 11, k = Math.cos(ph * 2 * Math.PI) * r, sweep = ph < 0.5 ? 1 : 0; return `M0 ${-r} A${r} ${r} 0 0 ${sweep} 0 ${r} A${Math.abs(k).toFixed(2)} ${r} 0 0 ${(k > 0) === (ph < 0.5) ? 0 : 1} 0 ${-r}Z`; })()}" fill="#f4ecd0"/></g>
+        <text class="oz-moon-t" x="${C}" y="${C + 72}">Hëna ${Math.round(lit * 100)}%</text>
+        <g id="ozHand"><line x1="${C}" y1="${C}" x2="${C}" y2="${C - R + 4}" class="oz-hand"/><circle id="ozSunDot" cx="${C}" cy="${C - R + 13}" r="10" fill="url(#ozSun)"/><circle cx="${C}" cy="${C - R + 13}" r="14" fill="#ffcf4a" opacity=".35" filter="url(#ozGlow)"/></g>
+        <circle cx="${C}" cy="${C}" r="5" class="oz-pin"/>
+      </svg>`;
+    }
+    function render() {
+      const now = Date.now(), B = byzNow(now, loc.lat, loc.lng);
+      const nd = new Date(now), litDay = !B.isDay && now >= B.T.set ? (nd.getDay() + 1) % 7 : nd.getDay();
+      const sky = B.isDay ? (B.pos < 1.2 || B.pos > 10.8 ? ["#f6c27a", "#b3542e"] : ["#9fd0f0", "#3c7fb8"]) : (B.pos < 13.2 || B.pos > 22.8 ? ["#6b4a7a", "#22183a"] : ["#1b2848", "#070b18"]);
+      const idx = CANON_HOURS.indexOf(B.cur), next = CANON_HOURS[(idx + 1) % CANON_HOURS.length];
+      const mins = Math.floor(B.frac * 60);
+      listPane.innerHTML = `
+        <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Ora Bizantine</h1></header>
+        <section class="oz glass" style="--oz-c1:${sky[0]};--oz-c2:${sky[1]}">
+          <div class="oz-top"><small>${esc(loc.name)} · ${fmt(now)}</small><button class="oz-loc" id="ozLoc">📍 Vendi im</button></div>
+          ${dial(B)}
+          <div class="oz-big"><b id="ozH">Ora ${ORDINAL[B.h]} e ${B.isDay ? "ditës" : "natës"}</b><small id="ozM">Ora bizantine ${B.h}:${String(mins).padStart(2, "0")} · një orë ${B.isDay ? "dite" : "nate"} sot zgjat ${Math.round(B.unit / 6e4)} minuta</small></div>
+        </section>
+        <section class="oz-now glass">
+          <span class="oz-ic">${B.cur.ic}</span>
+          <div><small>Tani, afërsisht</small><b>${B.cur.n}</b><p>${esc(B.cur.d)}${B.cur.ref ? ` <em>${esc(B.cur.ref)}</em>` : ""}</p>
+            ${B.cur.go ? `<a class="btn primary" href="${B.cur.go}">${icon("book")}<span>Hap shërbesën</span></a>` : `<a class="btn" href="#/biblioteka/lutjet">${icon("book")}<span>Lutjet</span></a>`}</div>
+        </section>
+        <div class="oz-grid">
+          <div class="oz-cell glass"><small>Lindja e diellit</small><b>${fmt(B.T.rise)}</b></div>
+          <div class="oz-cell glass"><small>Perëndimi</small><b>${fmt(B.T.set)}</b></div>
+          <div class="oz-cell glass"><small>Dita</small><b>${Math.floor((B.T.set - B.T.rise) / 36e5)}h ${Math.round((B.T.set - B.T.rise) / 6e4 % 60)}m</b></div>
+          <div class="oz-cell glass"><small>Dita liturgjike</small><b>${DITET_J[litDay]}</b></div>
+        </div>
+        <p class="oz-next">Më pas: <b>${next.ic} ${next.n}</b></p>
+        <details class="oz-help glass"><summary>Si e numëron Kisha kohën?</summary>
+          <p>Në kohën e Shkrimit dita ndahej në 12 orë nga lindja deri në perëndimin e diellit, dhe nata në 12 orë të tjera. Prandaj në verë një orë e ditës është e gjatë, kurse në dimër e shkurtër. Ora e tretë, e gjashtë dhe e nëntë e Ungjijve janë këto orë.</p>
+          <p>Dita liturgjike nis me Mbrëmësoren, në perëndim të diellit: «u bë mbrëmje dhe u bë mëngjes». Orët e shërbesave në rreth janë afërsisht; në kishë ato mbahen sipas Tipikonit.</p></details>`;
+      $("#ozLoc").onclick = () => {
+        if (!navigator.geolocation) return toast("Vendndodhja nuk është e mundur");
+        toast("Po gjej vendin…");
+        navigator.geolocation.getCurrentPosition((p) => { loc = { lat: +p.coords.latitude.toFixed(3), lng: +p.coords.longitude.toFixed(3), name: "Vendi im" }; store.set("ora.loc", loc); haptic(10); render(); }, () => toast("Nuk u gjet vendndodhja. Mbetet Tirana."), { timeout: 9000, maximumAge: 36e5 });
+      };
+      enter(listPane);
+      tick();
+    }
+    function tick() {
+      clearTimeout(raf);
+      const step = () => {
+        if (!alive() || !$("#ozHand")) return;
+        const now = Date.now(), a = ang(now) * 180 / Math.PI - 270;
+        $("#ozHand").setAttribute("transform", `rotate(${a.toFixed(3)} ${C} ${C})`);
+        const m = Math.floor(now / 6e4);
+        if (m !== lastMin) { if (lastMin !== -1) { lastMin = m; return render(); } lastMin = m; }
+        raf = setTimeout(() => requestAnimationFrame(step), 1000);
+      };
+      step();
+    }
+    render();
+    mainPane.innerHTML = emptyMain();
+    setMode("list");
+  }
+
+  // =====================================================================
+  //  KAMBANORJA — kambana të vërteta me litarë: tërhiq litarin me gisht;
+  //  tingulli ndërtohet nga pjesët e tingullit të kambanës (hum, prime, tierce, quint, nominal)
+  // =====================================================================
+  const BellAudio = (() => {
+    let ctx = null, out = null;
+    function init() {
+      if (ctx) { if (ctx.state === "suspended") ctx.resume(); return ctx; }
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+      ctx = new AC();
+      const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
+      // jehona e kambanores: përgjigje impulsi e gjeneruar
+      const len = ctx.sampleRate * 3.2, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+      const conv = ctx.createConvolver(); conv.buffer = ir;
+      const wet = ctx.createGain(); wet.gain.value = 0.32; const dry = ctx.createGain(); dry.gain.value = 0.8;
+      out = ctx.createGain(); out.gain.value = 0.9;
+      out.connect(dry).connect(comp); out.connect(conv).connect(wet).connect(comp); comp.connect(ctx.destination);
+      return ctx;
+    }
+    // [raporti, amplituda, kohëzgjatja relative]
+    const PARTIALS = [[0.5, 0.9, 1], [1, 0.75, 0.62], [1.2, 0.5, 0.48], [1.5, 0.28, 0.4], [2, 0.42, 0.34], [2.5, 0.14, 0.22], [2.67, 0.13, 0.2], [3.01, 0.1, 0.16], [4.17, 0.06, 0.1], [5.43, 0.03, 0.07]];
+    function strike(f, vol = 1, when = 0) {
+      const c = init(); if (!c) return;
+      const t0 = c.currentTime + 0.01 + when, dur = Math.max(3.2, Math.min(11, 1500 / f));
+      PARTIALS.forEach(([r, a, dr], i) => {
+        const fr = f * r * (1 + (Math.random() - 0.5) * 0.002);
+        [0, i < 3 ? 0.9 + Math.random() * 0.8 : 0].forEach((beat, k) => {
+          if (k && !beat) return;
+          const o = c.createOscillator(), g = c.createGain();
+          o.type = "sine"; o.frequency.value = fr + beat;
+          const amp = a * vol * (k ? 0.45 : 1) * 0.16;
+          g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(amp, t0 + 0.004 + i * 0.0015);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur * dr);
+          o.connect(g).connect(out); o.start(t0); o.stop(t0 + dur * dr + 0.05);
+        });
+      });
+      // goditja e gjuhës së kambanës
+      const nb = c.createBuffer(1, c.sampleRate * 0.05, c.sampleRate), nd = nb.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nd.length, 4);
+      const ns = c.createBufferSource(), bp = c.createBiquadFilter(), ng = c.createGain();
+      ns.buffer = nb; bp.type = "bandpass"; bp.frequency.value = f * 3.2; bp.Q.value = 1.2; ng.gain.value = 0.35 * vol;
+      ns.connect(bp).connect(ng).connect(out); ns.start(t0);
+    }
+    return { strike, init };
+  })();
+  const BELLS = [
+    { n: "E madhja", f: 98, w: 104, x: 20 },
+    { n: "E mesmja", f: 147, w: 78, x: 41 },
+    { n: "E treta", f: 196, w: 62, x: 59 },
+    { n: "Zilja", f: 294, w: 46, x: 74 },
+    { n: "E vogla", f: 392, w: 36, x: 86 },
+  ];
+  function viewBells() {
+    const alive = () => location.hash.startsWith("#/kambanorja");
+    let playT = [], rec = null;
+    const saved = store.get("kambana.rec", null);
+    const bellPath = (w) => { const h = w * 0.95, t = w * 0.28; return `M${-t} ${-h * 0.92} Q0 ${-h * 1.04} ${t} ${-h * 0.92} C${w * 0.36} ${-h * 0.6} ${w * 0.38} ${-h * 0.2} ${w * 0.5} ${-h * 0.03} Q${w * 0.56} 0 ${w * 0.5} ${h * 0.04} L${-w * 0.5} ${h * 0.04} Q${-w * 0.56} 0 ${-w * 0.5} ${-h * 0.03} C${-w * 0.38} ${-h * 0.2} ${-w * 0.36} ${-h * 0.6} ${-t} ${-h * 0.92}Z`; };
+    listPane.innerHTML = `
+      <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Kambanorja</h1></header>
+      <section class="kb-stage" id="kbStage">
+        <svg class="kb-tower" viewBox="0 0 100 70" preserveAspectRatio="none" aria-hidden="true">
+          <defs><linearGradient id="kbStone" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e9dcc4"/><stop offset="1" stop-color="#b9a585"/></linearGradient></defs>
+          <path d="M0 0 H100 V70 H92 V22 Q92 8 76 8 H24 Q8 8 8 22 V70 H0Z" fill="url(#kbStone)"/>
+          <path d="M8 22 Q8 8 24 8 H76 Q92 8 92 22" fill="none" stroke="#8a7456" stroke-width=".8"/>
+          <rect x="4" y="12" width="92" height="2.2" fill="#6b4a2a"/>
+        </svg>
+        <div class="kb-cross">☦</div>
+        ${BELLS.map((b, i) => `<div class="kb-bell" data-i="${i}" style="left:${b.x}%;--w:${b.w}px">
+          <svg viewBox="${-b.w * 0.6} ${-b.w} ${b.w * 1.2} ${b.w * 1.15}" width="${b.w * 1.2}" height="${b.w * 1.15}" class="kb-svg">
+            <defs><linearGradient id="kbBr${i}" x1="0" x2="1"><stop offset="0" stop-color="#4a2e10"/><stop offset=".3" stop-color="#c8913a"/><stop offset=".45" stop-color="#ffe2a0"/><stop offset=".62" stop-color="#b07a2a"/><stop offset="1" stop-color="#3a220a"/></linearGradient></defs>
+            <path d="${bellPath(b.w)}" fill="url(#kbBr${i})" stroke="#3a220a" stroke-width="1"/>
+            <path d="M${-b.w * 0.42} ${-b.w * 0.12} H${b.w * 0.42}" stroke="#7a5420" stroke-width="${Math.max(1, b.w / 40)}"/>
+            <path d="M${-b.w * 0.3} ${-b.w * 0.55} H${b.w * 0.3}" stroke="#ffe2a0" stroke-width=".8" opacity=".6"/>
+            <g class="kb-clap"><line x1="0" y1="${-b.w * 0.85}" x2="0" y2="${-b.w * 0.05}" stroke="#2a1a0a" stroke-width="${Math.max(1.5, b.w / 30)}"/><circle cx="0" cy="${-b.w * 0.05}" r="${b.w / 11}" fill="#2a1a0a"/></g>
+          </svg>
+          <i class="kb-wave"></i>
+          <div class="kb-rope"><span></span></div>
+          <small>${b.n}</small>
+        </div>`).join("")}
+        <p class="kb-hint">Tërhiq litarët poshtë, ose prek kambanat</p>
+      </section>
+      <div class="kb-pat">
+        <button class="kb-p glass" data-p="call"><span>🔔</span><b>Thirrja</b><small>Kambana e madhe, ngadalë</small></button>
+        <button class="kb-p glass" data-p="joy"><span>🎉</span><b>E gëzueshme</b><small>Të gjitha bashkë, me ritëm</small></button>
+        <button class="kb-p glass" data-p="slow"><span>🕯</span><b>E ngadaltë</b><small>Nga e vogla te e madhja</small></button>
+        <button class="kb-p glass" data-p="stop"><span>⏹</span><b>Ndalo</b><small>Hesht kambanat</small></button>
+      </div>
+      <div class="kb-rec glass"><button class="btn" id="kbRec">● Regjistro ritmin tënd</button><button class="btn primary" id="kbPlay"${saved ? "" : " disabled"}>▶ Luaje</button><small id="kbRecT">${saved ? `${saved.length} goditje të ruajtura` : "Deri në 40 sekonda"}</small></div>`;
+    enter(listPane);
+    mainPane.innerHTML = emptyMain();
+    setMode("list");
+    const els = $$(".kb-bell", listPane);
+    // vendos kambanat sipas gjerësisë së ekranit, pa u mbivendosur
+    const layout = () => {
+      const st = $("#kbStage"); if (!st) return removeEventListener("resize", layout);
+      const W = st.clientWidth, sc = Math.min(1.3, (W * 0.9) / BELLS.reduce((a, b) => a + b.w * 1.2, 0));
+      const tot = BELLS.reduce((a, b) => a + b.w * 1.2 * sc, 0), gap = (W - tot) / (BELLS.length + 1);
+      let x = gap;
+      els.forEach((el, i) => { const w = BELLS[i].w * sc; el.style.setProperty("--w", w.toFixed(1) + "px"); el.style.left = (x + w * 0.6).toFixed(1) + "px"; x += w * 1.2 + gap; });
+    };
+    layout(); addEventListener("resize", layout, { passive: true });
+    function ring(i, vol = 1, fromUser) {
+      const b = BELLS[i], el = els[i]; if (!el || !alive()) return;
+      BellAudio.strike(b.f, vol);
+      el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
+      el.style.setProperty("--amp", (4 + vol * 8).toFixed(1) + "deg");
+      if (fromUser) { haptic(i < 2 ? 18 : 8); if (rec) rec.push([i, +(vol.toFixed(2)), Date.now() - rec.t0]); }
+    }
+    // litarët: tërhiqe poshtë; sa më shpejt, aq më fort bie kambana
+    els.forEach((el, i) => {
+      const rope = $(".kb-rope", el); let d = null;
+      rope.addEventListener("pointerdown", (e) => { BellAudio.init(); try { rope.setPointerCapture(e.pointerId); } catch (er) {} d = { y0: e.clientY, t0: performance.now(), dy: 0, struck: false }; rope.classList.add("pull"); });
+      rope.addEventListener("pointermove", (e) => {
+        if (!d) return; d.dy = Math.max(0, Math.min(70, e.clientY - d.y0)); rope.style.setProperty("--pull", d.dy + "px");
+        if (!d.struck && d.dy > 34) { d.struck = true; const v = Math.min(1, Math.max(0.35, d.dy / Math.max(40, performance.now() - d.t0) * 2.2)); ring(i, v, true); }
+      });
+      const up = () => { if (!d) return; if (!d.struck) ring(i, 0.5, true); d = null; rope.classList.remove("pull"); rope.style.setProperty("--pull", "0px"); };
+      rope.addEventListener("pointerup", up); rope.addEventListener("pointercancel", up);
+      $(".kb-svg", el).addEventListener("pointerdown", () => { BellAudio.init(); ring(i, 0.8, true); });
+    });
+    const stopAll = () => { playT.forEach(clearTimeout); playT = []; $$(".kb-p", listPane).forEach((b) => b.classList.remove("on")); };
+    const at = (ms, fn) => playT.push(setTimeout(() => { if (alive()) fn(); else stopAll(); }, ms));
+    const PAT = {
+      call: () => { for (let k = 0; k < 12; k++) at(k * 2400, () => ring(0, 1)); return 12 * 2400; },
+      joy: () => { const seq = [[4, 3], [3, 2], [4, 3], [2, 4], [4, 3], [3, 2], [4, 1], [2, 4]]; let t = 0; for (let r = 0; r < 4; r++) { seq.forEach(([a, b]) => { at(t, () => ring(a, 0.8)); at(t + 190, () => ring(b, 0.75)); t += 420; }); at(t - 420 * 8, () => ring(0, 1)); at(t - 420 * 4, () => ring(1, 0.9)); } return t; },
+      slow: () => { let t = 0; for (let r = 0; r < 3; r++) { for (let i = BELLS.length - 1; i >= 0; i--) { at(t, () => ring(i, 0.85)); t += 2600; } at(t, () => BELLS.forEach((_, i) => ring(i, 0.7))); t += 5200; } return t; },
+    };
+    $$(".kb-p", listPane).forEach((btn) => btn.addEventListener("click", () => {
+      BellAudio.init(); stopAll(); haptic(10);
+      if (btn.dataset.p === "stop") return;
+      btn.classList.add("on"); const total = PAT[btn.dataset.p](); at(total + 200, () => btn.classList.remove("on"));
+    }));
+    $("#kbRec").onclick = () => {
+      BellAudio.init();
+      if (rec) { const r = rec; rec = null; $("#kbRec").textContent = "● Regjistro ritmin tënd"; $("#kbRec").classList.remove("rec"); if (r.length) { store.set("kambana.rec", r.slice()); $("#kbPlay").disabled = false; $("#kbRecT").textContent = `${r.length} goditje të ruajtura`; toast("Ritmi u ruajt"); } return; }
+      rec = []; rec.t0 = Date.now(); $("#kbRec").textContent = "■ Mbaro regjistrimin"; $("#kbRec").classList.add("rec"); $("#kbRecT").textContent = "Po regjistrohet… bjeri kambanave";
+      at(40000, () => rec && $("#kbRec").click());
+    };
+    $("#kbPlay").onclick = () => { const r = store.get("kambana.rec", null); if (!r) return; BellAudio.init(); stopAll(); r.forEach(([i, v, t]) => at(t, () => ring(i, v))); haptic(8); };
+  }
+
+  // =====================================================================
+  //  KANDILI I SHTËPISË — digjet në kohë reale 24 orë përpara ikonës; mbushet me vaj;
+  //  lëkundet kur anon telefonin; dritë e ngrohtë mbi ikonë; “Kujto, o Zot” për emrat.
+  // =====================================================================
+  const KANDIL_ICONS = [
+    ["img/krishti/02.webp", "Krishti Pantokrator, Sinai"], ["img/krishti/04.webp", "Krishti Pantokrator, Dafni"], ["img/krishti/06.webp", "Krishti, Shën Sofia"],
+    ["img/hyjlindesja/07.webp", "Hyjlindësja Odhigjitria, Janinë"], ["img/hyjlindesja/10.webp", "Hyjlindësja Odhigjitria, Kora"], ["img/hyjlindesja/02.webp", "Hyjlindësja Odhigjitria, Nesebar"],
+  ];
+  const KANDIL_H = 24 * 36e5;
+  const kandilState = () => {
+    const k = Object.assign({ lit: 0, icon: 0, days: {}, names: [] }, store.get("kandil", {}));
+    const oil = k.lit ? Math.max(0, 1 - (Date.now() - k.lit) / KANDIL_H) : 0;
+    return { k, oil, on: oil > 0 };
+  };
+  function kandilStreak(days) {
+    let n = 0; const d = new Date();
+    for (;;) { const key = d.toISOString().slice(0, 10); if (!days[key]) break; n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  function viewKandil() {
+    const alive = () => location.hash.startsWith("#/kandili");
+    let wakeLoop = () => {};
+    let S = kandilState(), raf = 0, sway = { a: 0, w: 0, target: 0 }, wake = null, onOri = null;
+    const save = () => store.set("kandil", S.k);
+    const markDay = () => { if (S.on) { const d = new Date(), key = d.toISOString().slice(0, 10); if (!S.k.days[key]) { S.k.days[key] = 1; save(); } } };
+    markDay();
+    function hoursLeft() { const ms = S.oil * KANDIL_H, h = Math.floor(ms / 36e5), m = Math.floor(ms / 6e4) % 60; return `${h} orë ${m} min`; }
+    function render() {
+      S = kandilState(); markDay();
+      const [src, cap] = KANDIL_ICONS[S.k.icon] || KANDIL_ICONS[0];
+      const streak = kandilStreak(S.k.days);
+      listPane.innerHTML = `
+        <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Kandili</h1></header>
+        <section class="kd-stage${S.on ? " on" : ""}" id="kdStage" style="--oil:${S.oil.toFixed(3)}">
+          <div class="kd-wall"></div>
+          <figure class="kd-icon"><img src="${src}" alt="${esc(cap)}" decoding="async"><i class="kd-light"></i></figure>
+          <i class="kd-bracket" id="kdBr"></i>
+          <div class="kd-hang" id="kdHang">
+            <i class="kd-chain"></i>
+            <svg class="kd-lamp" viewBox="0 0 120 150" aria-hidden="true">
+              <defs>
+                <linearGradient id="kdGold" x1="0" x2="1"><stop offset="0" stop-color="#5a3a0e"/><stop offset=".35" stop-color="#ffe7a2"/><stop offset=".6" stop-color="#c8962e"/><stop offset="1" stop-color="#4e320b"/></linearGradient>
+                <radialGradient id="kdGlass" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#ff6a5a" stop-opacity=".95"/><stop offset=".6" stop-color="#b3121b" stop-opacity=".92"/><stop offset="1" stop-color="#4a0408" stop-opacity=".96"/></radialGradient>
+                <linearGradient id="kdOil" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffd27a" stop-opacity=".9"/><stop offset="1" stop-color="#b8741a" stop-opacity=".95"/></linearGradient>
+                <clipPath id="kdCup"><path d="M28 62 C26 96 40 118 60 120 C80 118 94 96 92 62 Z"/></clipPath>
+                <radialGradient id="kdFl" cx=".5" cy=".75" r=".6"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#fff2a8"/><stop offset=".7" stop-color="#ffb02e"/><stop offset="1" stop-color="#ff6a00" stop-opacity="0"/></radialGradient>
+              </defs>
+              <path d="M60 4 L30 58 M60 4 L90 58 M60 4 L60 56" stroke="url(#kdGold)" stroke-width="2"/>
+              <circle cx="60" cy="5" r="4" fill="none" stroke="url(#kdGold)" stroke-width="2"/>
+              <path d="M28 62 C26 96 40 118 60 120 C80 118 94 96 92 62 Z" fill="url(#kdGlass)"/>
+              <g clip-path="url(#kdCup)"><rect class="kd-oil" x="20" y="${(118 - S.oil * 46).toFixed(1)}" width="80" height="60" fill="url(#kdOil)" opacity=".55"/></g>
+              <ellipse cx="44" cy="80" rx="6" ry="16" fill="#fff" opacity=".22"/>
+              <path d="M24 60 Q60 70 96 60 L94 66 Q60 76 26 66 Z" fill="url(#kdGold)"/>
+              ${[34, 47, 60, 73, 86].map((x) => `<path d="M${x} 66 l0 6" stroke="url(#kdGold)" stroke-width="1.6"/>`).join("")}
+              <path d="M52 120 Q60 128 68 120 L64 134 Q60 138 56 134 Z" fill="url(#kdGold)"/>
+              <circle cx="60" cy="140" r="3.5" fill="url(#kdGold)"/>
+              <g class="kd-flame"><ellipse cx="60" cy="52" rx="14" ry="20" fill="#ff9a2a" opacity=".25"/><path d="M60 32 C66 42 68 50 64 58 C62 62 58 62 56 58 C52 50 54 42 60 32Z" fill="url(#kdFl)"/><path d="M60 46 C62 50 62 54 60 57 C58 54 58 50 60 46Z" fill="#fff" opacity=".9"/></g>
+              <path d="M59 58 l1 6 l1 -6" stroke="#2a1a0a" stroke-width="1.4"/>
+            </svg>
+          </div>
+          <div class="kd-glow"></div>
+          <p class="kd-cap">${esc(cap)}</p>
+        </section>
+        <section class="kd-status glass">
+          <div class="kd-oilbar"><i style="width:${(S.oil * 100).toFixed(1)}%"></i></div>
+          <p>${S.on ? `🔥 Kandili po ndriçon · vaj edhe për <b id="kdLeft">${hoursLeft()}</b>` : S.k.lit ? "Kandili u shua: i mbaroi vaji. Ndize përsëri." : "Kandili nuk është ndezur ende."}</p>
+          ${streak ? `<p class="kd-streak">✨ Ka ndriçuar <b>${streak}</b> ${streak === 1 ? "ditë" : "ditë rresht"} në shtëpinë tënde</p>` : ""}
+          <div class="kd-btns">
+            ${S.on ? `<button class="btn primary" id="kdOilBtn">🫗 Shto vaj</button>` : `<button class="btn primary" id="kdLight">🔥 Ndize kandilin</button>`}
+            <button class="btn" id="kdQuiet">🌙 Rri para ikonës</button>
+          </div>
+        </section>
+        <section class="kd-names glass">
+          <h3>Kujto, o Zot…</h3>
+          <p class="kd-nh">Emrat e të dashurve që kujton para kandilit</p>
+          <div class="kd-nlist">${S.k.names.map((n, i) => `<span>${esc(n)}<button data-rm="${i}" aria-label="Hiq">×</button></span>`).join("") || `<em>Ende asnjë emër</em>`}</div>
+          <form id="kdForm" class="kd-form"><input id="kdName" maxlength="40" placeholder="Shkruaj një emër" autocomplete="off"><button class="btn">Shto</button></form>
+        </section>
+        <section class="kd-pick"><h3 class="hub-h">Ikona</h3><div class="kd-icons">${KANDIL_ICONS.map(([s, c], i) => `<button class="kd-th${i === S.k.icon ? " on" : ""}" data-ic="${i}" aria-label="${esc(c)}"><img src="${s}" alt="" loading="lazy" decoding="async"></button>`).join("")}</div>
+          <p class="kd-credit">Ikonat: <a href="#/imazhet">burimet dhe licencat</a></p></section>`;
+      enter(listPane);
+      bind();
+    }
+    function light(e) {
+      S.k.lit = Date.now(); save(); haptic([10, 40, 10]); Sfx.strike();
+      const r = e.currentTarget.getBoundingClientRect(); goldBurst(r.left + r.width / 2, r.top);
+      render();
+      const st = $("#kdStage"); st.classList.add("igniting"); setTimeout(() => st && st.classList.remove("igniting"), 1600);
+    }
+    function bind() {
+      $("#kdLight")?.addEventListener("click", light);
+      $("#kdOilBtn")?.addEventListener("click", (e) => {
+        if (S.oil > 0.97) { toast("Kandili është plot me vaj"); return; }
+        S.k.lit = Date.now(); save(); haptic(12);
+        const st = $("#kdStage"); st.classList.add("pour"); st.style.setProperty("--oil", "1");
+        $(".kd-oil", st).setAttribute("y", "72");
+        setTimeout(() => { st.classList.remove("pour"); render(); }, 1400);
+        toast("U mbush me vaj · 24 orë dritë");
+      });
+      $("#kdQuiet").onclick = quiet;
+      $$("[data-ic]", listPane).forEach((b) => b.addEventListener("click", () => { S.k.icon = +b.dataset.ic; save(); haptic(8); render(); }));
+      $$("[data-rm]", listPane).forEach((b) => b.addEventListener("click", () => { S.k.names.splice(+b.dataset.rm, 1); save(); render(); }));
+      $("#kdForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#kdName").value.trim(); if (!v) return; if (S.k.names.length >= 40) return toast("Deri në 40 emra"); S.k.names.push(v); save(); haptic(8); render(); });
+      // kandili varet nga një krah i artë poshtë ikonës (zinxhiri nuk kalon mbi fytyrën e shenjtë)
+      const hang = $("#kdHang");
+      const place = () => { const ic = $(".kd-icon"), br = $("#kdBr"); if (!ic || !br) return removeEventListener("resize", place); const y = ic.offsetTop + ic.offsetHeight + 4; br.style.top = y + "px"; hang.style.top = (y + 6) + "px"; };
+      place(); addEventListener("resize", place, { passive: true }); $(".kd-icon img").addEventListener("load", place);
+      $("#kdStage").addEventListener("transitionend", place);
+      hang.addEventListener("pointerdown", (e) => { const r = hang.getBoundingClientRect(); sway.w += (e.clientX < r.left + r.width / 2 ? 1 : -1) * 1.6; haptic(6); wakeLoop(); });
+      loop();
+    }
+    function loop() {
+      cancelAnimationFrame(raf); raf = 0;
+      let last = performance.now(), lastText = 0, lastPaint = 0;
+      const step = (now) => {
+        if (!alive() || !$("#kdHang")) { stop(); return; }
+        if (now - lastPaint < 32) { raf = requestAnimationFrame(step); return; }
+        lastPaint = now;
+        const dt = Math.min(0.05, (now - last) / 1000); last = now;
+        const acc = -18 * Math.sin(sway.a - sway.target) - 0.9 * sway.w;
+        sway.w += acc * dt; sway.a += sway.w * dt;
+        $("#kdHang").style.transform = `rotate(${(sway.a * 180 / Math.PI).toFixed(2)}deg)`;
+        const st = $("#kdStage");
+        if (S.on) { const f = 0.88 + Math.sin(now / 97) * 0.04 + Math.sin(now / 41) * 0.03 + Math.random() * 0.05; st.style.setProperty("--fl", f.toFixed(3)); st.style.setProperty("--sx", (sway.a * 40).toFixed(1) + "px"); }
+        if (now - lastText > 15000) { lastText = now; const s2 = kandilState(); if (s2.on !== S.on) return render(); S = s2; const l = $("#kdLeft"); if (l) l.textContent = hoursLeft(); }
+        // i fikur dhe pa lëvizje → ndal ciklin (rinis me prekje / anim)
+        if (!S.on && Math.abs(sway.w) < 0.002 && Math.abs(sway.a - sway.target) < 0.002) { raf = 0; return; }
+        raf = requestAnimationFrame(step);
+      };
+      wakeLoop = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(step); } };
+      raf = requestAnimationFrame(step);
+      if (!onOri && window.DeviceOrientationEvent) {
+        onOri = (e) => { if (e.gamma == null) return; const t = Math.max(-0.5, Math.min(0.5, -e.gamma * Math.PI / 180)); if (Math.abs(t - sway.target) > 0.01) { sway.target = t; wakeLoop(); } };
+        window.addEventListener("deviceorientation", onOri);
+      }
+    }
+    function stop() { cancelAnimationFrame(raf); if (onOri) { window.removeEventListener("deviceorientation", onOri); onOri = null; } if (wake) { try { wake.release(); } catch (e) {} wake = null; } document.body.classList.remove("kd-quiet-on"); }
+    async function quiet() {
+      const st = $("#kdStage"); if (!st) return;
+      document.body.classList.add("kd-quiet-on"); st.classList.add("quiet"); setTimeout(() => dispatchEvent(new Event("resize")), 60);
+      try { if (navigator.wakeLock) wake = await navigator.wakeLock.request("screen"); } catch (e) {}
+      if (st.requestFullscreen) st.requestFullscreen().catch(() => {});
+      const exit = () => { document.body.classList.remove("kd-quiet-on"); st.classList.remove("quiet"); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); if (wake) { try { wake.release(); } catch (e) {} wake = null; } st.removeEventListener("click", exit); setTimeout(() => dispatchEvent(new Event("resize")), 60); };
+      setTimeout(() => st.addEventListener("click", exit), 400);
+      toast("Prek ekranin për t'u kthyer");
+    }
+    render();
+    mainPane.innerHTML = emptyMain();
+    setMode("list");
   }
 
   // ---------- Sfida 40 ditëshe ----------
@@ -2721,6 +3997,156 @@ function pickPhoto(it) {
     setMode("list");
     if (tab === "kanonet") bindKanonet(kn);
   }
+  // ================= Gjeografia e Shenjtë: globi 3D + Shqipëria 3D =================
+  let hartaTab = store.get("harta.tab", "globi");
+  const shortSaint = (x) => { const c = String(x).split(/,|;| nga | i cili| e cila| që | – /)[0].trim(); return c.length > 46 ? c.slice(0, 44) + "…" : c; };
+  function loadHartaJs() {
+    if (window.FSHarta) return Promise.resolve();
+    return new Promise((r) => { const sc = document.createElement("script"); sc.src = "js/harta.js?v=" + APP_VERSION; sc.onload = r; sc.onerror = r; document.head.appendChild(sc); });
+  }
+  async function viewHarta(tab) {
+    if (tab === "globi" || tab === "shqiperia") { hartaTab = tab; store.set("harta.tab", tab); }
+    const [H] = await Promise.all([load("harta"), loadHartaJs()]);
+    const head = `<header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>Gjeografia e Shenjtë</h1></header>`;
+    if (!H || !window.FSHarta) { listPane.innerHTML = head + `<p class="muted" style="padding:16px">Harta nuk u hap.</p>`; enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list"); return; }
+    const now = new Date(), key = `${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+    const today = H.days[key] || [];
+    const P = Object.fromEntries(H.places.map((p) => [p.id, p]));
+    const A = H.al;
+    const twoPaneGuess = () => window.innerWidth >= 640;
+    const pinOf = (p) => {
+      const hot = today.filter((t) => t[1] === p.id), al = /Shqipëri/.test(p.r), c = (hot[0] && hot[0][2]) || p.c;
+      return { id: p.id, lat: p.lat, lon: p.lon, hot: hot.length > 0, al, pr: hot.length ? 0 : al ? 2 : 3,
+        label: esc(hot.length ? shortSaint(hot[0][0]) : (p.s[0] || p.n)) };
+    };
+    // shenjtorët vendas: secili pikë më vete; kur janë disa në një vend, rreth qytetit
+    const ALB = H.alb || [], albAt = {};
+    ALB.forEach((a) => { (albAt[a[2]] = albAt[a[2]] || []).push(a); });
+    const saintPins = (inside) => Object.entries(albAt).flatMap(([pid, list]) => {
+      const p = P[pid]; if (!p || (inside && !inside(p))) return [];
+      return list.map((a, i) => {
+        const n = list.length, r = n > 1 ? 0.011 : 0, ang = i / n * 2 * Math.PI, hot = a[0] === key;
+        return { id: pid, lat: p.lat + r * Math.cos(ang), lon: p.lon + r * Math.sin(ang) / Math.cos(p.lat * Math.PI / 180), hot, al: true, pr: hot ? 0 : 1, label: esc(a[4] || shortSaint(a[1])) };
+      });
+    });
+    const placePins = (list) => list.filter((p) => !(albAt[p.id] && (/Shqipëri/.test(p.r) || p.s.every((x) => albAt[p.id].some((a) => a[4] === x))))).map(pinOf);
+    const todayChips = [...new Map(today.map((t) => [t[1], t])).values()];
+    listPane.innerHTML = `${head}
+      <div class="seg hm-seg" role="tablist"><button data-ht="globi" aria-checked="${hartaTab === "globi"}">🌍 Globi</button><button data-ht="shqiperia" aria-checked="${hartaTab === "shqiperia"}">⛰️ Shqipëria 3D</button></div>
+      ${hartaTab === "globi"
+        ? `<div class="hm-today">${todayChips.length
+            ? `<span class="hm-today-h">Sot në hartë</span>` + todayChips.map((t) => `<button class="chip" data-fly="${t[1]}">☦ ${esc(shortSaint(t[0]))}<small>${esc(P[t[1]].n)}</small></button>`).join("")
+            : `<span class="hm-today-h">Shenjtorët e sotëm s'kanë vend të shënuar · prek një pikë në glob</span>`}</div>`
+        : `<form class="search hm-search" id="hmSearch" autocomplete="off"><span>${icon("search")}</span><input id="hmQ" type="search" placeholder="Kërko qytet ose fshat…" enterkeyhint="search"></form><ul class="hm-res" id="hmRes" hidden></ul>`}
+      <div id="hmSlot"></div>
+      ${(H.alb || []).length ? `<details class="hm-alb" open><summary>🇦🇱 Shenjtorët shqiptarë · ${H.alb.length}</summary><ul class="hm-ul">${H.alb.map((a, i) => `<li><button type="button" data-alb="${i}"><b>${+a[0].slice(3)} ${MUAJ_G[+a[0].slice(0, 2) - 1]}</b> ${esc(a[1])}<small>${esc((P[a[2]] || {}).n || "")}${a[3] ? " · shek. " + esc(a[3]) : ""}</small></button></li>`).join("")}</ul></details>` : ""}`;
+    const stageHtml = `<div class="hm-stage" id="hmStage"><div class="hm-map" id="hmMap"></div>
+        <button class="icon-btn hm-fs hm-ui" aria-label="Ekran i plotë">⤢</button>
+        ${hartaTab === "shqiperia" ? `<button class="icon-btn hm-home hm-ui" aria-label="E gjithë Shqipëria">⌂</button><p class="hm-tip hm-ui">Një gisht: lëviz · dy gishta: zmadho, rrotullo, anëso</p>` : `<p class="hm-tip hm-ui">Rrotulloje me gisht · zmadhoje me dy gishta</p>`}
+      </div>
+      <p class="hm-credit">${esc(H.credits)}</p>`;
+    enter(listPane); mainPane.innerHTML = ""; setMode("list");
+    // Fold i hapur / tablet: harta zë panelin e madh djathtas; telefoni: poshtë butonave
+    const twoPane = mainPane.offsetWidth > 0;
+    if (twoPane) { mainPane.innerHTML = `<div class="hm-main">${stageHtml}</div>`; listPane.querySelector("#hmSlot").innerHTML = `<p class="hm-side-note">Prek një pikë në hartë për shenjtorët, shekullin dhe një fjalë të Etërve nga ai vend.</p>`; }
+    else listPane.querySelector("#hmSlot").outerHTML = stageHtml;
+    $$("[data-ht]", listPane).forEach((b) => b.addEventListener("click", () => { haptic(8); location.hash = "#/harta/" + b.dataset.ht; }));
+    const stage = $("#hmStage"), host = $("#hmMap");
+    $(".hm-fs", stage).addEventListener("click", (e) => { const on = stage.classList.toggle("full"); e.currentTarget.textContent = on ? "✕" : "⤢"; document.body.classList.toggle("bible-full", on); haptic(10); });
+    setTimeout(() => $(".hm-tip", stage)?.classList.add("gone"), 4500);
+    const pick = (p) => p.kind ? churchCard(p) : hartaCard(H, P[p.id], today);
+    let flyAlb = null;
+    $$("[data-alb]", listPane).forEach((b) => b.addEventListener("click", () => { const a = H.alb[+b.dataset.alb], p = P[a[2]]; if (!p) return; haptic(8); flyAlb && flyAlb(p); setTimeout(() => hartaCard(H, p, today), 900); }));
+    if (hartaTab === "globi") {
+      const g = FSHarta.globe(host, { base: "img/harta/toka.jpg", regionImg: "img/harta/toka_rajoni.jpg", region: H.globe.region, borders: H.globe.borders, goldBorder: A.border, lat: 39, lon: 24, dist: 2.7, onPick: pick });
+      g.setPins(placePins(H.places).concat(saintPins()));
+      $$("[data-fly]", listPane).forEach((b) => b.addEventListener("click", () => { const p = P[b.dataset.fly]; g.flyTo(p.lat, p.lon, 1.3); haptic(8); }));
+      flyAlb = (p) => g.flyTo(p.lat, p.lon, 1.15);
+      if (todayChips[0]) setTimeout(() => { const p = P[todayChips[0][1]]; if (host.isConnected) g.flyTo(p.lat, p.lon, 1.6); }, 2200);
+    } else {
+      const inAl = (p) => p.lat > A.lat0 && p.lat < A.lat1 && p.lon > A.lon0 && p.lon < A.lon1;
+      const sacred = placePins(H.places.filter(inAl)).concat(saintPins(inAl));
+      const m = await FSHarta.albania(host, { al: A, relief: "img/harta/relievi.png", sat: "img/harta/shqiperia.jpg", sacred, onPick: pick,
+        cathedrals: H.cathedrals || [], churches: H.churches || [], detail: true });
+      flyAlb = (p) => { if (p.lat > A.lat0 && p.lat < A.lat1 && p.lon > A.lon0 && p.lon < A.lon1) m.flyTo(p.lat, p.lon, 14); };
+      $(".hm-home", stage).addEventListener("click", () => { m.reset(); haptic(8); });
+      const q = $("#hmQ"), res = $("#hmRes"), towns = A.towns;
+      q.addEventListener("input", () => {
+        const t = nrm(q.value.trim());
+        if (t.length < 2) { res.hidden = true; return; }
+        const a = towns.filter((x) => nrm(x[0]).startsWith(t)), b = towns.filter((x) => !nrm(x[0]).startsWith(t) && nrm(x[0]).includes(t));
+        const allCh = m.cathedrals.concat(m.churches), ch = allCh.map((c, i) => [c, i]).filter(([c]) => nrm(c.n + " " + c.v).includes(t)).slice(0, 4);
+        res.innerHTML = ch.map(([c, i]) => `<li><button type="button" data-ch="${i}">☦ ${esc(c.n)}<small>${esc(c.v)}</small></button></li>`).join("") + a.concat(b).slice(0, 8 - ch.length).map((x) => `<li><button type="button" data-town="${esc(x[0])}">${esc(x[0])}<small>${x[3] <= 2 ? "qytet" : "fshat"}</small></button></li>`).join("") || `<li class="muted">S'u gjet asnjë vendbanim</li>`;
+        res.hidden = false;
+        $$("[data-ch]", res).forEach((btn) => btn.addEventListener("click", () => { const c = allCh[+btn.dataset.ch]; m.flyTo(c.lat, c.lon, c.kind === "cathedral" ? 2.2 : 3); res.hidden = true; q.value = c.n; q.blur(); haptic(8); setTimeout(() => churchCard(c), 1300); }));
+        $$("[data-town]", res).forEach((btn) => btn.addEventListener("click", () => { m.find(btn.dataset.town); res.hidden = true; q.value = btn.dataset.town; q.blur(); haptic(8); }));
+      });
+      $("#hmSearch").addEventListener("submit", (e) => { e.preventDefault(); $("[data-town]", res)?.click(); });
+    }
+  }
+  function churchCard(c) {
+    $(".hm-sheet")?.remove();
+    const el = document.createElement("div");
+    el.className = "sheet hm-sheet";
+    const where = c.v === "Voskopojë" ? "Voskopojës" : c.v === "Vithkuq" ? "Vithkuqit" : esc(c.v);
+    el.innerHTML = `<div class="sheet-card hm-card" role="dialog" aria-modal="true" aria-label="${esc(c.n)}">
+      <button class="icon-btn hm-x" type="button" aria-label="Mbyll">✕</button>
+      <p class="hm-reg">${esc(c.v)}${c.y ? " · " + esc(c.y) : ""}</p>
+      <h2>☦ ${esc(c.n)}</h2>
+      <p class="hm-d">${c.kind === "cathedral" ? "Maketë 3D e stilizuar, e vendosur në vendin e vërtetë të kishës (jo kopje e saktë e arkitekturës)." : `Një nga kishat e ${where}, qendër e madhe e Orthodhoksisë shqiptare në shek. XVII–XVIII.`}</p>
+      <p class="hm-d"><small>${c.lat.toFixed(5)}, ${c.lon.toFixed(5)} · © OpenStreetMap</small></p>
+    </div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("open"));
+    const close = () => { el.classList.remove("open"); setTimeout(() => el.remove(), 300); };
+    $(".hm-x", el).addEventListener("click", close);
+    el.addEventListener("click", (e) => { if (e.target === el) close(); });
+    haptic(10);
+  }
+  async function hartaCard(H, p, today) {
+    if (!p) return;
+    $(".hm-sheet")?.remove();
+    const now = new Date(), mm = pad2(now.getMonth() + 1), dd = pad2(now.getDate());
+    const hot = today.filter((t) => t[1] === p.id);
+    const fathers = Object.entries(H.fathers).filter(([, f]) => f.p.includes(p.id));
+    let quote = null;
+    if (fathers.length) {
+      const et = await load("eterit");
+      const qs = ((et && et.quotes) || []).filter((x) => fathers.some(([a]) => a === x.a));
+      quote = qs.length ? qs[Math.floor(Math.random() * qs.length)] : null;
+    }
+    let ic = null;
+    if (hot.length) {
+      try {
+        const words = nrm(hot[0][0]).split(/\W+/).filter((w) => w.length >= 5);
+        ic = (await loadDayMonth(mm)).find((im) => im.date === `${mm}-${dd}` && words.some((w) => nrm(im.shenjtori || im.title || "").includes(w))) || null;
+      } catch (e) { /* pa internet */ }
+    }
+    const dlink = (k) => `#/sinaksari/${+k.slice(0, 2)}/${+k.slice(3)}`;
+    const fc = quote && H.fathers[quote.a] && H.fathers[quote.a].c;
+    const el = document.createElement("div");
+    el.className = "sheet hm-sheet";
+    el.innerHTML = `<div class="sheet-card hm-card" role="dialog" aria-modal="true" aria-label="${esc(p.n)}">
+      <button class="icon-btn hm-x" type="button" aria-label="Mbyll">✕</button>
+      ${ic ? `<div class="hm-icon" data-ic="${esc(ic.file)}"></div>` : ""}
+      <p class="hm-reg">${esc(p.r)}${p.c ? " · shek. " + esc(p.c) : ""}</p>
+      <h2>${esc(p.n)}</h2>
+      <p class="hm-d">${esc(p.d)}</p>
+      ${hot.length ? `<h3>☦ Sot në Sinaksar</h3><ul class="hm-ul">${hot.map((t) => `<li><a href="${dlink(mm + "-" + dd)}">${esc(t[0])}</a>${t[2] ? ` <small>shek. ${esc(t[2])}</small>` : ""}</li>`).join("")}</ul>` : ""}
+      ${p.s.length ? `<h3>Shenjtorët e vendit</h3><p class="hm-saints">${p.s.map((x) => `<span>${esc(x)}</span>`).join("")}</p>` : ""}
+      ${quote ? `<h3>Fjalë e Etërve</h3><blockquote class="hm-q">“${esc(quote.t)}”<cite>— ${esc(quote.a)}${fc ? ", shek. " + esc(fc) : ""}</cite></blockquote>` : ""}
+      ${p.y && p.y.length ? `<details class="hm-year"><summary>Kujtimet gjatë vitit · ${p.y.length}</summary><ul class="hm-ul">${p.y.map((y) => `<li><a href="${dlink(y[0])}"><b>${+y[0].slice(3)} ${MUAJ_G[+y[0].slice(0, 2) - 1]}</b> ${esc(y[1])}</a>${y[2] ? ` <small>shek. ${esc(y[2])}</small>` : ""}</li>`).join("")}</ul></details>` : ""}
+      ${/Shqipëri|Ohrit|Jon/.test(p.r) && hartaTab === "globi" ? `<a class="btn primary hm-go3d" href="#/harta/shqiperia">⛰️ Shihe në Shqipërinë 3D</a>` : ""}
+    </div>`;
+    document.body.appendChild(el);
+    hydrateIcons(el);
+    requestAnimationFrame(() => el.classList.add("open"));
+    const close = () => { el.classList.remove("open"); setTimeout(() => el.remove(), 300); };
+    $(".hm-x", el).addEventListener("click", close);
+    el.addEventListener("click", (e) => { if (e.target === el) close(); });
+    haptic(10);
+  }
+
   async function viewKanonet() {
     const kn = await load("kanonet");
     listPane.innerHTML = `
@@ -4003,7 +5429,7 @@ function pickPhoto(it) {
     };
     let i = 0;
     listPane.innerHTML = `
-      <header class="page-head"><h1>Shpirti</h1>${profileChip()}</header>
+      <header class="page-head"><h1>Shpirti</h1>${themeBtn()}${profileChip()}</header>
       <section class="sp-hero">
         <div class="sp-aura" aria-hidden="true"><i></i><i></i><i></i></div>
         <p class="sp-greet">${esc(greeting())}</p>
@@ -4020,6 +5446,12 @@ function pickPhoto(it) {
         ${tile("kt-t", "#/kathizma", icon("lyre"), "Kathizma e ditës", (() => { const k = store.get("kath", { done: [] }); return `${k.done.length}/20 · Psaltiri në 20 ditë`; })(), i++)}
         ${tile("dipt-t", "#/diptiket", icon("book"), "Diptikët", "Emrat për lutje", i++)}
         ${tile("east-t", "#/lindja", icon("compass"), "Drejt Lindjes", "Busulla e lutjes", i++)}
+      </div>
+      <h2 class="hub-h">Shtëpia e lutjes</h2>
+      <div class="feat-tiles hub">
+        ${tile("kd-t", "#/kandili", `<span class="ft-emo">🪔</span>`, "Kandili i shtëpisë", (() => { const k = kandilState(); return k.on ? `Ndriçon · vaj ${Math.round(k.oil * 100)}%` : "Ndize para ikonës"; })(), i++)}
+        ${tile("oz-t", "#/ora", `<span class="ft-emo">🕰</span>`, "Ora Bizantine", (() => { try { const l = store.get("ora.loc", { lat: 41.3275, lng: 19.8187 }), b = byzNow(Date.now(), l.lat, l.lng); return `${b.cur.ic} ${b.cur.n} · ora ${b.h} e ${b.isDay ? "ditës" : "natës"}`; } catch (e) { return "Koha sipas Kishës"; } })(), i++)}
+        ${tile("kb-t", "#/kambanorja", `<span class="ft-emo">🔔</span>`, "Kambanorja", "Bjeri kambanave me litar", i++)}
       </div>
       <h2 class="hub-h">Pendimi dhe Kungimi</h2>
       <div class="feat-tiles hub">
@@ -4038,6 +5470,8 @@ function pickPhoto(it) {
         ${tile("draw-t", "#/fjala", `<span class="ft-card"><svg><use href="#i-cross"/></svg></span>`, "Fjala për ty", "3 fjalë në ditë", i++)}
         ${tile("ch-t", "#/sfida", `<b class="ft-days">${ch ? Object.keys(ch.done).length + "/40" : "40"}</b>`, "Sfida 40 ditëshe", "Një hap në ditë", i++)}
         ${tile("gr-t", "#/lavdi", icon("heart"), "Lavdi për të gjitha", "3 falënderime në ditë", i++)}
+        ${tile("sb-t", "#/superlibri", `<span class="ft-emo">📺</span>`, "Superlibri për fëmijë", "49 episode · 4 sezone", i++)}
+        ${tile("bq-t", "#/udhetimi", `<span class="ft-emo">📖</span>`, "Udhëtimi në Shkrim", (() => { const q = store.get("bq", null); return q ? `Niveli ${q.lvl}/1000 · ${"❤".repeat(Math.max(0, Math.min(5, q.lives)))}` : "Kuiz me 1000 nivele"; })(), i++)}
         ${tile("quiz-t", "#/kuiz", icon("lyre"), "Loja e Psaltirit", (() => { const b2 = store.get("quiz2", { gap: 0, order: 0 }); return Math.max(b2.gap, b2.order) ? "🏆 " + Math.max(b2.gap, b2.order) : "Nivele · kohë · zemra"; })(), i++)}
       </div>`;
     $("#profileChip")?.addEventListener("click", Profiles.open);
@@ -4746,6 +6180,8 @@ function pickPhoto(it) {
   async function route() {
     const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
     const view = parts[0] || "kreu";
+    if (view !== "harta" || window.FSHarta) window.FSHarta && FSHarta.stopAll();
+    $(".hm-sheet")?.remove();
     try {
       if (view === "kreu") {
         app.dataset.view = "feed";
@@ -4787,12 +6223,18 @@ function pickPhoto(it) {
       else if (view === "dcs") await viewDcs();
       else if (view === "diptiket") await viewDiptychs(parts[1]);
       else if (view === "kuiz") await viewQuiz();
+      else if (view === "udhetimi") await viewJourney();
+      else if (view === "superlibri") viewKids();
+      else if (view === "ora") viewByzClock();
+      else if (view === "kambanorja") viewBells();
+      else if (view === "kandili") viewKandil();
       else if (view === "ikona") await viewIcon(parts[1], parts[2]);
       else if (view === "numerimi") viewCountdown();
       else if (view === "sfida") viewChallenge();
       else if (view === "sinaksari") await viewSynax(parts[1], parts[2]);
       else if (view === "biblioteka" && parts[1] === "kanonet") location.replace("#/kanonet");
       else if (view === "kanonet") await viewKanonet();
+      else if (view === "harta") await viewHarta(parts[1]);
       else if (view === "biblioteka") await viewLibrary2(parts[1]);
       else if (view === "kungimi") { viewCommunion(); if (parts[1] === "pyet") askCommunion(true); }
       else if (view === "mjekesia") await viewSoul();
@@ -4863,6 +6305,7 @@ function pickPhoto(it) {
       ["profecite", "scroll", "Libri i Profecive", "Leximet e Mbrëmësoreve"],
       ["sinaksari/sot", "calendar", "Sinaksari", "Shenjtorët e çdo dite · 12 muaj"],
       ["tipikoja/sot", "calendar", "Tipikoja 2026", "Shërbesa e ditës së sotme"],
+      ["harta", "globe", "Gjeografia e Shenjtë", "Globi 3D · Shqipëria 3D · shenjtorët në hartë"],
       ["kanonet", "scroll", "Kanonet e Kishës", "Apostujt · Sinodet · Pidalioni"],
       ["biblioteka", "book", "Biblioteka", "Lutjet · Fjalori · Pyetje · Pagëzimi"],
       ["sherbesa", "candle", "Shërbesa", "Mbrëmësorja dhe Mëngjesorja"],
@@ -4875,7 +6318,7 @@ function pickPhoto(it) {
       ["eterit", "quote", "Thesari i Etërve", "836 fjalë · sipas temave · kërkim"],
     ];
     listPane.innerHTML = `
-      <header class="page-head"><h1>Lexo</h1></header>
+      <header class="page-head"><h1>Lexo</h1>${themeBtn()}</header>
       <p class="greet">${esc(greeting())}</p>
       <div id="nameSlot">${nameDayBanner()}${myNameDayHtml()}</div>
       ${unbaptized() ? (() => { const [t, r] = INVITE[new Date().getDate() % INVITE.length]; return `<a class="bap-invite inv-card" href="#/biblioteka/pagezimi">${icon("cross")}<span><b>Krishti të fton${userName() ? ", " + esc(userName()) : ""}</b><q>${esc(t)}</q><small>${esc(r)} · Si të pagëzohem në Kishën Orthodhokse ›</small></span></a><button class="btn bap-done-btn wide" data-baptized>${icon("check")}<span>U pagëzova ☦</span></button>`; })() : ""}
@@ -5392,7 +6835,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "2.7.5";
+  const APP_VERSION = "2.7.6";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
@@ -5481,18 +6924,47 @@ function pickPhoto(it) {
 
   /* ---------- Tema: ndërrim i butë i errët/i ndritshëm + kursim baterie ---------- */
   const rootEl = document.documentElement;
-  window.FSTheme = (dark) => {
-    rootEl.classList.add("theme-anim");
+  // 3 ngjyra: Pergamenë (e çelët), Kafe (e errët), Blu bizantine (e errët ndryshe) — ose sipas telefonit
+  const APP_THEMES = { auto: null, light: { d: 0, bar: "#F6EFE2" }, dark: { d: 1, bar: "#362D25" }, blu: { d: 1, bar: "#141C2E" } };
+  const sysDark = () => { try { if (android && android.isDark) return !!android.isDark(); } catch (e) { /* */ } return !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches); };
+  function applyTheme(anim) {
+    const ch = store.get("theme", "auto"), t = APP_THEMES[ch] || null;
+    const dark = t ? !!t.d : sysDark(), pal = ch === "blu" ? "blu" : "";
+    if (anim) { rootEl.classList.add("theme-anim"); clearTimeout(window.__thT); window.__thT = setTimeout(() => rootEl.classList.remove("theme-anim"), 520); }
     rootEl.dataset.theme = dark ? "dark" : "light";
-    clearTimeout(window.__thT);
-    window.__thT = setTimeout(() => rootEl.classList.remove("theme-anim"), 520);
-  };
-  if (android && android.isDark) { try { rootEl.dataset.theme = android.isDark() ? "dark" : "light"; } catch (e) { /* */ } }
-  else if (window.matchMedia) {
-    // në shfletues: ndiq telefonin me tranzicion të butë
-    const mq = matchMedia("(prefers-color-scheme: dark)");
-    (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))((e) => window.FSTheme(e.matches));
+    if (pal) rootEl.dataset.palette = pal; else delete rootEl.dataset.palette;
+    const bar = t ? t.bar : dark ? "#362D25" : "#F6EFE2";
+    $('meta[name="theme-color"]')?.setAttribute("content", bar);
+    try { if (android && android.setBars) android.setBars(bar, dark); } catch (e) { /* */ }
   }
+  window.FSTheme = () => applyTheme(true);   // thirret nga Android kur ndërrohet tema e telefonit
+  applyTheme(false);
+  if (!android && window.matchMedia) {
+    const mq = matchMedia("(prefers-color-scheme: dark)");
+    (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(() => applyTheme(true));
+  }
+  const themeBtn = () => `<button class="th-btn" type="button" aria-label="Ngjyrat e aplikacionit" data-theme-btn><i class="s1"></i><i class="s2"></i><i class="s3"></i></button>`;
+  function themeSheet() {
+    $(".th-sheet")?.remove();
+    const cur = store.get("theme", "auto");
+    const opts = [["light", "Pergamenë", "E çelët, si letra e vjetër"], ["dark", "Kafe", "E errët e ngrohtë"], ["blu", "Blu bizantine", "E errët, blu e thellë me ar"], ["auto", "Sipas telefonit", "Ndërrohet vetë ditë/natë"]];
+    const el = document.createElement("div");
+    el.className = "sheet th-sheet";
+    el.innerHTML = `<div class="sheet-card th-card" role="dialog" aria-modal="true" aria-label="Ngjyrat">
+      <h2>Ngjyrat e aplikacionit</h2>
+      <div class="th-opts">${opts.map(([k, n, d]) => `<button type="button" class="th-opt th-${k}" data-th="${k}" aria-checked="${cur === k}"><span class="th-sw"><i></i><i></i><i></i></span><b>${n}</b><small>${d}</small></button>`).join("")}</div>
+    </div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("open"));
+    const close = () => { el.classList.remove("open"); setTimeout(() => el.remove(), 300); };
+    el.addEventListener("click", (e) => { if (e.target === el) close(); });
+    $$("[data-th]", el).forEach((b) => b.addEventListener("click", () => {
+      store.set("theme", b.dataset.th); applyTheme(true); haptic(12);
+      $$("[data-th]", el).forEach((x) => x.setAttribute("aria-checked", x === b));
+      setTimeout(close, 380);
+    }));
+  }
+  document.addEventListener("click", (e) => { if (e.target.closest("[data-theme-btn]")) { haptic(8); themeSheet(); } });
   // bateria: ndal animacionet kur aplikacioni nuk shihet dhe ato jashtë ekranit
   document.addEventListener("visibilitychange", () => rootEl.classList.toggle("paused", document.hidden));
   if ("IntersectionObserver" in window) {

@@ -301,7 +301,8 @@
         navigator.mediaSession.setActionHandler("nexttrack", next);
       } catch (e) { /* */ }
     }
-    loadApi();
+    // API e YouTube (~1 MB) nuk bllokon nisjen: ngarkohet kur shfletuesi është i lirë
+    (window.requestIdleCallback || ((f) => setTimeout(f, 2500)))(() => loadApi(), { timeout: 4000 });
     const first = () => { window.removeEventListener("pointerdown", first, true); if (!userPaused && !suspended) play(); };
     window.addEventListener("pointerdown", first, true);
     if (location.protocol === "file:") emit("Për muzikën hape me “Nis aplikacionin.bat”");

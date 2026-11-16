@@ -1251,13 +1251,23 @@ html.has-qiri .rc-pool { left: 6%; right: 6%; }
 .cd-hero.pascha { background: radial-gradient(120% 120% at 50% 0%, #8a5a12 0%, #2a1a06 80%); }
 .cd-hero .eyebrow { color: #f1cc72; }
 .cd-hero h2 { font-family: var(--font-cap); font-size: 28px; margin: 2px 0 12px; }
-.cd-digits { display: flex; justify-content: center; gap: 8px; }
-.cd-digits span { display: flex; flex-direction: column; align-items: center; min-width: 58px; padding: 8px 4px; border-radius: 12px; background: rgba(255,255,255,.08); }
+.cd-digits { display: flex; justify-content: center; gap: 6px; }
+.cd-digits span { display: flex; flex-direction: column; align-items: center; flex: 1 1 0; min-width: 0; max-width: 64px; padding: 8px 2px; border-radius: 12px; background: rgba(255,255,255,.08); }
 .cd-digits b { font-family: var(--font-cap); font-size: 28px; color: #f1cc72; font-variant-numeric: tabular-nums; }
 .cd-digits small { font-size: 11px; opacity: .75; }
 .cd-date { margin: 10px 0 0; opacity: .8; font-size: 14px; }
 .cd-list { margin: 0 16px 30px; }
 .cd-list .list-item { gap: 12px; }
+.cd-list .list-item.big .lbl { font-weight: 700; }
+.cd-tag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 99px; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; background: rgba(160, 120, 40, .16); color: #8a5a12; }
+.cd-tag.cd-h { background: rgba(60, 100, 190, .15); color: #2f5aa8; }
+.cd-tag.cd-t { background: rgba(120, 60, 140, .15); color: #6d3a86; }
+.cd-tag.cd-p { background: rgba(40, 140, 90, .15); color: #1f7a4d; }
+.cd-tag.cd-s { background: rgba(170, 60, 40, .14); color: #9a3a22; }
+.cd-tri { margin: 0 16px 16px; padding: 14px 16px; border-radius: 18px; display: grid; gap: 3px; background: linear-gradient(135deg, rgba(109, 58, 134, .16), rgba(109, 58, 134, .05)); border: 1px solid rgba(109, 58, 134, .25); }
+.cd-tri .eyebrow { margin: 0; color: #6d3a86; }
+.cd-tri span { font-size: 14px; } .cd-tri small { opacity: .75; }
+@media (prefers-color-scheme: dark) { .cd-tag { color: #f1cc72; } .cd-tag.cd-h { color: #9db8ff; } .cd-tag.cd-t, .cd-tri .eyebrow { color: #d6a8ec; } .cd-tag.cd-p { color: #8fe0b4; } .cd-tag.cd-s { color: #ffab94; } }
 
 /* ---------- v1.9: përshëndetja dhe dita e emrit tënd ---------- */
 .greet { margin: -6px 18px 10px; font-family: var(--font-cap); color: var(--accent); font-size: 17px; letter-spacing: .03em; animation: riseBlur .5s both; }
@@ -1749,3 +1759,118 @@ html.eco .nav { background: var(--bg) !important; }
 .reel-bg, .ic-img, .ic-frame, .dc-photo, #sharePreview, .score-pages img, img {
   -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none;
 }
+
+/* ---------- Shkrepsja v2: fërkim → flakë → fitili kap zjarrin ---------- */
+.match-ov.m2 .match-scene { width: min(340px, 92vw); height: 440px; touch-action: none; }
+.match-ov.m2 .mb-box { left: 6px; bottom: 54px; width: 132px; height: 82px; transform: none; border-radius: 7px; overflow: visible;
+  background: linear-gradient(160deg, #9a231b 0%, #6b130d 60%, #4d0c08 100%); box-shadow: 0 14px 30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.15); }
+.match-ov.m2 .mb-box::after { inset: 18px 0 0; font-size: 28px; text-shadow: 0 0 10px rgba(241,204,114,.5); }
+.mb-lid { position: absolute; left: 10px; right: 10px; top: -16px; height: 18px; border-radius: 4px 4px 0 0; background: linear-gradient(#d8c39a, #b49870);
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.2); }
+.mb-lid::before { content: ""; position: absolute; left: 12px; right: 12px; top: 5px; height: 6px; border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #c63a2c 0 7px, #7a120c 7px 9px); opacity: .85; }
+.match-ov.m2 .mb-strip { position: absolute; left: 0; right: 0; top: auto; bottom: -1px; height: 15px; border-radius: 0 0 7px 7px;
+  background: repeating-linear-gradient(90deg, #2e2018 0 2px, #57402f 2px 3px, #3b2a1f 3px 5px); box-shadow: inset 0 2px 3px rgba(0,0,0,.5); }
+.m2-match { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 4; cursor: grab; will-change: transform; }
+.m2-hand { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.match-ov.m2:not(.striking) .m2-hand { animation: m2Idle 2.2s ease-in-out infinite; }
+@keyframes m2Idle { 50% { transform: translate(-3px, -5px) rotate(-3deg); } }
+.m2-stick { position: absolute; left: -126px; top: -4px; width: 128px; height: 8px; transform-origin: 126px 4px; transform: rotate(var(--a, -28deg));
+  border-radius: 4px; background: linear-gradient(#f4dfb3, #d4b07a 55%, #b48c55); box-shadow: 0 3px 6px rgba(0,0,0,.35); }
+.m2-match::after { content: ""; position: absolute; left: -40px; top: -40px; width: 80px; height: 80px; } /* zonë më e madhe prekjeje */
+.m2-head { position: absolute; right: -4px; top: -3px; width: 17px; height: 14px; border-radius: 55% 60% 60% 55%;
+  background: radial-gradient(circle at 38% 32%, #e2543f, #9b1b10 60%, #5c0b05); transition: background .5s; }
+.m2-char { position: absolute; right: 12px; top: 0; width: 0; height: 8px; border-radius: 4px; background: linear-gradient(#2a1a10, #4a2e1a); transition: width 3s linear; }
+.match-ov.burning .m2-head, .match-ov.touch .m2-head, .match-ov.out .m2-head { background: radial-gradient(circle at 40% 35%, #4a2214, #160806); }
+.match-ov.burning .m2-char, .match-ov.touch .m2-char { width: 26px; }
+.m2-flame { position: absolute; left: -13px; top: -50px; width: 26px; height: 54px; transform-origin: 50% 92%; opacity: 0; transform: scale(.15); pointer-events: none;
+  transition: opacity .25s, transform .35s cubic-bezier(.2,.9,.3,1.3); }
+.m2-flame i { position: absolute; inset: 0; border-radius: 50% 50% 46% 46% / 66% 66% 34% 34%;
+  background: radial-gradient(58% 72% at 50% 80%, #fff 0%, #fff6c2 22%, #ffc24a 50%, rgba(255,110,10,.8) 72%, transparent 80%);
+  filter: drop-shadow(0 0 14px rgba(255,170,50,.95)); animation: flicker 1s ease-in-out infinite alternate; }
+.m2-flame em { position: absolute; left: 30%; right: 30%; bottom: 6%; height: 30%; border-radius: 50%; background: radial-gradient(#5aa0ff 0%, rgba(60,120,255,.4) 55%, transparent 75%); opacity: .8; }
+.m2-flame::after { content: ""; position: absolute; left: -70%; right: -70%; top: -10%; bottom: -40%; border-radius: 50%;
+  background: radial-gradient(rgba(255,190,90,.38), rgba(255,140,40,.12) 45%, transparent 70%); pointer-events: none; }
+.match-ov.flare .m2-flame { opacity: 1; transform: scale(1.85); transition-duration: .12s, .18s; }
+.match-ov.burning .m2-flame, .match-ov.touch .m2-flame { opacity: 1; transform: scale(1); }
+.match-ov.touch .m2-flame { transform: scale(1.12) skewX(-4deg); }
+.match-ov.shake .m2-hand { animation: m2Shake .42s ease-in-out; }
+@keyframes m2Shake { 20% { transform: rotate(-14deg) translateX(-6px); } 45% { transform: rotate(10deg) translateX(5px); } 70% { transform: rotate(-8deg); } 100% { transform: none; } }
+.match-ov.shake .m2-flame { opacity: .5; transform: scale(.6) skewX(18deg); }
+.match-ov.out .m2-flame { opacity: 0; transform: scale(.1); }
+.m2-smoke { position: absolute; left: -6px; top: -10px; width: 12px; height: 12px; pointer-events: none; }
+.m2-smoke i { position: absolute; left: 0; bottom: 0; width: 12px; height: 12px; border-radius: 50%; opacity: 0;
+  background: radial-gradient(rgba(220,220,228,.55), rgba(200,200,210,0) 70%); }
+.match-ov.out .m2-smoke i { animation: m2Smoke 1.6s ease-out forwards; }
+.match-ov.out .m2-smoke i:nth-child(2) { animation-delay: .18s; } .match-ov.out .m2-smoke i:nth-child(3) { animation-delay: .36s; }
+@keyframes m2Smoke { 0% { opacity: .8; transform: translate(0, 0) scale(.6); } 100% { opacity: 0; transform: translate(14px, -90px) scale(3.4); } }
+.m2-spark { position: absolute; width: 3px; height: 3px; margin: -1.5px; border-radius: 50%; background: #ffe39a; box-shadow: 0 0 6px 2px rgba(255,170,60,.9);
+  pointer-events: none; z-index: 5; animation: m2Spark .7s cubic-bezier(.2,.7,.4,1) forwards; }
+@keyframes m2Spark { 0% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 60px)) scale(.4); } }
+.match-ov.m2 .m-candle { right: 34px; bottom: 44px; z-index: 3; }
+.match-ov.m2 .m-hint { top: 6px; bottom: auto; line-height: 1.35; }
+.match-ov.m2 .m-hint small { font-family: var(--font-body, inherit); letter-spacing: .04em; opacity: .7; font-size: 12px; }
+.match-ov.striking .m-hint { opacity: 0; transition: opacity .3s; }
+/* fitili: nxehet, skuqet, pastaj ndizet flaka nga e vogla në të plotë */
+.m-candle .rc .wick { transition: background .4s, box-shadow .4s; }
+.m-candle .rc.catching .wick { background: linear-gradient(#ffcf6a, #c4421e); box-shadow: 0 0 8px 2px rgba(255,150,40,.85); }
+.m-candle .rc.igniting .flame { animation: m2Ignite 1.3s cubic-bezier(.2,.9,.3,1.25) both; }
+@keyframes m2Ignite { 0% { opacity: .2; transform: scale(.06) translateY(6px); } 35% { opacity: 1; transform: scale(.55) translateY(2px); } 60% { transform: scale(1.5); } 100% { opacity: 1; transform: scale(1.35); } }
+@media (prefers-reduced-motion: reduce) { .match-ov.m2:not(.striking) .m2-hand { animation: none; } }
+
+/* ---------- Temjanica v2: lavjerrës me gisht, qymyr me xixa, kokërr temjani ---------- */
+.cs-stage.cs2 { min-height: 400px; transition: background 1.6s; touch-action: none; }
+.cs-stage.cs2.warm1 { background: radial-gradient(80% 60% at 50% 46%, #4a2c12, #140b06 75%); }
+.cs-stage.cs2.warm { background: radial-gradient(80% 62% at 50% 48%, #5a3414, #160c06 78%); }
+.cs2 .cs-swing { will-change: transform; cursor: grab; z-index: 2; }
+.cs2 .cs-swing:active { cursor: grabbing; }
+.cs2 .cs-swing.jingle .cs-bell { animation: bellJ .14s ease-in-out 6 alternate; animation-delay: var(--d); }
+.cs-glow { position: absolute; left: 50%; top: 200px; width: 260px; height: 260px; margin: -130px 0 0 -130px; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: radial-gradient(rgba(255,150,50,.32), rgba(255,110,30,.1) 40%, transparent 70%); transition: opacity 1.6s; }
+.cs2.warm .cs-glow { opacity: 1; animation: csGlow 2.6s ease-in-out infinite alternate; }
+@keyframes csGlow { to { transform: scale(1.12); opacity: .8; } }
+.censer.coal-lighting .cs-coal { opacity: 1; animation: coalLight 1.6s ease-out both; }
+@keyframes coalLight { 0% { opacity: 0; filter: brightness(.3); } 30% { opacity: .5; filter: brightness(.6); } 55% { opacity: .35; } 100% { opacity: 1; filter: brightness(1.2); } }
+.cs-embers { position: absolute; left: 0; right: 0; top: 47%; height: 0; pointer-events: none; }
+.cs-embers i { position: absolute; bottom: 0; width: 3px; height: 3px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 6px 2px rgba(255,140,40,.9);
+  animation: csEmber 1.6s ease-out forwards; }
+@keyframes csEmber { 0% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 0; transform: translate(var(--dx), -70px) scale(.3); } }
+.cs-grain { position: absolute; top: 0; width: 9px; height: 7px; margin-left: -4px; border-radius: 45% 55% 50% 50%; opacity: 0; z-index: 3; pointer-events: none;
+  background: radial-gradient(circle at 35% 30%, #fff4cf, #d9b56a 55%, #8a6526); box-shadow: 0 0 4px rgba(255,220,150,.6); }
+.cs-grain.fall { animation: csFall .65s cubic-bezier(.5,0,.9,.6) forwards; }
+@keyframes csFall { 0% { opacity: 1; transform: translateY(-10px) rotate(0); } 92% { opacity: 1; } 100% { opacity: 0; transform: translateY(var(--fall)) rotate(260deg); } }
+.cs-count { position: absolute; right: 14px; top: 10px; margin: 0; font-size: 12px; color: #f1cc72; opacity: .8; }
+/* kapaku hapet anash, qymyri duket; kokrrat e temjanit bien brenda mbi qymyr */
+.cs-lidg { transform-box: view-box; transform-origin: 140px 150px; transition: transform .7s cubic-bezier(.3,1.3,.5,1); }
+.censer.lid-open .cs-lidg { transform: translate(58px, -40px) rotate(26deg); }
+.censer.drop .cs-lid { animation: none; }
+.cs-holes { opacity: 0; transition: opacity 1.2s; }
+.censer.coal-on .cs-holes { opacity: .75; animation: coalPulse 1.8s ease-in-out infinite alternate; }
+.cs-lump { fill: #2b211b; stroke: #120b07; stroke-width: .8; transition: fill 1s; }
+.censer.coal-lighting .cs-lump { animation: lumpLight 1.6s ease-in both; animation-delay: calc(var(--k) * .16s); }
+.censer.coal-on .cs-lump { fill: #c2410f; animation: lumpGlow 2.2s ease-in-out infinite alternate; animation-delay: calc(var(--k) * -.37s); }
+@keyframes lumpLight { 0% { fill: #2b211b; } 50% { fill: #6b1e0a; } 100% { fill: #d4500f; } }
+@keyframes lumpGlow { 0% { fill: #a8340c; } 50% { fill: #e86a17; } 100% { fill: #ffb347; } }
+.censer .cs-coal { mix-blend-mode: screen; }
+.cs-g2 { fill: #f3dfae; stroke: #9a7432; stroke-width: .6; opacity: 0; animation: grainFall .7s cubic-bezier(.55,0,1,.45) forwards; }
+@keyframes grainFall { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 1; transform: translateY(var(--land)); } }
+.cs-g2.melt { animation: grainFall 0s forwards, grainMelt 2.6s ease-out forwards; }
+@keyframes grainMelt { 0% { fill: #f3dfae; } 30% { fill: #ffcf6a; } 100% { fill: #3a1d0c; opacity: .2; } }
+
+/* ---------- Temjanica v3 (ar + argjend, 12 zile) dhe Kacia ---------- */
+.cs-kind { margin: 0 auto 8px; max-width: 280px; }
+.censer { overflow: visible; }
+.cs-chain { stroke: #b8862a; stroke-width: 2.6; stroke-dasharray: 5 2.4; fill: none; stroke-linecap: round; }
+.cs-chain2 { stroke: #fff0b8; stroke-width: .9; stroke-dasharray: 2 5.4; stroke-dashoffset: -1; fill: none; opacity: .8; }
+.censer.temj .cs-lidg { transform-origin: 154px 174px; }
+.censer.temj.lid-open .cs-lidg { transform: translate(52px, -30px) rotate(24deg); }
+.censer .cs-holes { opacity: 0; transition: opacity .8s; }
+.censer.coal-on .cs-holes { opacity: .8; }
+.censer.kac .cs-lidg { transform-origin: 120px 140px; }
+.censer.kac.lid-open .cs-lidg { transform: rotate(78deg); }
+.cs2.kind-k .cs-swing { width: min(360px, 104%); transform-origin: 94% 54%; margin: 70px 0 30px -4%; }
+.cs2.kind-k .censer { width: 100%; }
+.cs2.kind-k .cs-src { left: 24%; top: 34%; }
+.cs2.kind-t .censer { width: 200px; }
+.cs2.kind-t .cs-swing { width: 200px; }
+.cs2.kind-t .cs-src { top: 40%; }
