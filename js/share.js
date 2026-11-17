@@ -7,6 +7,11 @@
     post:   { w: 1080, h: 1350, label: "post" },
     square: { w: 1080, h: 1080, label: "katror" },
     story:  { w: 1080, h: 1920, label: "story" },
+    wide:   { w: 1920, h: 1080, label: "16:9" },
+    cine:   { w: 2280, h: 1080, label: "19:9" },
+    land43: { w: 1440, h: 1080, label: "4:3" },
+    port34: { w: 1080, h: 1440, label: "3:4" },
+    p23:    { w: 1080, h: 1620, label: "2:3" },
   };
 
   /* ---------- Sfondet ---------- */
@@ -187,20 +192,22 @@
     const fam = '"EB Garamond", "Palatino Linotype", Georgia, serif';
     const famCap = '"Cinzel", "EB Garamond", Georgia, serif';
 
-    const pad = 130;
-    const topY = opts.format === "story" ? 330 : 190;
-    const bottomY = h - (opts.format === "story" ? 360 : 200);
+    // çdo raport: horizontal (16:9, 19:9, 4:3), katror/portret (1:1, 4:5, 3:4) ose i gjatë (9:16, 2:3)
+    const r = w / h, wide = r > 1.15, tall = r < 0.62;
+    const pad = wide ? Math.round(w * (r > 1.9 ? 0.17 : r > 1.5 ? 0.156 : 0.11)) : 130;
+    const topY = tall ? 330 : wide ? 200 : 190;
+    const bottomY = h - (tall ? 360 : wide ? 190 : 200);
 
     // kryqi
     const a0 = ease(clamp(time * 3));
     ctx.globalAlpha = a0;
-    cross(ctx, w / 2, topY - 40, 92, accent);
+    cross(ctx, w / 2, topY - (wide ? 70 : 40), wide ? 78 : 92, accent);
     ctx.globalAlpha = 1;
 
     // teksti
     const quote = "“" + item.text + "”";
     const area = bottomY - topY - 160;
-    const { size, lines } = fitText(ctx, quote, w - pad * 2, area, fam, opts.format === "story" ? 74 : 66);
+    const { size, lines } = fitText(ctx, quote, w - pad * 2, area, fam, tall ? 74 : wide ? 64 : 66);
     ctx.font = `${size}px ${fam}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -230,11 +237,14 @@
       ctx.fillText(item.source, w / 2, y + 30 + size * 1.65);
     }
 
-    // shenja e aplikacionit
-    ctx.globalAlpha = 0.85 * a0;
+    // shenja e aplikacionit (logoja: kryqi i vogël + emri) — gjithmonë
+    ctx.globalAlpha = 0.9 * a0;
     ctx.font = `500 30px ${famCap}`;
     ctx.fillStyle = sub;
-    ctx.fillText("FJALA E SHENJTË", w / 2, h - (opts.format === "story" ? 200 : 100));
+    const ly = h - (tall ? 200 : wide ? 92 : 100);
+    const tw = ctx.measureText("FJALA E SHENJTË").width;
+    cross(ctx, w / 2 - tw / 2 - 30, ly - 2, 30, accent);
+    ctx.fillText("FJALA E SHENJTË", w / 2 + 6, ly);
     ctx.globalAlpha = 1;
   }
 
@@ -249,9 +259,15 @@
     c.width = w; c.height = h;
     const ctx = c.getContext("2d");
     if (photo) {
+      // fotoja përshtatet vetë për çdo raport, pa prerë kokat:
+      // prerje e vogël → mbush kornizën duke ruajtur pjesën e sipërme (fytyrat);
+      // prerje e madhe → fotoja e plotë në qendër mbi të njëjtën foto të turbullt
       const s = Math.max(w / photo.width, h / photo.height);
       const pw = photo.width * s, ph = photo.height * s;
-      ctx.drawImage(photo, (w - pw) / 2, (h - ph) / 2, pw, ph);
+      // zoom që mbush gjithë kornizën (pa breza); kur pritet lart-poshtë, ruhet pjesa e sipërme (kokat),
+      // kur pritet anash, qendra. Fotot e vogla zmadhohen me cilësinë më të lartë të shfletuesit.
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(photo, (w - pw) / 2, (h - ph) * 0.2, pw, ph);
       const g = ctx.createLinearGradient(0, 0, 0, h);
       g.addColorStop(0, "rgba(10,4,2,.45)"); g.addColorStop(0.5, "rgba(10,4,2,.62)"); g.addColorStop(1, "rgba(10,4,2,.75)");
       ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);

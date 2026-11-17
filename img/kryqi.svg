@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 420">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-14 -14 348 448">
 <defs>
- <mask id="ko" maskUnits="userSpaceOnUse" x="-20" y="-20" width="360" height="460">
+ <mask id="ko" maskUnits="userSpaceOnUse" x="-60" y="-60" width="440" height="540">
   <g fill="#fff" stroke="#fff" stroke-width="22" stroke-linejoin="round">
 <rect x="138" y="40" width="44" height="340"/>
 <rect x="40" y="118" width="240" height="44"/>
@@ -18,7 +18,7 @@
 <circle cx="288" cy="140" r="30"/><circle cx="260" cy="111" r="24"/><circle cx="260" cy="169" r="24"/>
 </g>
  </mask>
- <mask id="ki" maskUnits="userSpaceOnUse" x="-20" y="-20" width="360" height="460">
+ <mask id="ki" maskUnits="userSpaceOnUse" x="-60" y="-60" width="440" height="540">
   <g fill="#fff" stroke="#fff" stroke-width="7" stroke-linejoin="round">
 <rect x="154" y="74" width="12" height="304"/>
 <rect x="140" y="100" width="40" height="11"/>
@@ -33,8 +33,8 @@
 </g>
  </mask>
 </defs>
-<rect x="-20" y="-20" width="360" height="460" fill="#000" mask="url(#ko)"/>
-<rect x="-20" y="-20" width="360" height="460" fill="#000" mask="url(#ki)"/>
+<rect x="-60" y="-60" width="440" height="540" fill="#000" mask="url(#ko)"/>
+<rect x="-60" y="-60" width="440" height="540" fill="#000" mask="url(#ki)"/>
 <g fill="#000">
 <text x="64" y="152" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="31" text-anchor="middle">IC</text>
 <text x="256" y="152" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="31" text-anchor="middle">XC</text>
