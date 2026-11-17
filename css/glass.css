@@ -1793,3 +1793,444 @@ html.eco .tile::after, html.eco .site-link::after { display: none; }
 .art-fig figcaption { display: flex; flex-direction: column; padding: 10px 14px 12px; font-size: 14px; line-height: 1.35; }
 .art-fig figcaption b { font-family: "Cinzel", Georgia, serif; font-size: 13px; letter-spacing: .04em; color: var(--accent); }
 .art-fig figcaption span { font-style: italic; color: var(--ink); }
+.art-cta-ic.has-img { width: 58px; height: 58px; background: center 22% / cover no-repeat #2a1a12; box-shadow: 0 0 0 2px #c9a24a, 0 0 0 5px rgba(201,162,74,.25), 0 6px 14px rgba(0,0,0,.35); }
+.art-cta-ic.has-img svg { display: none; }
+
+/* Këndi i Lutjes (KOASH): lista e shërbesave dhe teksti me rubrikat e kuqe */
+.kl-list { display: grid; gap: 8px; margin: 8px 0 16px; }
+.kl-i { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 16px; background: var(--card, rgba(255,250,240,.8)); color: var(--ink); text-decoration: none; font: 500 16px "EB Garamond", Georgia, serif; box-shadow: 0 0 0 1px rgba(201,162,74,.35) inset; }
+.kl-i svg { width: 20px; height: 20px; color: var(--accent); flex: none; }
+.kl-i span { flex: 1; }
+.kl-i i { font-style: normal; color: var(--accent); font-size: 20px; }
+.kl-i.on { box-shadow: 0 0 0 2px #c9a24a inset; background: color-mix(in srgb, var(--gold, #c9a24a) 14%, var(--card, #fff8ee)); }
+.kl-i.off { opacity: .55; }
+.kl-i.off small { font-size: 12px; font-style: italic; }
+.klt { font: 400 19px/1.65 "EB Garamond", Georgia, serif; }
+.klt h1 { font-family: "Cinzel", Georgia, serif; font-size: 24px; text-align: center; color: var(--accent); margin: 6px 0 18px; line-height: 1.3; }
+.klt h1 span { font-size: .6em; }
+.klt h2 { font-family: "Cinzel", Georgia, serif; font-size: 17px; letter-spacing: .04em; text-align: center; color: var(--accent); margin: 1.6em 0 .6em; }
+.klt p { margin: 0 0 .7em; text-align: justify; hyphens: auto; }
+.klt .rub { color: #a01c1c; font-size: .9em; font-style: italic; }
+.klt .spk { color: #a01c1c; font-weight: 700; font-variant: small-caps; margin-right: .3em; }
+.klt .resp { padding-left: 1.2em; }
+.klt .dc, .klt .ini { float: left; font: 700 2.9em/.85 "Playfair Display", Georgia, serif; color: #a01c1c; margin: .05em .1em 0 0; }
+.klt .doxology, .klt .refrain { font-style: italic; text-align: center; color: var(--ink-2, #5a4a3a); }
+.art-fig .art-note { margin: 8px 0 0; font: 400 15.5px/1.55 "EB Garamond", Georgia, serif; color: var(--ink); text-align: left; cursor: text; }
+.art-gal { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+/* Kreshma: pjata e ditës */
+.fast-card { cursor: pointer; }
+.fast-more { margin: 8px 0 0; font-size: 12.5px; opacity: .75; letter-spacing: .02em; }
+.fast-card.open .fast-more { display: none; }
+.fast-plate { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s ease; }
+.fast-plate > * { overflow: hidden; }
+.fast-card.open .fast-plate { grid-template-rows: 1fr; }
+.fast-plate > div { min-height: 0; }
+.fp-key { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding-top: 12px; }
+.fp-k { display: flex; flex-direction: column; align-items: center; padding: 7px 4px 6px; border-radius: 12px; line-height: 1.15; }
+.fp-k small { font: 600 10px "Cinzel", Georgia, serif; letter-spacing: .1em; text-transform: uppercase; opacity: .75; }
+.fp-k b { font: 600 14.5px "EB Garamond", Georgia, serif; margin-top: 2px; }
+.fp-k.ok { box-shadow: 0 0 0 1px rgba(201,162,74,.65) inset; background: linear-gradient(180deg, rgba(201,162,74,.16), rgba(201,162,74,.04)); }
+.fp-k.ok b { color: var(--accent); }
+.today-card .fp-k.ok b { color: #e7c873; }
+.fp-k.no { box-shadow: 0 0 0 1px rgba(127,127,127,.28) inset; }
+.fp-k.no b { opacity: .55; }
+.fp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 10px 0 0; }
+.fp-lab { flex: 0 0 100%; font: 600 10px "Cinzel", Georgia, serif; letter-spacing: .12em; text-transform: uppercase; opacity: .6; margin-bottom: 1px; }
+.fp-c { padding: 3px 10px; border-radius: 999px; font: 500 13.5px "EB Garamond", Georgia, serif; }
+.fp-c.ok { box-shadow: 0 0 0 1px rgba(201,162,74,.5) inset; }
+.fp-c.no { opacity: .5; text-decoration: line-through; text-decoration-thickness: 1px; box-shadow: 0 0 0 1px rgba(127,127,127,.25) inset; }
+.fp-note { margin: 10px 0 0; font-size: 12px; font-style: italic; opacity: .65; }
+
+
+/* Shpirti: Loja e Psaltirit lart, pllaka kompakte që lëvizin e shkëlqejnë */
+.game-cta { display: flex; align-items: center; gap: 14px; margin: 14px 0 6px; padding: 12px 16px; border-radius: 18px; text-decoration: none; color: #fff4d6;
+  background: linear-gradient(120deg, #1d3b5c, #3a1660 60%, #6d1a3a); box-shadow: 0 0 0 1.5px #c9a24a inset, 0 8px 22px rgba(30,20,60,.3); position: relative; overflow: hidden; }
+.game-cta::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.22) 50%, transparent 70%); transform: translateX(-100%); animation: gc-shine 3.6s ease-in-out infinite; }
+@keyframes gc-shine { 60%, 100% { transform: translateX(100%); } }
+.gc-ic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.12); box-shadow: 0 0 0 1.5px #c9a24a inset; }
+.gc-ic svg { width: 22px; height: 22px; }
+.game-cta > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; }
+.game-cta b { font-family: "Cinzel", Georgia, serif; font-size: 16px; letter-spacing: .05em; }
+.game-cta small { font-size: 12.5px; opacity: .85; }
+.game-cta i { font-style: normal; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #c9a24a; color: #2a0909; font-size: 13px; }
+.sp-compact .feat-tiles.hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 8px; }
+.sp-compact .feat-tiles.hub .ftile { min-height: 0 !important; height: auto; padding: 10px 12px !important; display: grid; grid-template-columns: 34px 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; text-align: left;
+  border-radius: 14px; transition: transform .18s ease, box-shadow .25s ease, filter .25s; }
+.sp-compact .feat-tiles.hub .ftile > :first-child { grid-row: 1 / 3; width: 34px !important; height: 34px !important; font-size: 22px; margin: 0 !important; display: grid; place-items: center; }
+.sp-compact .feat-tiles.hub .ftile > :first-child svg { width: 22px; height: 22px; }
+.sp-compact .feat-tiles.hub .ftile strong { font-size: 14px; line-height: 1.2; margin: 0; }
+.sp-compact .feat-tiles.hub .ftile span:last-child { font-size: 11.5px; line-height: 1.25; opacity: .78; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-compact .feat-tiles.hub .ftile:hover, .sp-compact .feat-tiles.hub .ftile:focus-visible { transform: translateY(-2px); box-shadow: 0 0 0 1.5px #c9a24a, 0 8px 20px rgba(201,162,74,.35); filter: brightness(1.06); }
+.sp-compact .feat-tiles.hub .ftile:active { transform: scale(.97); }
+
+/* Shkolla: buton kompakt */
+.ch-n.mz.mz-pill { flex-direction: row; align-items: center; gap: 12px; min-height: 0; padding: 10px 14px; border-radius: 16px; position: relative; overflow: hidden; transition: transform .18s, box-shadow .25s; }
+.ch-n.mz.mz-pill span { font-size: 22px; }
+.ch-n.mz.mz-pill b { flex: 1; margin: 0; display: flex; flex-direction: column; font-size: 14px; }
+.ch-n.mz.mz-pill b small { font-family: inherit; font-size: 11.5px; opacity: .75; }
+.ch-n.mz.mz-pill i { font-style: normal; font-size: 20px; opacity: .8; }
+.ch-n.mz.mz-pill:hover { transform: translateY(-2px); box-shadow: 0 0 0 1.5px #c9a24a, 0 8px 20px rgba(122,31,46,.4); }
+.mz-fb { display: flex; align-items: center; gap: 12px; width: 100%; margin: 10px 0; padding: 10px 14px; border: 0; border-radius: 16px; background: linear-gradient(120deg, #1b4a8a, #123060); color: #fff; text-align: left; cursor: pointer; transition: transform .18s, box-shadow .25s; }
+.mz-fb span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #fff; color: #1b4a8a; font: 800 20px system-ui, sans-serif; }
+.mz-fb b { flex: 1; display: flex; flex-direction: column; font-size: 14.5px; }
+.mz-fb small { font-weight: 400; font-size: 12px; opacity: .85; }
+.mz-fb i { font-style: normal; font-size: 20px; }
+.mz-fb:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(27,74,138,.4); }
+/* Tekste liturgjike të vjetra: libri origjinal i Kishës (PDF), pa rishkrim */
+.lit-pdf { display: block; width: 100%; height: min(82vh, 1100px); margin: 10px 0 14px; border: 0; border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px rgba(201,162,74,.4), 0 10px 26px rgba(58,8,8,.12); }
+.lit-open { margin: 6px 0 12px; }
+/* germa e madhe e vendosur saktë (span.dc), jo ::first-letter */
+.sm-lead .dc, .ar-first .dc { float: left; font: 700 3.1em/.82 "Playfair Display", Georgia, serif; margin: .06em .1em 0 0; color: var(--accent); }
+/* Shkrimi: kërko kapitullin dhe vargun */
+.sm-find { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; margin: 10px 0 6px; padding: 10px 12px; border-radius: 16px; background: var(--card, rgba(255,250,240,.8)); box-shadow: 0 0 0 1px rgba(201,162,74,.35) inset; }
+.sm-find label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sm-find small { font: 600 11px "Cinzel", Georgia, serif; letter-spacing: .08em; color: var(--accent); text-transform: uppercase; }
+.sm-find input { width: 100%; height: 40px; padding: 0 10px; border: 0; border-radius: 10px; background: var(--bg, #fffaf2); color: var(--ink); font: 500 17px "EB Garamond", Georgia, serif; box-shadow: 0 0 0 1px rgba(201,162,74,.45) inset; }
+.sm-find input:focus { outline: none; box-shadow: 0 0 0 2px #c9a24a inset; }
+.sm-find button { display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #8a1c1c, #4a0c0c); color: #f8e3a8; font: 600 14px system-ui, sans-serif; cursor: pointer; transition: transform .15s, box-shadow .2s; }
+.sm-find button svg { width: 18px; height: 18px; }
+.sm-find button:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(138,28,28,.35); }
+.sm-find-msg { grid-column: 1 / -1; margin: 0; font-size: 13px; font-style: italic; color: var(--accent); }
+.sm-find-msg:empty { display: none; }
+/* ikonat 3D të ushqimeve (Microsoft Fluent Emoji, MIT) */
+.fp-k img { width: 34px; height: 34px; margin-bottom: 3px; filter: drop-shadow(0 3px 5px rgba(0,0,0,.35)); }
+.fp-k.no img { filter: grayscale(1) brightness(.8) drop-shadow(0 2px 3px rgba(0,0,0,.3)); opacity: .45; }
+.fp-c { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px 3px 4px; }
+.fp-c img { width: 20px; height: 20px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+.fp-c.no img { filter: grayscale(1); opacity: .6; }
+
+/* Loja e Psaltirit · medaljet (shkallët e vështirësisë) */
+.qz-medals { flex-direction: column; align-items: stretch; gap: 10px; }
+.qz-mrow { display: flex; justify-content: center; align-items: flex-end; gap: 10px; }
+.qz-medal { position: relative; width: 40px; height: 52px; display: grid; justify-items: center; flex: none; }
+.qz-medal i { position: absolute; top: 0; width: 18px; height: 20px; background: linear-gradient(90deg, #7a1420 0 33%, #c9a24a 33% 66%, #7a1420 66%); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%); }
+.qz-medal b { position: absolute; bottom: 0; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 15px/1 var(--font-cap, Georgia, serif); color: rgba(40,20,0,.75); text-shadow: 0 1px 0 rgba(255,255,255,.5);
+  background: radial-gradient(circle at 32% 28%, var(--m1) 0 18%, var(--m2) 46%, var(--m3) 100%);
+  box-shadow: inset 0 0 0 3px var(--m2), inset 0 0 0 4px rgba(0,0,0,.18), 0 4px 10px rgba(0,0,0,.25); }
+.qz-medal.big { width: 56px; height: 72px; }
+.qz-medal.big i { width: 24px; height: 28px; }
+.qz-medal.big b { width: 52px; height: 52px; font-size: 21px; }
+.m-bronz { --m1: #f6c79a; --m2: #b06a32; --m3: #6b3a17; }
+.m-argjend { --m1: #ffffff; --m2: #b9c0c8; --m3: #6f7782; }
+.m-ar { --m1: #fff3c2; --m2: #e0b544; --m3: #8c6512; }
+.m-platin { --m1: #f4fbff; --m2: #9fc3d4; --m3: #4c6f80; }
+.m-kurore { --m1: #fff6d8; --m2: #d33a2c; --m3: #6e0f12; }
+.m-kurore b { color: #ffe9a8; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.qz-medal.off { filter: grayscale(1); opacity: .35; }
+.qz-medal:not(.off) b { animation: qzShine 4s ease-in-out infinite; }
+@keyframes qzShine { 0%, 80%, 100% { filter: none; } 88% { filter: brightness(1.35); } }
+.qz-mname { font: inherit !important; color: var(--accent) !important; letter-spacing: 0 !important; font-weight: 700 !important; }
+.qz-medals .qz-rank-t { text-align: center; }
+.qz-uprank { display: flex; align-items: center; justify-content: center; gap: 14px; text-align: left; margin: 8px 0; }
+.qz-uprank p { margin: 0; display: grid; }
+.qz-uprank small { font-size: 13px; color: var(--ink-2); }
+.qz-next { font-size: 14px; color: var(--ink-2); }
+.nm-ic svg, .tp-chip svg { width: 1.1em; height: 1.1em; vertical-align: -.2em; }
+@media (prefers-reduced-motion: reduce) { .qz-medal b { animation: none !important; } }
+.qz-medal.off.next { filter: saturate(.55); opacity: .8; }
+
+/* Shkolla · postimet e Facebook-ut brenda faqes sonë */
+.mz-feed { margin: 14px 0; }
+.mz-feed-h { display: flex; align-items: center; gap: 10px; font: 600 18px "EB Garamond", Georgia, serif; margin: 0 0 8px; color: var(--ink); }
+.mz-feed-h span { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #1877f2; color: #fff; font: 700 17px Arial, sans-serif; flex: none; }
+.mz-feed-h small { margin-left: auto; font-size: 13px; color: var(--ink-2); font-weight: 400; }
+.mz-feed-box { border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px rgba(201,162,74,.35), 0 8px 22px rgba(0,0,0,.08); max-width: 500px; margin: 0 auto; }
+.mz-feed-box iframe { display: block; width: 100%; height: 1400px; max-height: 78vh; border: 0; }
+.mz-fb.mz-fb-s { margin-top: 10px; padding: 10px 14px; }
+.mz-fb.mz-fb-s b { font-size: 15px; }
+
+/* Shkolla · postimet e shkollës si postimet tona */
+.mz-feed-h { display: flex; align-items: baseline; gap: 10px; }
+.mz-feedlist { display: grid; gap: 12px; }
+.mz-pc { display: grid; grid-template-columns: 112px 1fr; gap: 0; border-radius: 18px; overflow: hidden; cursor: pointer;
+  background: var(--card, rgba(255,250,240,.85)); box-shadow: 0 0 0 1px rgba(201,162,74,.3) inset, 0 6px 18px rgba(58,8,8,.07); transition: transform .25s, box-shadow .25s; }
+.mz-pc:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px rgba(201,162,74,.6) inset, 0 10px 24px rgba(58,8,8,.12); }
+.mz-pc:not(:has(.mz-pc-ph)) { grid-template-columns: 1fr; }
+.mz-pc-ph { position: relative; background: #2a1a12; }
+.mz-pc-ph img { width: 100%; height: 100%; min-height: 112px; object-fit: cover; display: block; }
+.mz-pc-ph span { position: absolute; left: 6px; bottom: 6px; padding: 1px 7px; border-radius: 9px; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; }
+.mz-pc-b { padding: 10px 14px 12px; min-width: 0; }
+.mz-pc-m { display: flex; gap: 8px; align-items: center; margin: 0 0 4px; font-size: 12px; color: var(--ink-2); }
+.mz-pc h4 { margin: 0 0 4px; font: 600 16px/1.3 "EB Garamond", Georgia, serif; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mz-pc-b > p:last-child { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.mz-pc.more { display: none; }
+.mz-feedlist.all .mz-pc.more { display: grid; }
+.mz-morebtn { justify-self: center; }
+.mz-art .mz-alb { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin: 10px 0 16px; }
+.mz-art .mz-alb.one { grid-template-columns: 1fr; }
+.mz-art .mz-alb img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; cursor: zoom-in; display: block; }
+.mz-art .mz-alb.one img { aspect-ratio: auto; max-height: 70vh; object-fit: contain; background: #1d130d; }
+.mz-art p a[data-out] { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+/* Shkolla e Muzikës · si web i shkollës */
+.mzw-top { text-align: center; padding: 6px 12px 18px; }
+.mzw-logo { width: 132px; height: 132px; border-radius: 50%; object-fit: cover; background: #fff; box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(46,94,44,.55), 0 12px 28px rgba(58,8,8,.18); }
+.mzw-top h2 { font-family: "Cinzel", Georgia, serif; font-size: 22px; letter-spacing: .03em; color: var(--accent); margin: 14px 0 4px; line-height: 1.25; }
+.mzw-top p { margin: 0; color: var(--ink-2); font: italic 16px "EB Garamond", Georgia, serif; }
+.mzw-feed { display: grid; gap: 14px; max-width: 640px; margin: 0 auto; }
+.mzw-post { border-radius: 20px; overflow: hidden; cursor: pointer; background: var(--card, rgba(255,250,240,.88));
+  box-shadow: 0 0 0 1px rgba(201,162,74,.28) inset, 0 8px 22px rgba(58,8,8,.08); transition: transform .25s, box-shadow .25s; }
+.mzw-post:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px rgba(201,162,74,.6) inset, 0 12px 28px rgba(58,8,8,.13); }
+.mzw-post.more { display: none; }
+.mzw-feed.all .mzw-post.more { display: block; }
+.mzw-ph { position: relative; aspect-ratio: 4 / 3; background: #241710; overflow: hidden; }
+.mzw-ph img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; display: block; }
+.mzw-ph span { position: absolute; right: 10px; bottom: 10px; padding: 2px 9px; border-radius: 10px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; }
+.mzw-ph.vid i { position: absolute; inset: 0; margin: auto; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 22px; color: #fff; background: rgba(160,20,20,.85); box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.mzw-post.new .lj-tag { background: #a01c1c; color: #fff; }
+.mzw-b { padding: 12px 16px 14px; }
+.mzw-m { display: flex; gap: 8px; align-items: center; margin: 0 0 6px; font-size: 12px; color: var(--ink-2); }
+.mzw-b h4 { margin: 0 0 4px; font: 600 18px/1.3 "EB Garamond", Georgia, serif; color: var(--ink); }
+.mzw-b > p:last-child { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+.mzw-net { text-align: center; margin: 22px 0 10px; padding: 16px 12px; border-top: 1px solid rgba(201,162,74,.35); }
+.mzw-net p { margin: 0 0 10px; font-family: "Cinzel", Georgia, serif; letter-spacing: .08em; color: var(--accent); font-size: 13px; }
+.mzw-net .mz-links { justify-content: center; }
+
+/* postimi në ekran të plotë, si ikona e ditës */
+html.mzv-open, html.mzv-open body { overflow: hidden; }
+.mzv { position: fixed; inset: 0; z-index: 9000; background: #0d0907; color: #fff; display: grid; animation: mzvIn .25s ease; }
+.mzv.out { opacity: 0; transition: opacity .2s; }
+@keyframes mzvIn { from { opacity: 0; transform: scale(.98); } }
+.mzv-stage { position: absolute; inset: 0; overflow: hidden; }
+.mzv-bg { position: absolute; inset: -40px; background: center / cover no-repeat; filter: blur(28px) brightness(.45); transform: scale(1.1); }
+.mzv-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .3s; }
+.mzv-img.in { opacity: 1; }
+.mzv-bars { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); left: 10px; right: 10px; display: flex; gap: 4px; z-index: 3; }
+.mzv-bars i { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,.3); }
+.mzv-bars i.on { background: #fff; }
+.mzv-h { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 18px); left: 12px; right: 12px; display: flex; align-items: center; gap: 10px; z-index: 3; text-shadow: 0 1px 4px rgba(0,0,0,.6); }
+.mzv-h img { width: 36px; height: 36px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px #fff; }
+.mzv-h span { flex: 1; display: grid; line-height: 1.2; }
+.mzv-h b { font-size: 14px; }
+.mzv-h small { font-size: 12px; opacity: .8; }
+.mzv-x { width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(0,0,0,.35); color: #fff; font-size: 18px; cursor: pointer; }
+.mzv-nav { position: absolute; top: 15%; bottom: 35%; width: 30%; border: 0; background: transparent; z-index: 2; cursor: pointer; }
+.mzv-nav.prev { left: 0; } .mzv-nav.next { right: 0; }
+.mzv-cap { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; max-height: 34%; overflow: hidden; padding: 40px 18px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  background: linear-gradient(to top, rgba(0,0,0,.92) 55%, rgba(0,0,0,0)); cursor: pointer; transition: max-height .3s; }
+.mzv-cap.full { max-height: 82%; overflow-y: auto; background: rgba(8,5,4,.94); }
+.mzv-cap h3 { margin: 0 0 6px; font: 600 19px/1.3 "EB Garamond", Georgia, serif; }
+.mzv-txt p { margin: 0 0 8px; font: 400 16px/1.5 "EB Garamond", Georgia, serif; color: rgba(255,255,255,.9); }
+.mzv-cap:not(.full) .mzv-txt { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.mzv-link { margin: 6px 0; padding: 8px 14px; border-radius: 12px; border: 0; background: #a01c1c; color: #fff; font-size: 14px; cursor: pointer; }
+.mzv-src { margin: 8px 0 0; font-size: 13px; opacity: .85; }
+.mzv-src a { color: #e7c873; text-decoration: underline; cursor: pointer; }
+
+/* karta e tekstit të postimit të shkollës (logjika e «Ikonës së ditës») */
+.mzc { z-index: 9000; }
+.mzc .icv-card[data-t="text"], .mzc .icv-card[data-t="end"] { display: grid; place-items: center; }
+.mzc-paper { width: 100%; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 22px 22px 26px; border-radius: 22px; cursor: auto;
+  background: linear-gradient(180deg, #fbf5e8, #f3e8d2); color: #2b1d14; box-shadow: 0 24px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(201,162,74,.5) inset; text-align: left; }
+.mzc-logo { display: block; width: 64px; height: 64px; margin: 0 auto 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(46,94,44,.5); }
+.mzc-k { margin: 0 0 8px; text-align: center; font: 600 11.5px/1.3 "Cinzel", Georgia, serif; letter-spacing: .06em; color: #8a1c1c; }
+.mzc-paper h3 { margin: 0 0 12px; text-align: center; font: 600 21px/1.3 "EB Garamond", Georgia, serif; color: #2b1d14; }
+.mzc-paper p { margin: 0 0 10px; font: 400 17.5px/1.6 "EB Garamond", Georgia, serif; }
+.mzc-more { margin-top: 14px !important; text-align: center; font-size: 14px !important; font-style: italic; color: #8a6a3a; }
+.mzc-end { text-align: center; display: grid; gap: 10px; justify-items: center; height: auto; }
+.mzc-src { font-size: 16px !important; }
+.mzc-src a { color: #8a1c1c; text-decoration: underline; cursor: pointer; font-weight: 600; }
+.mzc-btn { padding: 10px 18px; border-radius: 14px; border: 0; background: #8a1c1c; color: #fff; font: 600 15px "EB Garamond", Georgia, serif; cursor: pointer; }
+.mzc-btn.ghost { background: transparent; color: #8a1c1c; box-shadow: 0 0 0 1px #8a1c1c inset; }
+
+/* Shkolla · profili dhe storiet (si në Instagram / Facebook) */
+.mzw-ring { padding: 4px; border: 0; border-radius: 50%; background: transparent; cursor: pointer; transition: transform .2s; }
+.mzw-ring:active { transform: scale(.96); }
+.mzw-ring.fresh { background: conic-gradient(from 210deg, #f9ce34, #ee2a7b, #6228d7, #f9ce34); }
+.mzw-ring .mzw-logo { display: block; box-shadow: 0 0 0 4px var(--bg, #f6efe2), 0 12px 28px rgba(58,8,8,.18); }
+.mzw-stories { display: flex; gap: 12px; overflow-x: auto; padding: 4px 4px 14px; margin: 0 auto 6px; max-width: 640px; scrollbar-width: none; }
+.mzw-stories::-webkit-scrollbar { display: none; }
+.mzw-st { flex: none; display: grid; justify-items: center; gap: 4px; border: 0; background: transparent; cursor: pointer; padding: 0; }
+.mzw-st span { width: 68px; height: 68px; padding: 3px; border-radius: 50%; background: conic-gradient(from 210deg, #f9ce34, #ee2a7b, #6228d7, #f9ce34); display: block; }
+.mzw-st.seen span { background: rgba(140,120,100,.35); }
+.mzw-st img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; box-shadow: 0 0 0 3px var(--bg, #f6efe2); }
+.mzw-st small { font-size: 11.5px; color: var(--ink-2); }
+
+/* Shkolla · postimi si faqe, fotot si kuvertë kartash */
+.mz-art-by { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+.mz-art-by img { width: 42px; height: 42px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(46,94,44,.45); }
+.mz-art-by span { display: grid; line-height: 1.25; }
+.mz-art-by b { font-size: 15px; color: var(--ink); }
+.mz-art-by small { font-size: 13px; color: var(--ink-2); }
+.mzd { position: relative; width: min(100%, 420px); height: min(56vh, 460px); margin: 14px auto 34px; touch-action: pan-y; user-select: none;
+  transition: height .45s var(--spring, ease), margin .45s, opacity .35s; }
+.mzd.done { height: 0; margin: 0; opacity: 0; overflow: hidden; }
+.mzd-c { position: absolute; inset: 0; margin: 0; border-radius: 20px; overflow: hidden; background: #1d130d; cursor: pointer;
+  box-shadow: 0 14px 34px rgba(30,15,5,.28), 0 0 0 4px #fff; transform-origin: 50% 100%;
+  transform: translateY(calc(var(--d, 0) * -20px)) scale(calc(1 - var(--d, 0) * .035)) rotate(calc(var(--r, 0) * 1deg));
+  transition: transform .45s var(--spring, ease), opacity .4s; }
+.mzd-c img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.mzd-c.gone { transform: translateX(-130%) rotate(-14deg); opacity: 0; pointer-events: none; }
+.mzd-c.far { opacity: 0; }
+.mzd-full { position: absolute; right: 10px; bottom: 10px; width: 42px; height: 42px; border-radius: 12px; border: 0; background: rgba(0,0,0,.5); color: #fff; font-size: 20px; cursor: pointer; backdrop-filter: blur(6px); }
+.mzd-n { position: absolute; left: 0; right: 0; bottom: -28px; margin: 0; text-align: center; font-size: 13px; color: var(--ink-2); }
+.mzd-again { display: flex; align-items: center; gap: 8px; margin: 6px auto 16px; padding: 8px 16px; border-radius: 99px; border: 0; cursor: pointer;
+  background: var(--card, #fff8ee); color: var(--accent); font: 600 14px "EB Garamond", Georgia, serif; box-shadow: 0 0 0 1px rgba(201,162,74,.5) inset; }
+.mzd-again svg { width: 18px; height: 18px; }
+.mz-next { display: block; margin: 18px auto 6px; }
+
+/* Shkolla · kanali i YouTube, seksion më vete */
+.mzw-yt { max-width: 640px; margin: 26px auto 6px; }
+.mzw-sh { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font: 600 13px "Cinzel", Georgia, serif; letter-spacing: .08em; color: var(--accent); }
+.mzw-yt-i { width: 28px; height: 20px; border-radius: 6px; background: #d61f1f; color: #fff; display: grid; place-items: center; font-size: 11px; }
+.mzw-vids { display: flex; gap: 12px; overflow-x: auto; padding: 2px 2px 10px; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.mzw-v { flex: none; width: 220px; scroll-snap-align: start; display: grid; gap: 4px; text-align: left; border: 0; padding: 0; background: transparent; cursor: pointer; color: var(--ink); }
+.mzw-vth { position: relative; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: #1d130d; box-shadow: 0 6px 16px rgba(0,0,0,.15); }
+.mzw-vth img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mzw-vth i { position: absolute; inset: 0; margin: auto; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-style: normal; color: #fff; background: rgba(214,31,31,.9); font-size: 15px; }
+.mzw-v b { font: 600 14.5px/1.3 "EB Garamond", Georgia, serif; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mzw-v small { font-size: 12px; color: var(--ink-2); }
+.mzw-v.new b::before { content: "E re · "; color: #a01c1c; }
+
+/* Shkolla · titujt në qendër, të ndarë drejt; teksti i justifikuar; arkivi me vite / muaj dhe kërkim */
+.mz-art h1 { text-align: center; text-wrap: balance; line-height: 1.3; margin: 10px auto 14px; max-width: 30ch; }
+.mz-art > p:not(.art-src):not(.mz-art-by) { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+.mz-art-by { justify-content: center; }
+.mzw-b h4 { text-align: center; text-wrap: balance; }
+.mzw-b > p:last-child { text-align: justify; hyphens: auto; }
+.mzw-b .mzw-m { justify-content: center; }
+.mzw-search { position: sticky; top: 0; z-index: 5; display: grid; gap: 8px; padding: 10px 0 8px; margin-bottom: 4px;
+  background: linear-gradient(var(--bg, #f6efe2) 82%, transparent); }
+.mzw-q { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 16px; background: var(--card, #fffaf0); box-shadow: 0 0 0 1px rgba(201,162,74,.45) inset; }
+.mzw-q svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+.mzw-q input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 400 16px "EB Garamond", Georgia, serif; color: var(--ink); }
+.mzw-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.mzw-chips::-webkit-scrollbar { display: none; }
+.mzw-chip { flex: none; padding: 5px 12px; border-radius: 99px; border: 0; cursor: pointer; text-transform: capitalize; font: 500 13.5px "EB Garamond", Georgia, serif;
+  background: var(--card, #fffaf0); color: var(--ink); box-shadow: 0 0 0 1px rgba(201,162,74,.4) inset; }
+.mzw-chip[aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: none; }
+.mzw-count { margin: 0; text-align: center; font-size: 12.5px; color: var(--ink-2); }
+#mzList { display: grid; gap: 14px; }
+.mzw-year { margin: 10px 0 0; text-align: center; font: 700 28px "Cinzel", Georgia, serif; color: var(--accent); letter-spacing: .1em; }
+.mzw-month { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 8px 0 -2px; text-transform: capitalize;
+  font: 600 18px "EB Garamond", Georgia, serif; color: var(--ink); }
+.mzw-month::before, .mzw-month::after { content: ""; flex: 1; height: 1px; background: rgba(201,162,74,.45); align-self: center; }
+.mzw-month small { font-size: 12px; color: var(--ink-2); font-weight: 400; text-transform: none; }
+.mzw-none { text-align: center; padding: 20px 0; }
+
+/* Thëniet në faqen kryesore: rrëshqitje e lëmuar — pa blur (shumë i rëndë në ekran të plotë), vetëm transform/opacity në GPU */
+.reel { contain: layout paint; }
+.reel .reel-bg { will-change: transform; backface-visibility: hidden; }
+.reel .reel-body, .reel .reel-bg { transition: opacity .22s ease, transform .3s cubic-bezier(.2, .8, .2, 1) !important; }
+.reel .rail-btn, .reel .reel-cross { transition-duration: .25s !important; transition-delay: 0s !important; }
+.reel:not(.active) .reel-bg { filter: none !important; transform: scale(1.06) !important; }
+.reel:not(.active) .reel-body { filter: none !important; opacity: .4; transform: translateY(12px) scale(.97); }
+.reel.active .reel-body { filter: none !important; opacity: 1; transform: none; }
+.reel { background: #0d0907; }
+.reel:not(.active) .reel-bg { opacity: .72; }
+
+/* lupa lundruese: çipat e faqes (vit / muaj) mbi shiritin e kërkimit, njësoj kudo */
+.pf-chips { position: fixed; z-index: 33; left: var(--pf-l, 12px); width: var(--pf-w, calc(100vw - 24px)); max-width: 520px;
+  bottom: calc(var(--safe-b, 0px) + 128px); display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 6px;
+  border-radius: 18px; background: color-mix(in srgb, var(--card, #fffaf0) 92%, transparent); border: 1px solid var(--line, rgba(201,162,74,.4));
+  box-shadow: 0 10px 26px rgba(30,15,5,.18); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); animation: sheetUp .25s ease-out; }
+.pf-chips[hidden] { display: none; }
+.pf-chips::-webkit-scrollbar { display: none; }
+.pf-chips button { flex: none; padding: 6px 13px; border-radius: 99px; border: 0; cursor: pointer; font: 500 14px "EB Garamond", Georgia, serif; text-transform: capitalize;
+  background: transparent; color: var(--ink); box-shadow: 0 0 0 1px rgba(201,162,74,.45) inset; }
+.pf-chips button[aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: none; }
+@media (min-width: 640px) { .pf-chips { bottom: calc(var(--safe-b, 0px) + 70px); } }
+
+/* lupa kur ka kërkim / filtër aktiv (shiriti i fshehur) */
+.pf-find.on { background: var(--accent) !important; color: #fff !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent), 0 8px 20px rgba(0,0,0,.2); }
+
+.mzw-yt { margin: 4px auto 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(201,162,74,.35); }
+.mzw-posts-h { max-width: 640px; margin: 6px auto 4px; }
+
+/* Shkolla · Radio Ngjallja dhe renditja e pjesëve */
+.lj-tag.r { background: #1f3b6e; color: #fff; }
+.mz-play { text-align: center; margin: 4px 0 16px; }
+.mzw-sort { margin-left: auto; display: flex; gap: 4px; }
+.mzw-sort button { padding: 4px 10px; border-radius: 99px; border: 0; cursor: pointer; font: 500 12.5px "EB Garamond", Georgia, serif; letter-spacing: 0; text-transform: none;
+  background: transparent; color: var(--ink); box-shadow: 0 0 0 1px rgba(201,162,74,.45) inset; }
+.mzw-sort button[aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: none; }
+
+/* Pllakat: asnjë mbivendosje — ikona në kutinë e vet, titulli ndahet vetëm te fjalët (jo «Kom/bos/kini») */
+.ftile strong { overflow-wrap: break-word !important; word-break: normal !important; hyphens: manual !important; }
+.sp-compact .feat-tiles.hub .ftile { grid-template-columns: 38px minmax(0, 1fr) !important; column-gap: 12px; overflow: hidden; }
+.sp-compact .feat-tiles.hub .ftile > :first-child {
+  position: relative !important; inset: auto !important; left: auto !important; right: auto !important; top: auto !important; bottom: auto !important;
+  transform: none !important; grid-column: 1; grid-row: 1 / 3; width: 38px !important; height: 38px !important; max-width: 38px; max-height: 38px;
+  overflow: hidden; opacity: 1 !important; align-self: center; justify-self: center; border-radius: 10px; }
+.sp-compact .feat-tiles.hub .ftile > :first-child svg { width: 24px !important; height: 24px !important; }
+.sp-compact .feat-tiles.hub .ftile > svg:first-child { padding: 7px; box-sizing: border-box; }
+.sp-compact .feat-tiles.hub .ftile .candle { transform: scale(.42) !important; transform-origin: 50% 50%; overflow: visible; }
+.sp-compact .feat-tiles.hub .ftile .ft-orb { width: 30px !important; height: 30px !important; border-radius: 50%; }
+.sp-compact .feat-tiles.hub .ftile .ft-days { font-size: 18px !important; line-height: 38px; text-align: center; }
+.sp-compact .feat-tiles.hub .ftile .ft-card { transform: scale(.7) !important; }
+.sp-compact .feat-tiles.hub .ftile strong, .sp-compact .feat-tiles.hub .ftile > span:last-child { grid-column: 2; min-width: 0; position: relative; z-index: 1; }
+.sp-compact .feat-tiles.hub .ftile strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; letter-spacing: .02em; }
+
+/* Gazeta e Shkollës (një numër në muaj) */
+.mzg-cta { display: flex; align-items: center; gap: 12px; max-width: 640px; margin: 0 auto 16px; padding: 12px 16px; border-radius: 18px; text-decoration: none;
+  background: linear-gradient(135deg, #2b1d14, #4a2a18); color: #f6e7c8; box-shadow: 0 8px 22px rgba(40,20,8,.25), 0 0 0 1px rgba(231,200,115,.35) inset; }
+.mzg-cta[hidden] { display: none; }
+.mzg-ic { font-size: 26px; }
+.mzg-cta span:nth-child(2) { flex: 1; display: grid; }
+.mzg-cta b { font: 700 18px "Old Standard TT", Georgia, serif; letter-spacing: .02em; }
+.mzg-cta small { font-size: 13px; opacity: .85; }
+.mzg-cta i { font-style: normal; font-size: 22px; color: #e7c873; }
+.mzg-tabs { margin-bottom: 10px; }
+.mzg-sheet { max-width: 860px; margin: 0 auto 20px; padding: 22px 20px 26px; background: #f3ead6; color: #1c140c; border-radius: 6px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.18); font-family: "Old Standard TT", Georgia, serif; }
+.mzg-mast { display: grid; grid-template-columns: 56px 1fr 56px; align-items: center; gap: 10px; text-align: center; border-bottom: 5px double #1c140c; padding-bottom: 10px; }
+.mzg-mast img { width: 56px; height: 56px; border-radius: 50%; background: #fff; }
+.mzg-mast h1 { margin: 0; font: 400 clamp(28px, 7vw, 54px)/1 "UnifrakturMaguntia", "Old Standard TT", Georgia, serif; letter-spacing: .01em; }
+.mzg-mast p { margin: 4px 0 0; font: italic 15px "Old Standard TT", Georgia, serif; letter-spacing: .08em; text-transform: uppercase; }
+.mzg-line { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 16px; padding: 5px 0; border-bottom: 1px solid #1c140c; font-size: 12.5px; text-transform: uppercase; letter-spacing: .06em; }
+.mzg-a h2, .mzg-a h3 { text-align: center; text-wrap: balance; margin: 6px 0 10px; line-height: 1.2; font-family: "Playfair Display", "Old Standard TT", Georgia, serif; }
+.mzg-a h2 { font-size: clamp(22px, 4.5vw, 32px); font-weight: 900; }
+.mzg-a h3 { font-size: 19px; font-weight: 700; }
+.mzg-k { margin: 6px 0 0; text-align: center; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: #7a1c1c; }
+.mzg-t p { margin: 0 0 .6em; text-align: justify; hyphens: auto; font-size: 16.5px; line-height: 1.55; }
+.mzg-t .dc { float: left; font: 900 3.1em/.8 "Playfair Display", Georgia, serif; margin: .06em .08em 0 0; color: #7a1c1c; }
+.mzg-ph { position: relative; margin: 0 0 6px; cursor: zoom-in; }
+.mzg-ph img { width: 100%; max-height: 460px; object-fit: cover; display: block; filter: sepia(.12) contrast(1.02); border: 1px solid #1c140c; }
+.mzg-ph span { position: absolute; right: 8px; bottom: 8px; padding: 1px 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 12px; }
+.mzg-ph.vid i { position: absolute; inset: 0; margin: auto; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-style: normal; color: #fff; background: rgba(160,20,20,.9); }
+.mzg-a.lead { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 3px double #1c140c; }
+.mzg-cols { column-count: 2; column-gap: 26px; column-rule: 1px solid rgba(28,20,12,.4); }
+.mzg-cols .mzg-a { break-inside: avoid; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid rgba(28,20,12,.35); }
+@media (max-width: 620px) { .mzg-cols { column-count: 1; } }
+.mzg-src { text-align: right; margin: 0; font-size: 13px; }
+.mzg-src a { color: #7a1c1c; cursor: pointer; text-decoration: underline; }
+.mzg-vids { margin-top: 10px; border-top: 3px double #1c140c; padding-top: 8px; }
+.mzg-vids h3 { text-align: center; margin: 0 0 8px; font: 700 18px "Playfair Display", Georgia, serif; }
+.mzg-v { display: flex; gap: 10px; align-items: center; width: 100%; padding: 6px 0; border: 0; border-bottom: 1px solid rgba(28,20,12,.25); background: transparent; text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.mzg-v img { width: 110px; aspect-ratio: 16/9; object-fit: cover; border: 1px solid #1c140c; }
+.mzg-v span { display: grid; } .mzg-v b { font-size: 15px; } .mzg-v small { font-size: 12px; opacity: .75; }
+.mzg-foot { margin-top: 14px; padding-top: 6px; border-top: 1px solid #1c140c; font-size: 11.5px; text-align: center; letter-spacing: .04em; }
+.mzg-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 2px 8px; flex-wrap: nowrap; }
+.mzg-tabs::-webkit-scrollbar { display: none; }
+.mzg-tabs a { flex: none; padding: 6px 14px; border-radius: 99px; text-decoration: none; white-space: nowrap; font: 500 14px "EB Garamond", Georgia, serif;
+  color: var(--ink); background: var(--card, #fffaf0); box-shadow: 0 0 0 1px rgba(201,162,74,.45) inset; }
+.mzg-tabs a[aria-selected="true"] { background: var(--accent); color: #fff; box-shadow: none; }
+
+/* Shpirti: «ditë me Fjalën» brenda kartës së thënies së ditës, një kartë e vetme */
+.sp-hero .streak { position: relative; z-index: 1; margin: 14px 0 0 !important; padding: 12px 0 0 !important; min-height: 0 !important;
+  background: none !important; box-shadow: none !important; border: 0 !important; border-top: 1px solid rgba(255,235,200,.18) !important; border-radius: 0 !important;
+  display: flex; align-items: center; gap: 12px; color: inherit; }
+.sp-hero .streak .sf { position: relative !important; inset: auto !important; width: 26px; height: 34px; flex: none; transform: scale(.55); transform-origin: 50% 60%; }
+.sp-hero .streak .streak-main { flex: 1; min-width: 0; padding: 0 !important; }
+.sp-hero .streak .streak-n { margin: 0 0 6px; font-size: 15px; }
+.sp-hero .streak .streak-n b { font-size: 22px; }
+.sp-hero .streak .streak-bar { height: 5px; }
+.sp-hero .streak .streak-sub { margin: 5px 0 6px; font-size: 12px; opacity: .8; }
+.sp-hero .streak .streak-dots { gap: 3px; }
+.sp-hero .streak .streak-dots i { height: 4px; }
+
+.mzg-mast { border-bottom: 0 !important; padding-bottom: 4px !important; grid-template-columns: 64px 1fr 64px !important; }
+.mzg-mast img { width: 64px !important; height: 64px !important; box-shadow: 0 0 0 2px #1c140c; }
+.mzg-mast h1 { font-size: clamp(34px, 9vw, 76px) !important; line-height: .95 !important; }
+.mzg-tag { margin: 6px 0 8px; text-align: center; font: 400 clamp(11px, 2.4vw, 15px) "Playfair Display", Georgia, serif; text-transform: uppercase; letter-spacing: .3em; }
+.mzg-line { border-top: 2px solid #1c140c; border-bottom: 1px solid #1c140c !important; }
+.gzc-s::before { background: radial-gradient(130% 130% at 0% 0%, #2e5e2c 0%, #1d3a1b 55%, #0c1a0b 100%); }
+
+/* koka si te gazeta e përditshme: vetëm titulli «Fjala e Shenjtë», në një rresht */
+.mzg-mast { display: block !important; text-align: center; }
+.mzg-mast h1 { white-space: nowrap; font-size: clamp(30px, 10.5vw, 96px) !important; }
+
+/* kopertinat e videove: gjithmonë 16:9, pa vijat e zeza (edhe kur vjen hqdefault 4:3) */
+.mzw-ph.vid { aspect-ratio: 16 / 9; overflow: hidden; }
+.mzw-ph.vid img { width: 100%; height: 100%; object-fit: cover; }
