@@ -1,0 +1,41 @@
+name: Perditeso Ikonat e Shenjtoreve
+
+on:
+  schedule:
+    - cron: '0 9,14,19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Shkarko depon
+        uses: actions/checkout@v4
+
+      - name: Konfiguro Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalo librarite
+        run: pip install instaloader Pillow
+
+      - name: Ngarko sesionin e Instagramit
+        env:
+          IG_SESSION_B64: ${{ secrets.IG_SESSION_B64 }}
+        run: |
+          mkdir -p ~/.config/instaloader
+          echo "$IG_SESSION_B64" | base64 -d > ~/.config/instaloader/session-minuel_collaku
+
+      - name: Ekzekuto skriptin
+        run: python merr_ikonat_2026.py
+
+      - name: Ruaj ndryshimet ne GitHub
+        run: |
+          git config user.name "Minuel Collaku"
+          git config user.email "nelo1231@users.noreply.github.com"
+          git add assets/www/images/shenjtoret/ data/shenjtoret_dites.json
+          git diff --cached --quiet || (git commit -m "Auto-update ikona (GitHub Actions)" && git push)
