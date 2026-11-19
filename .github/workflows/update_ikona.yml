@@ -37,5 +37,5 @@ jobs:
         run: |
           git config user.name "Minuel Collaku"
           git config user.email "nelo1231@users.noreply.github.com"
-          git add assets/www/images/shenjtoret/ data/shenjtoret_dites.json
+          git add img/apostujt/ data/imazhet_*.json
           git diff --cached --quiet || (git commit -m "Auto-update ikona (GitHub Actions)" && git push)
