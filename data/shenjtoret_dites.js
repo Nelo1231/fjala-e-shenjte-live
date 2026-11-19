@@ -1,0 +1,1 @@
+window.FS_DATA=window.FS_DATA||{};FS_DATA["shenjtoret_dites"]={"2026-11-18":{"date":"2026-11-18","image_url":"images/shenjtoret/sh_2026-11-18.jpg","caption":"","source":"https://www.instagram.com/apostle_icons/","account":"apostle_icons"}};
