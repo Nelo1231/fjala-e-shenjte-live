@@ -1,5 +1,5 @@
 window.CHURCH_OFFICIALS = {
-  "updated_at": "2026-11-21T18:25:28.415005+00:00",
+  "updated_at": "2026-11-21T19:00:41.820353+00:00",
   "officials": [
     {
       "id": "albania_koash",

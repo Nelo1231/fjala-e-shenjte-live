@@ -1,5 +1,5 @@
 ﻿/* Punon pa internet: ruan aplikacionin dhe tekstet në telefon. */
-const VERSION = "fs-v114";
+const VERSION = "fs-v115";
 const SHELL = [
   "./", "index.html", "css/app.css", "css/glass.css", "js/app.js", "js/lexime.js", "js/share.js", "js/music.js",
   "data/psaltiri.js", "data/kuizi.js", "data/eterit.js", "data/ungjilli.js", "data/apostulli.js", "data/profecite.js", "data/tipikoja.js", "data/sherbesa.js", "data/imazhet.js", "data/jerontikoni.js", "data/himnet.js", "data/pasdarka.js", "js/cross.js", "js/radio.js", "manifest.webmanifest",
@@ -33,7 +33,7 @@ self.addEventListener("fetch", (e) => {
   // YouTube luhet gjithmonë drejtpërdrejt nga rrjeti
   if (/youtube|ytimg|googlevideo/.test(url.hostname)) return;
   // fotot e lajmeve (UGO.al, KOASH, Orthodox Times): zero cache, as në disk as në memorien e shërbyesit
-  if (/(^|\.)(ugo\.al|orthodoxalbania\.org|orthodoxtimes\.com|vaticannews\.va)$/.test(url.hostname) || /lajme_bota\.json|shkolla\.json|mitropolite\.json|vatikan\.json/.test(url.pathname)) {
+  if (/(^|\.)(ugo\.al|orthodoxalbania\.org|orthodoxtimes\.com|vaticannews\.va)$/.test(url.hostname) || /lajme_bota\.json|shkolla\.json|mitropolite\.json|vatikan\.json|transmetimet\.json|kinema\.json/.test(url.pathname)) {
     e.respondWith(fetch(e.request, { cache: "no-store" }).catch(() => new Response("", { status: 504 })));
     return;
   }
@@ -62,25 +62,54 @@ async function nState(set) {
   return r ? r.json() : {};
 }
 const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+// secili lloj njoftimi ndizet / fiket te Cilësimet e aplikacionit (st.prefs)
+const getJson = async (u) => { try { const r = await fetch(u + "?t=" + Date.now(), { cache: "no-store" }); return r.ok ? await r.json() : null; } catch (e) { return null; } };
 async function notifyCheck() {
   if (self.Notification && Notification.permission !== "granted") return;
   const st = await nState(), now = new Date(), day = isoDay(now);
+  const on = (k) => !st.prefs || st.prefs[k] !== false;
   const show = (tag, title, body, route) => self.registration.showNotification(title, { body, tag, icon: "icons/icon-192.png", badge: "icons/icon-192.png", data: { route } });
-  if (now.getHours() >= 20 && st.gz !== day) { st.gz = day; await show("gazeta", "🗞 Gazeta e ditës gati", "Fjala e Shenjtë · lajmet e sotme", "#/gazeta"); }
-  if (now.getDay() === 0 && now.getHours() >= 12 && st.wk !== day) { st.wk = day; await show("javore", "⛪ Gazetat e javës dolën", "Mitropolitë, Fanari dhe Vatikani · lajmet e kësaj jave", "#/gazetat"); }
-  try {
-    const r = await fetch("data/lajme_bota.json?t=" + Date.now(), { cache: "no-store" });
-    if (r.ok) {
-      const items = ((await r.json()).items || []).filter((n) => (n.lang || "sq") === "sq");
-      const top = items[0];
-      if (top && st.news && st.news !== top.link) await show("lajme", "📰 Lajm i ri", top.title, "#/kisha");
-      if (top) st.news = top.link;
+  if (now.getHours() >= 20 && st.gz !== day) { st.gz = day; if (on("gazeta")) await show("gazeta", "🗞 Gazeta e ditës gati", "Fjala e Shenjtë · lajmet e sotme", "#/gazeta"); }
+  if (now.getDay() === 0 && now.getHours() >= 12 && st.wk !== day) { st.wk = day; if (on("javore")) await show("javore", "⛪ Gazetat e javës dolën", "Mitropolitë, Fanari dhe Vatikani · lajmet e kësaj jave", "#/gazetat"); }
+  const news = await getJson("data/lajme_bota.json");
+  if (news) {
+    const top = (news.items || []).filter((n) => (n.lang || "sq") === "sq")[0];
+    if (top && st.news && st.news !== top.link && on("news")) await show("lajme", "📰 Lajm i ri", top.title, "#/kisha");
+    if (top) st.news = top.link;
+  }
+  // Shërbesat live: shërbesa më e re e Radio Ngjallja (kur ka nisur ose po nis)
+  const lv = await getJson("data/transmetimet.json");
+  if (lv) {
+    const svc = (lv.videos || []).filter((v) => v.svc && Date.parse(v.date) <= Date.now() + 15 * 6e4)[0];
+    if (svc && st.live && st.live !== svc.id && Date.now() - Date.parse(svc.date) < 3 * 36e5 && on("live")) await show("live", "🔴 LIVE · Radio Ngjallja", svc.title, "#/transmetime");
+    if (svc) st.live = svc.id;
+  }
+  // Kinemaja: film, seri ose episod i ri + premierat që ke ruajtur
+  const kn = await getJson("data/kinema.json");
+  if (kn) {
+    const keys = [], names = {};
+    (kn.items || []).forEach((x) => {
+      if (!x || !x.id || x.statusi === "së shpejti") return;
+      keys.push("t:" + x.id); names["t:" + x.id] = (x.tipi === "seri" ? "Seri e re: " : "Film i ri: ") + x.titulli;
+      (x.episodet || []).forEach((e) => { const k = "e:" + x.id + ":" + (e.id || e.nr); keys.push(k); names[k] = "Episod i ri: " + (e.titulli || "") + " · " + x.titulli; });
+    });
+    if (st.kn) {
+      const old = new Set(st.kn), fresh = keys.filter((k) => !old.has(k));
+      if (fresh.length && on("kinema")) await show("kinema", "🎬 E re në Kinema", names[fresh[0]] + (fresh.length > 1 ? ` (+${fresh.length - 1})` : ""), "#/kinema");
     }
-  } catch (e) { /* pa internet */ }
+    st.kn = keys.slice(0, 1500);
+  }
+  if (on("kinema")) for (const r of st.knRemind || []) {
+    if (r.d === day && now.getHours() >= 9 && !(st.knDone || []).includes(r.id)) { st.knDone = (st.knDone || []).concat(r.id).slice(-60); await show("kn-" + r.id, "🎬 Premiera sot në Kinema", r.t || "", "#/kinema/t/" + encodeURIComponent(r.id)); }
+  }
   await nState(st);
 }
+async function savePrefs(d) { const st = await nState(); st.prefs = d.fsPrefs; if (Array.isArray(d.knRemind)) st.knRemind = d.knRemind; await nState(st); }
 self.addEventListener("periodicsync", (e) => { if (e.tag === "fs-check") e.waitUntil(notifyCheck()); });
-self.addEventListener("message", (e) => { if (e.data === "fs-check") e.waitUntil ? e.waitUntil(notifyCheck()) : notifyCheck(); });
+self.addEventListener("message", (e) => {
+  const job = e.data === "fs-check" ? notifyCheck() : e.data && e.data.fsPrefs ? savePrefs(e.data) : null;
+  if (job && e.waitUntil) e.waitUntil(job);
+});
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
   const route = (e.notification.data && e.notification.data.route) || "#/";
