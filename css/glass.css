@@ -1841,6 +1841,8 @@ html.eco .tile::after, html.eco .site-link::after { display: none; }
 .fp-c.ok { box-shadow: 0 0 0 1px rgba(201,162,74,.5) inset; }
 .fp-c.no { opacity: .5; text-decoration: line-through; text-decoration-thickness: 1px; box-shadow: 0 0 0 1px rgba(127,127,127,.25) inset; }
 .fp-note { margin: 10px 0 0; font-size: 12px; font-style: italic; opacity: .65; }
+.fp-info { margin: 12px 0 0; font: 400 16px/1.5 "EB Garamond", Georgia, serif; }
+.page-head .set-btn { margin-left: auto; }
 
 
 /* Shpirti: Loja e Psaltirit lart, pllaka kompakte që lëvizin e shkëlqejnë */

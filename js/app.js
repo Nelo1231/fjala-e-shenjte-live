@@ -608,7 +608,6 @@ function pickPhoto(it) {
         <div class="reel-rail">
           <button class="rail-btn${on ? " on" : ""}" data-act="like" aria-pressed="${on}" aria-label="Pëlqej">${icon(on ? "heart-fill" : "heart")}<span>Pëlqej</span></button>
           <a class="rail-btn" data-act="read" href="${it.link}" aria-label="Lexo të plotë">${icon("book")}<span>Lexo</span></a>
-          ${hasFull(it) ? `<button class="rail-btn rail-full" data-act="full" aria-label="Pasazhi i plotë">${icon("book")}<span>Pasazhi i plotë</span></button>` : ""}
           <button class="rail-btn" data-act="share" aria-label="Ndaj">${icon("send")}<span>Ndaj</span></button>
         </div>
         <div class="burst" aria-hidden="true">${icon("heart-fill")}</div>
@@ -980,7 +979,7 @@ function pickPhoto(it) {
      ===================================================================== */
   const SITE = "https://orthodoxalbania.org/2026/";
   // Faqja e Kishës (KOASH) — gjithçka hapet brenda aplikacionit si faqet tona; burimi citohet në fund.
-  // (Lajmet, Kalendari, Tipikoja, Dhjata e Re, Jerontikoni, Muzika: i ka vetë aplikacioni, nuk përsëriten.)
+  // (Lajmet, Kalendari, Tipikoja, Dhjata e Re, Jerondikon, Muzika: i ka vetë aplikacioni, nuk përsëriten.)
   const SITE_GROUPS = [
     ["Kisha jonë", [
       ["Kryepiskopi Joan", "2025/12/18/biografia-e-fortlumturise-se-tij-kryepiskopit-te-tiranes-durresit-dhe-gjithe-shqiperise-imzot-joan-pelushi/", "cross"],
@@ -1946,18 +1945,25 @@ function pickPhoto(it) {
     oil: "deti vaj vere buke perime fruta bishtajore",
     strict: "buke perime fruta bishtajore", day: "buke perime fruta bishtajore", total: "",
   };
+  // teksti i shkurtër i ditës: çfarë hahet dhe çfarë jo (nga rregulli i kreshmës së ditës)
   function fastPlateHtml(lv) {
     const ok = new Set((FOOD_OK[lv ? lv.k : "free"] || "").split(" "));
+    const list = (arr) => arr.length < 2 ? arr.join("") : arr.slice(0, -1).join(", ") + " dhe " + arr[arr.length - 1];
+    const word = { mish: "mishi", bulmet: "bulmeti", veze: "vezët", peshk: "peshku", deti: "frutat e detit", vaj: "vaji", vere: "vera", buke: "buka", perime: "perimet", fruta: "frutat", bishtajore: "bishtajoret" };
+    const yes = FOODS.filter((f) => ok.has(f[0])).map((f) => word[f[0]]), no = FOODS.filter((f) => !ok.has(f[0])).map((f) => word[f[0]]);
+    const k = lv ? lv.k : "free";
+    const text = k === "free" ? "Sot nuk ka kreshmë: hahen të gjitha ushqimet, me masë dhe me falënderim."
+      : k === "total" ? "Kreshmë e plotë: sipas mundësisë asgjë deri në mbrëmje, pastaj ushqim i thjeshtë pa vaj."
+      : `${lv.name}. Sot hahen ${list(yes)}. Nuk hahen ${list(no)}.`;
     const name = (k) => (FOODS.find((f) => f[0] === k) || [])[2];
     const img = (k) => `<img src="img/ushqim/${k}.webp" alt="" width="56" height="56" loading="lazy" decoding="async">`;
-    // tre pyetjet kryesore të ditës: vaji, vera, peshku
     const key = [["vaj", "Vaj"], ["vere", "Verë"], ["peshk", "Peshk"]];
-    const yes = FOODS.filter((f) => ok.has(f[0])).map((f) => f[0]), no = FOODS.filter((f) => !ok.has(f[0])).map((f) => f[0]);
+    const yk = FOODS.filter((f) => ok.has(f[0])).map((f) => f[0]), nk = FOODS.filter((f) => !ok.has(f[0])).map((f) => f[0]);
     return `<div class="fast-plate" aria-label="Ushqimet e ditës"><div>
-      <div class="fp-key">${key.map(([k, n]) => `<span class="fp-k ${ok.has(k) ? "ok" : "no"}">${img(k)}<small>${n}</small><b>${ok.has(k) ? "Lejohet" : "Jo"}</b></span>`).join("")}</div>
-      ${yes.length ? `<p class="fp-row"><span class="fp-lab">Lejohen</span>${yes.map((k) => `<span class="fp-c ok">${img(k)}${name(k)}</span>`).join("")}</p>` : ""}
-      ${no.length ? `<p class="fp-row"><span class="fp-lab">Jo sot</span>${no.map((k) => `<span class="fp-c no">${img(k)}${name(k)}</span>`).join("")}</p>` : ""}
-      <p class="fp-note">${lv && lv.k === "total" ? "Kreshmë e plotë: sipas mundësisë asgjë deri në mbrëmje, pastaj ushqim i thjeshtë pa vaj." : "Sipas Tipikonit të Kishës. Për shëndetin, shtatzëninë dhe fëmijët pyet atin shpirtëror."}</p>
+      <p class="fp-info">${esc(text)}</p>
+      <div class="fp-key">${key.map(([q, n]) => `<span class="fp-k ${ok.has(q) ? "ok" : "no"}">${img(q)}<small>${n}</small><b>${ok.has(q) ? "Lejohet" : "Jo"}</b></span>`).join("")}</div>
+      ${yk.length ? `<p class="fp-row"><span class="fp-lab">Lejohen</span>${yk.map((q) => `<span class="fp-c ok">${img(q)}${name(q)}</span>`).join("")}</p>` : ""}
+      ${nk.length ? `<p class="fp-row"><span class="fp-lab">Jo sot</span>${nk.map((q) => `<span class="fp-c no">${img(q)}${name(q)}</span>`).join("")}</p>` : ""}
     </div></div>`;
   }
   document.addEventListener("click", (e) => { const c = e.target.closest(".fast-card"); if (c && !e.target.closest("a, button")) { c.classList.toggle("open"); haptic(8); } });
@@ -1974,7 +1980,7 @@ function pickPhoto(it) {
         ${lv && lv.avoid ? `<div><dt>Nuk hahen</dt><dd>${esc(lv.avoid)}</dd></div>` : ""}
       </dl>
       ${opts.tip ? `<p class="fast-tip">${esc(opts.tip)}</p>` : ""}
-      <p class="fast-more">Prek për të parë pjatën e ditës ›</p>
+      <p class="fast-more">Prek për më shumë info ›</p>
       ${fastPlateHtml(lv)}
     </section>`;
   }
@@ -2075,21 +2081,33 @@ function pickPhoto(it) {
     return { load, get data() { return data; }, niceDisplay };
   })();
 
-  // shiriti i shenjtorëve lëviz vetë horizontalisht (në rreth); sapo e prek me dorë → bëhet manual
+  // shiriti i shenjtorëve lëviz gjithmonë horizontalisht (në rreth): kur e prek ndalet,
+  // dhe pasi e lë 2 sekonda pa e prekur, nis sërish të lëvizë nga aty ku e le
   (function saintsMarquee() {
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const IDLE = 2000;
     let last = 0;
-    const stop = (el) => { if (!el.classList.contains("auto")) return; el.classList.remove("auto"); const x = el.scrollLeft, half = el.scrollWidth / 2; $$("[data-clone]", el).forEach((c) => c.remove()); el.scrollLeft = x % half; };
+    const touch = (el) => { el._idle = Date.now(); el._x = null; };
+    const bind = (el) => {
+      el._mq = 1;
+      el.addEventListener("pointerdown", () => { el._down = true; touch(el); }, { passive: true });
+      ["pointerup", "pointercancel", "pointerleave", "touchend"].forEach((e) => el.addEventListener(e, () => { if (el._down) { el._down = false; touch(el); } }, { passive: true }));
+      ["wheel", "touchstart", "touchmove", "keydown", "focusin"].forEach((e) => el.addEventListener(e, () => touch(el), { passive: true }));
+      // rrëshqitja me dorë (edhe inercia pas saj) e mban në pushim
+      el.addEventListener("scroll", () => { if (el._set != null && Math.abs(el.scrollLeft - el._set) > 2) touch(el); }, { passive: true });
+    };
     const step = (ts) => {
       const dt = Math.min(50, ts - (last || ts)); last = ts;
       if (!document.hidden) document.querySelectorAll(".today-saints.auto").forEach((el) => {
-        if (!el._mq) { el._mq = 1; ["pointerdown", "wheel", "touchstart", "keydown", "focusin"].forEach((e) => el.addEventListener(e, () => stop(el), { passive: true })); }
-        if (!el.offsetParent || el.matches(":hover")) return;
+        if (!el._mq) bind(el);
+        if (!el.offsetParent) return;
         const half = el.scrollWidth / 2;
         if (half <= el.clientWidth / 2) return;
-        el._x = (el._x == null ? el.scrollLeft : el._x) + dt * 0.035;
+        if (el._down || el.matches(":hover")) { el._idle = Date.now(); el._set = el.scrollLeft; return; }
+        if (Date.now() - (el._idle || 0) < IDLE) { el._set = el.scrollLeft; return; }
+        el._x = (el._x == null ? el.scrollLeft % half : el._x) + dt * 0.035;
         if (el._x >= half) el._x -= half;
-        el.scrollLeft = el._x;
+        el.scrollLeft = el._x; el._set = el.scrollLeft;
       });
       requestAnimationFrame(step);
     };
@@ -2171,10 +2189,10 @@ function pickPhoto(it) {
     }
     if (!t) { mainPane.innerHTML = `<div class="empty">${icon("calendar")}<h3>Pa internet</h3><p>Leximet e ditës shfaqen kur ka internet.</p></div>`; setMode("read"); return; }
     if (which === "jerontikon" && t.geron) {
-      mainPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">Jerontikoni</h2></header>
+      mainPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">Jerondikon</h2></header>
         <article class="reader"><p class="eyebrow">Historia e ditës · ${esc(t.geron.section || "")}</p>
         <div class="verses"><p class="verse para" data-i="0" tabindex="0" role="button">${esc(t.geron.text)}</p></div></article>`;
-      $(".verse", mainPane).addEventListener("click", (e) => VerseSheet.open({ kind: "eterit", id: "geron:" + t.key, text: shortText(t.geron.text, 260), ref: "Jerontikoni", link: "#/dita/jerontikon" }, e.currentTarget));
+      $(".verse", mainPane).addEventListener("click", (e) => VerseSheet.open({ kind: "eterit", id: "geron:" + t.key, text: shortText(t.geron.text, 260), ref: "Jerondikon", link: "#/dita/jerontikon" }, e.currentTarget));
     } else {
       const rd = which === "apostulli" ? t.epistle : t.gospel;
       const label = which === "apostulli" ? "Apostulli i ditës" : "Ungjilli i ditës";
@@ -8273,7 +8291,7 @@ function pickPhoto(it) {
     };
     let i = 0;
     listPane.innerHTML = `<div class="sp-compact">
-      <header class="page-head"><h1>Shpirti</h1>${themeBtn()}${settingsBtn()}${profileChip()}</header>
+      <header class="page-head"><h1>Shpirti</h1>${settingsBtn()}${profileChip()}</header>
       <section class="sp-hero">
         <div class="sp-aura" aria-hidden="true"><i></i><i></i><i></i></div>
         <p class="sp-greet">${esc(greeting())}</p>
@@ -9465,11 +9483,11 @@ function pickPhoto(it) {
       ["biblioteka", "book", "Biblioteka", "Lutjet · Fjalori · Pyetje · Pagëzimi"],
       ["sherbesat", "candle", "Shërbesat", "Live · Mbrëmësorja · Mëngjesorja · e Diela · Pasdarka · Akathisti · Kungimi"],
       ["kinema", "film", "Kinemaja", "Filma · seri · dokumentarë orthodhoksë"],
-      ["jerontikoni", "quote", "Jerontikoni", "Fjalët e Etërve të Shkretëtirës"],
+      ["jerontikoni", "quote", "Jerondikon", "Fjalët e Etërve të Shkretëtirës"],
       ["eterit", "quote", "Thesari i Etërve", "836 fjalë · sipas temave · kërkim"],
     ];
     listPane.innerHTML = `
-      <header class="page-head"><h1>Lexo</h1>${themeBtn()}${settingsBtn()}</header>
+      <header class="page-head"><h1>Lexo</h1>${settingsBtn()}</header>
       <p class="greet">${esc(greeting())}</p>
       <div id="nameSlot">${nameDayBanner()}${myNameDayHtml()}</div>
       ${unbaptized() ? (() => { const [t, r] = INVITE[new Date().getDate() % INVITE.length]; return `<a class="bap-invite inv-card" href="#/biblioteka/pagezimi">${icon("cross")}<span><b>Krishti të fton${userName() ? ", " + esc(userName()) : ""}</b><q>${esc(t)}</q><small>${esc(r)} · Si të pagëzohem në Kishën Orthodhokse ›</small></span></a><button class="btn bap-done-btn wide" data-baptized>${icon("check")}<span>U pagëzova ☦</span></button>`; })() : ""}
@@ -9698,7 +9716,7 @@ function pickPhoto(it) {
     tipikoja: { file: "tipikoja", title: "Tipikoja 2026", icon: "calendar", pending: "" },
     sherbesa: { file: "sherbesa", title: "Shërbesa e Mbrëmësores dhe e Mëngjesores", icon: "candle", pending: "" },
     profecite: { file: "profecite", title: "Libri i Profecive", icon: "scroll", pending: "" },
-    jerontikoni: { file: "jerontikoni", title: "Jerontikoni", icon: "quote", pending: "" },
+    jerontikoni: { file: "jerontikoni", title: "Jerondikon", icon: "quote", pending: "" },
     pasdarka: { file: "pasdarka", title: "Pasdarka", icon: "candle", pending: "" },
     kungata: { file: "kungimi", title: "Kungimi Hyjnor", icon: "cross", pending: "" },
     akathisti: { file: "akathisti", title: "Himni Akathist", icon: "candle", pending: "" },
@@ -10060,7 +10078,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.1.5";
+  const APP_VERSION = "3.1.7";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {

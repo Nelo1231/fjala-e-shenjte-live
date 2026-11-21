@@ -1,0 +1,47 @@
+name: Ikonat e ditës (automatike)
+
+# Punon vetë në GitHub, edhe kur laptopi është i fikur.
+# Orari (ora e Shqipërisë, dimër): 05:20 · 11:20 · 17:20 · 23:20  →  njëlloj si Apify-ja çdo 6 orë në laptop.
+on:
+  schedule:
+    - cron: '20 4,10,16,22 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ikonat
+  cancel-in-progress: false
+
+jobs:
+  ikonat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalo Pillow
+        run: pip install --quiet pillow
+
+      - name: Merr ikonat e reja
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: python -X utf8 cloud/ikonat.py
+
+      - name: Ruaj në GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add img/apostujt data/imazhet_*.json cloud/gjendja_ikonat.json 2>/dev/null || true
+          if git diff --cached --quiet; then echo "Asnjë ikonë e re"; exit 0; fi
+          git commit -q -m "Ikonat e ditës (automatike)"
+          for i in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            sleep 15
+          done
+          exit 1
