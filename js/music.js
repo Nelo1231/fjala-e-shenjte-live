@@ -17,7 +17,7 @@
   };
   // Mix: kryesisht kori shqip dhe greqisht; gregorianet vetëm kur zgjidhen veçmas
   const MIX_WEIGHTS = { sq: 0.46, el: 0.2, athos: 0.16, en: 0.05, ro: 0.07, ru: 0.06 };
-  const TONE_NAME = { 1: "Tingulli I", 2: "Tingulli II", 3: "Tingulli III", 4: "Tingulli IV", 5: "Tingulli Tërthor I", 6: "Tingulli Tërthor II", 7: "Tingulli i Rëndë", 8: "Tingulli Tërthor IV" };
+  const TONE_NAME = { 1: "Tingulli i Parë", 2: "Tingulli i Dytë", 3: "Tingulli i Tretë", 4: "Tingulli i Katërt", 5: "Tingulli Tërthor i të Parit", 6: "Tingulli Tërthor i të Dytit", 7: "Tingulli Rëndë", 8: "Tingulli Tërthor i të Katërtit" };
   const PERIOD_NAME = { krishtlindje: "Krishtlindja", theofania: "Theofania", triodi: "Triodi", javaemadhe: "Java e Madhe", pashka: "Pesëdhjetorja · Pashka" };
 
   const LS = "fs.music";

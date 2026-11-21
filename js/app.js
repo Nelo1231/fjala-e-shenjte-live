@@ -21,7 +21,8 @@
   const ortho = (s) => { let t = String(s == null ? "" : s); for (const [re, to] of ORTHO) t = t.replace(re, to); return t; };
   // zbatoje kudo: edhe te tekstet që vijnë si HTML (artikuj, sinaksar, harta, kërkim …)
   const ORTHO_TEST = /♫|♪|Gjon|GJON|Jezu|JEZU|Jisus|JISUS|Pal|PAL|Jesu|JESU|fytyr|FYTYR/;
-  const orthoNode = (n) => { const v = n.nodeValue; if (v && ORTHO_TEST.test(v)) { const w = ortho(v); if (w !== v) n.nodeValue = w; } };
+  // «.no-ortho»: emrat origjinalë (titulli origjinal i filmit, emri i burimit) mbeten siç janë
+  const orthoNode = (n) => { const v = n.nodeValue; if (v && ORTHO_TEST.test(v) && !(n.parentNode && n.parentNode.closest && n.parentNode.closest(".no-ortho"))) { const w = ortho(v); if (w !== v) n.nodeValue = w; } };
   function orthoTree(root) {
     if (!root) return;
     if (root.nodeType === 3) { if (!root.parentNode || !/^(SCRIPT|STYLE|TEXTAREA)$/.test(root.parentNode.nodeName)) orthoNode(root); return; }
@@ -41,6 +42,7 @@
     if (document.body) startOrtho(); else document.addEventListener("DOMContentLoaded", startOrtho);
   }
   const esc = (s) => ortho(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const escO = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));   // emra origjinalë, pa filtrin
   const icon = (id) => `<svg><use href="#i-${id}"/></svg>`;
   // ndan fjalinë në rreshta sipas kuptimit (te pikësimi dhe para lidhëzave), jo rastësisht
   function senseLines(text) {
@@ -2283,6 +2285,12 @@ function pickPhoto(it) {
     if (b.classList.contains("on") && ReadAloud.on) { ReadAloud.stop(); return; }
     const w = b.dataset.listen;
     b.classList.add("busy");
+    if (/^psalm:\d+$/.test(w)) {             // Psaltiri: psalmi i plotë me zërin e KOASh, varg pas vargu
+      const n = +w.slice(6), ps = await load("psaltiri").catch(() => null), p = ps && ps.psalms.find((y) => y.n === n);
+      b.classList.remove("busy");
+      if (p && ReadAloud.start([{ b: "psal", code: "PSA", name: "Psalmi", label: "Psaltiri", parts: [{ c: n, v: 1, c2: n, v2: p.v.length }], vsel: (c, v) => `.verse[data-cv="${c}:${v}"]` }], "Psalmi " + n)) b.classList.add("on");
+      return;
+    }
     const list = await listenTracks(w).catch(() => []);
     b.classList.remove("busy");
     if (ReadAloud.start(list, w === "both" ? "Apostulli dhe Ungjilli i ditës" : w === "apostulli" ? "Apostulli i ditës" : "Ungjilli i ditës")) b.classList.add("on");
@@ -2420,7 +2428,6 @@ function pickPhoto(it) {
           ${gr || (gs && gs.verses.length) ? `<a class="today-read" href="#/dita/ungjilli">${icon("book")}<span><b>Ungjilli</b><small>${esc(gr || Today.niceDisplay(gs))}</small></span></a>` : ""}`; })()}
           <a class="today-read" href="#/sinaksari/sot">${icon("calendar")}<span><b>Sinaksari</b><small>Shenjtorët e sotëm</small></span></a>
         </div>
-        <button type="button" class="ra-go" data-listen="both">${icon("play")}<span>Dëgjo Apostullin dhe Ungjillin</span></button>
         ${t.saints.length ? (() => { const chips = (clone) => t.saints.map((s) => `
           <a class="saint-chip"${clone ? ' data-clone aria-hidden="true" tabindex="-1"' : ""} href="#/lajm/shenjt/${encodeURIComponent((s.link.split("ods_saint=")[1] || "").split("&")[0])}">
             ${s.img ? `<span class="saint-img" style="background-image:url('${esc(s.img)}')"></span>` : ""}<span>${esc(s.title)}</span></a>`).join("");
@@ -6462,9 +6469,23 @@ function pickPhoto(it) {
     get: (k) => (store.get("kn.pos", {})[k] || null),
     set(k, t, d) { const all = store.get("kn.pos", {}); if (d && t > d - 25) delete all[k]; else all[k] = { t: Math.floor(t), d: Math.floor(d || 0), at: Date.now() }; const ks = Object.keys(all).sort((a, b) => all[b].at - all[a].at); ks.slice(80).forEach((x) => delete all[x]); store.set("kn.pos", all); },
   };
+  // burimet e një titulli / episodi si «Serveri 1, 2, 3…» (te filmat fusha «tipi», te episodet «lloji»)
+  const knSrcs = (o) => (o && Array.isArray(o.burimet) && o.burimet.length ? o.burimet : o && o.burimi ? [o.burimi] : [])
+    .filter((s) => s && s.url).map((s, i) => ({ lloji: s.lloji || s.tipi || (ytId(s.url) ? "youtube" : "direct"), url: s.url, emri: s.emri || "Serveri " + (i + 1), cilesia: s.cilesia || "" }));
+  // burim që luhet vetëm në faqen e vet zyrtare (Superlibri i CBN-së): në telefon brenda aplikacionit, në shfletues në skedë të re
+  function openPage(url, title) {
+    if (android && android.openVideo) openNativeVideo(url, title || "");
+    else if (android && android.openExternal) android.openExternal(url);
+    else window.open(url, "_blank", "noopener");
+  }
+  window.knImgErr = (im) => { const fb = im.dataset.fb; if (fb && im.src !== fb) { im.removeAttribute("data-fb"); im.src = fb; } else im.remove(); };
   function playVideo(o) {
-    // o: { key, title, sub, src: {lloji, url}, subs, next: () => o | null }
-    const src = o.src || {}, kind = src.lloji || (ytId(src.url) ? "youtube" : "direct"), pos = o.key ? VidPos.get(o.key) : null, from = pos ? pos.t : 0;
+    // o: { key, title, sub, src: {lloji, url} ose srcs: [{lloji, url, emri}], si, subs, next: () => o | null, onClose, onPage }
+    // Shumë serverë: kur njëri nuk hapet (gabim i lojtësit, video e hequr, s'ngarkohet), kalohet vetë te tjetri.
+    const srcs = o.srcs && o.srcs.length ? o.srcs : [o.src || {}], bad = o.bad || [];
+    const si = Math.max(0, Math.min(srcs.length - 1, o.si != null ? o.si : o.key && srcs.length > 1 ? +(store.get("kn.srv", {})[o.key] || 0) : 0));
+    const src = srcs[si] || {}, kind = src.lloji || src.tipi || (ytId(src.url) ? "youtube" : "direct"), pos = o.key ? VidPos.get(o.key) : null, from = pos ? pos.t : 0;
+    if (kind === "faqe") { openPage(src.url, o.title); if (typeof o.onPage === "function") o.onPage(); return; }
     if (kind === "youtube" && android && android.openVideo) {
       const id = ytId(src.url);
       openNativeVideo(src.live ? src.url : `https://www.youtube.com/watch?v=${id}${from > 5 ? "&t=" + from + "s" : ""}`, o.title || "");
@@ -6475,11 +6496,13 @@ function pickPhoto(it) {
     AudioDuck.take("video");
     const el = document.createElement("div");
     el.className = "sheet vp-sheet";
-    const head = `<header class="vp-top"><div><b>${esc(o.title || "")}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ""}</div><button class="icon-btn vp-x" aria-label="Mbyll">${icon("close")}</button></header>`;
+    const nm = (i) => (srcs[i] && srcs[i].emri) || "Serveri " + (i + 1);
+    const srvBar = srcs.length > 1 ? `<div class="vp-srv" role="group" aria-label="Serverët">${srcs.map((s, i) => `<button type="button" data-srv="${i}" aria-pressed="${i === si}"${bad.includes(i) && i !== si ? ' class="bad"' : ""}>${esc(nm(i))}${s.cilesia ? `<small>${esc(s.cilesia)}</small>` : ""}</button>`).join("")}</div>` : "";
+    const head = `<header class="vp-top"><div><b>${esc(o.title || "")}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ""}</div><button class="icon-btn vp-x" aria-label="Mbyll">${icon("close")}</button></header>${srvBar}`;
     if (kind === "direct") {
       const sz = store.get("vp.cue", 1), bg = store.get("vp.cuebg", 1);
       el.innerHTML = `<div class="vp-card">${head}
-        <div class="vp-stage cue-s${sz} cue-b${bg}"><video class="vp-v" playsinline preload="metadata" crossorigin="anonymous" src="${esc(src.url)}"></video>
+        <div class="vp-stage cue-s${sz} cue-b${bg}"><video class="vp-v" playsinline preload="metadata" src="${esc(src.url)}"></video>
           <div class="vp-ctl">
             <input type="range" class="vp-seek" min="0" max="1000" value="0" aria-label="Pozicioni">
             <div class="vp-row">
@@ -6504,39 +6527,78 @@ function pickPhoto(it) {
     }
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add("open"));
-    let onMsg = null, cueUrl = "";
-    const close = () => {
-      if (!el.isConnected) return;
-      removeEventListener("hashchange", close);
+    let onMsg = null, cueUrl = "", dog = 0, gone = false;
+    const close = (swap) => {
+      if (gone || !el.isConnected) return;
+      gone = true;
+      clearTimeout(dog);
+      removeEventListener("hashchange", onHash);
       if (onMsg) removeEventListener("message", onMsg);
-      const v = $("video", el); if (v && o.key && v.duration) VidPos.set(o.key, v.currentTime, v.duration);
+      const v = $("video", el);
+      if (v && o.key && v.duration) VidPos.set(o.key, v.currentTime, v.duration);
+      if (v) { try { v.pause(); v.removeAttribute("src"); v.load(); } catch (e) { /* */ } }
       if (cueUrl) URL.revokeObjectURL(cueUrl);
+      if (swap === true) { el.remove(); return; }
       el.classList.remove("open"); setTimeout(() => el.remove(), 250);
       setTimeout(() => { if (!$(".vp-sheet.open")) AudioDuck.release("video"); }, 400);   // episodi tjetër e mban
       if (typeof o.onClose === "function") o.onClose();
     };
-    addEventListener("hashchange", close);
+    const onHash = () => close();
+    addEventListener("hashchange", onHash);
+    // serveri që u hap mbahet mend për këtë titull; kur një server s'hapet, provohet vetë i radhës
+    const ok = () => {
+      clearTimeout(dog);
+      if (!o.key || srcs.length < 2) return;
+      const m = store.get("kn.srv", {});
+      if (m[o.key] !== si) { m[o.key] = si; const ks = Object.keys(m); if (ks.length > 300) delete m[ks[0]]; store.set("kn.srv", m); }
+    };
+    const swap = (i, auto) => {
+      if (gone || i === si || !srcs[i]) return;
+      if (auto) toast(`${nm(si)} nuk u hap — po kalojmë te ${nm(i)}`);
+      close(true);
+      playVideo(Object.assign({}, o, { si: i, bad: auto ? [...new Set([...bad, si])] : bad.filter((k) => k !== i) }));
+    };
+    const fail = () => {
+      if (gone) return;
+      clearTimeout(dog);
+      const nb = new Set([...bad, si]);
+      for (let k = 1; k < srcs.length; k++) { const i = (si + k) % srcs.length; if (!nb.has(i)) { swap(i, true); return; } }
+      const b = $(`[data-srv="${si}"]`, el); if (b) b.classList.add("bad");
+      toast(srcs.length > 1 ? "Asnjë server nuk po e hap tani këtë video — provo pak më vonë" : "Kjo video nuk po hapet tani — provo pak më vonë");
+    };
     const goNext = () => { const n = o.next && o.next(); close(); if (n) setTimeout(() => playVideo(n), 280); };
-    el.addEventListener("click", (e) => { if (e.target === el || e.target.closest(".vp-x")) close(); else if (e.target.closest('[data-a="next"]') && !$("video", el)) goNext(); });
-    if (kind === "youtube" && !src.live && o.key) {
-      // pozicioni nga lojtësi zyrtar (postMessage): ruhet çdo pak sekonda që të vazhdosh nga ku e le
+    el.addEventListener("click", (e) => {
+      const sb = e.target.closest("[data-srv]"); if (sb) { haptic(6); swap(+sb.dataset.srv, false); return; }
+      if (e.target === el || e.target.closest(".vp-x")) close(); else if (e.target.closest('[data-a="next"]') && !$("video", el)) goNext();
+    });
+    if (kind === "youtube" && !src.live) {
+      // lojtësi zyrtar (postMessage): pozicioni ruhet çdo pak sekonda; gabimi i lojtësit → serveri tjetër
       const fr = $("iframe", el);
-      fr.addEventListener("load", () => { try { fr.contentWindow.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), "*"); } catch (e) { /* */ } });
-      let last = 0, dur = pos ? pos.d : 0;
+      const hello = () => { try { fr.contentWindow.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), "*"); } catch (e) { /* */ } };
+      fr.addEventListener("load", () => { hello(); setTimeout(hello, 1500); });
+      let last = 0, dur = pos ? pos.d : 0, heard = false;
       onMsg = (e) => {
-        if (!/youtube(-nocookie)?\.com$/.test(new URL(e.origin).hostname)) return;
+        if (e.source !== fr.contentWindow) return;
         let d; try { d = typeof e.data === "string" ? JSON.parse(e.data) : e.data; } catch (x) { return; }
-        const inf = d && d.info; if (!inf) return;
+        if (!d || typeof d !== "object") return;
+        heard = true;
+        if (d.event === "onError") { fail(); return; }
+        const inf = d.info; if (!inf || typeof inf !== "object") return;
+        if (inf.playerState === 1 || inf.playerState === 3 || inf.currentTime > 0) ok();
         if (inf.duration) dur = inf.duration;
-        if (inf.currentTime != null && Date.now() - last > 4000) { last = Date.now(); VidPos.set(o.key, inf.currentTime, dur); }
+        if (o.key && inf.currentTime != null && Date.now() - last > 4000) { last = Date.now(); VidPos.set(o.key, inf.currentTime, dur); }
         if (inf.playerState === 0 && o.next) goNext();
       };
       addEventListener("message", onMsg);
+      dog = setTimeout(() => { if (!heard) fail(); }, 20000);
     }
     if (kind !== "direct") return;
     const v = $("video", el), stage = $(".vp-stage", el), seek = $(".vp-seek", el), tm = $(".vp-time", el), pp = $(".vp-pp", el);
+    v.addEventListener("error", fail);
+    v.addEventListener("loadeddata", ok);
+    dog = setTimeout(() => { if (v.readyState < 2) fail(); }, 25000);
     if (o.subs) fetch(o.subs, { credentials: "omit" }).then((r) => (r.ok ? r.text() : "")).then((t) => {
-      if (!t) return;
+      if (!t || gone) return;
       cueUrl = URL.createObjectURL(new Blob([srtToVtt(t)], { type: "text/vtt" }));
       const tr = document.createElement("track"); tr.kind = "subtitles"; tr.srclang = "sq"; tr.label = "Shqip"; tr.default = true; tr.src = cueUrl; v.appendChild(tr);
       setTimeout(() => { if (v.textTracks[0]) v.textTracks[0].mode = "showing"; }, 50);
@@ -6566,7 +6628,7 @@ function pickPhoto(it) {
       else if (a === "size") { const s = (store.get("vp.cue", 1) + 1) % 3; store.set("vp.cue", s); stage.className = stage.className.replace(/cue-s\d/, "cue-s" + s); b.textContent = "A" + ["−", "", "+"][s]; }
       else if (a === "bg") { const s = (store.get("vp.cuebg", 1) + 1) % 3; store.set("vp.cuebg", s); stage.className = stage.className.replace(/cue-b\d/, "cue-b" + s); }
       else if (a === "pip") { (document.pictureInPictureElement ? document.exitPictureInPicture() : v.requestPictureInPicture()).catch(() => {}); }
-      else if (a === "fs") { const f = document.fullscreenElement; (f ? document.exitFullscreen() : (stage.requestFullscreen || stage.webkitRequestFullscreen).call(stage)).catch?.(() => {}); }
+      else if (a === "fs") { const fs = document.fullscreenElement; (fs ? document.exitFullscreen() : (stage.requestFullscreen || stage.webkitRequestFullscreen).call(stage)).catch?.(() => {}); }
       else if (a === "next") goNext();
     });
     el.addEventListener("keydown", (e) => {
@@ -6649,7 +6711,9 @@ function pickPhoto(it) {
   //  KINEMAJA · filma, seri dhe dokumentarë orthodhoksë, të luajtur brenda aplikacionit
   //  Katalogu: data/kinema.json (filmat e autorit + seritë dokumentare të Radio Ngjallja). Asnjë titull i shpikur.
   // =====================================================================
-  const KN_CATS = ["Jetë Shenjtorësh", "Seriale Biblike & Moderne", "Dhiata e Vjetër", "Dhiata e Re", "Histori & Martirë", "Dramë Shpirtërore", "Dokumentarë & Mali i Shenjtë", "Animacion për Fëmijë"];
+  const KN_CATS = ["Seriale & Filma të Fundit", "Jetë Shenjtorësh & Kinema Orthodhokse", "Dhiata e Vjetër", "Dhiata e Re", "Histori e Kishës, Martirë & Dramë Shpirtërore", "Dokumentarë Orthodhoksë & Trashëgimi", "Animacion për Fëmijë"];
+  // emrat e vjetër të kategorive (titujt që autori ka ruajtur në telefon)
+  const KN_CAT_OLD = { "Jetë Shenjtorësh": KN_CATS[1], "Seriale Biblike & Moderne": KN_CATS[0], "Histori & Martirë": KN_CATS[4], "Dramë Shpirtërore": KN_CATS[4], "Dokumentarë & Mali i Shenjtë": KN_CATS[5] };
   const KN_NEW = 14 * 864e5;
   const knAge = (d) => (d ? Date.now() - Date.parse(d) : Infinity);
   let knItems = [];
@@ -6657,10 +6721,38 @@ function pickPhoto(it) {
     const doc = (await liveJson("kinema", force, true)) || { items: [] };
     const map = new Map((doc.items || []).filter((x) => x && x.id && x.titulli).map((x) => [x.id, x]));
     if (authorOK()) store.get("kinema.local", []).forEach((x) => map.set(x.id, Object.assign({ _local: true }, x)));
+    map.forEach((x) => { if (KN_CAT_OLD[x.kategoria]) x.kategoria = KN_CAT_OLD[x.kategoria]; });
+    knSuperbook(map.get("superlibri"));
     knItems = [...map.values()].sort((a, b) => String(b.dataShtimit || "").localeCompare(String(a.dataShtimit || "")));
     return knItems;
   }
   const knEps = (x) => (Array.isArray(x.episodet) ? x.episodet : []);
+  // gjuha: «Shqip…» (origjinal ose dublim) dhe seritë e Radio Ngjallja → «Në shqip»; të tjerat → «Të huaja»
+  const knSq = (x) => /^shqip/i.test(x.gjuha || "") || (!x.gjuha && (/^yt-/.test(x.id || "") || /ngjallja/i.test(x.burimiEmri || "")));
+  // rendi kronologjik: viti i filmit / serisë (ose i episodit të parë), pastaj titulli
+  const knYear = (x) => +String(x.viti || "").slice(0, 4) || +String(knEps(x).map((e) => e.dataShtimit).filter(Boolean).sort()[0] || x.dataShtimit || "").slice(0, 4) || 9999;
+  const knSort = (arr) => arr.slice().sort((a, b) => knYear(a) - knYear(b) || String(a.titulli).localeCompare(String(b.titulli), "sq"));
+  // Superlibri: episodet zyrtare shqip të CBN-së (4 sezone) bashkohen me serinë e Kinemasë. Ku episodi është edhe në YouTube,
+  // faqja zyrtare bëhet server rezervë; përndryshe episodi hapet në faqen zyrtare (↗).
+  function knSuperbook(x) {
+    if (!x || x._sb || typeof SUPERBOOK === "undefined") return;
+    x._sb = true;
+    const key = (t) => nrmQ(ortho(t)).replace(/[^a-z0-9]+/g, "");
+    const eps = knEps(x).map((e) => Object.assign({}, e)), have = new Map(eps.map((e) => [key(e.titulli), e]));
+    SUPERBOOK.forEach(([sz, list]) => list.forEach(([slug, t, emo, n, pid]) => {
+      const page = { lloji: "faqe", url: pid ? "https://sq.superbook.cbn.com/episode_player?v=" + pid : "https://www.superbookkids.com/sq/video/episode/" + slug };
+      const e = have.get(key(t));
+      if (e) {
+        const s = knSrcs(e);
+        e.burimet = [...s, page].map((z, i) => Object.assign({}, z, { emri: "Serveri " + (i + 1) + (z.lloji === "faqe" ? " · faqja zyrtare" : "") }));
+        Object.assign(e, { sezoni: sz, _n: n, slug, emo });
+      } else eps.push({ id: "sb-" + slug, sezoni: sz, nr: n % 100, _n: n, titulli: ortho(t), slug, emo, burimi: page, burimet: [Object.assign({ emri: "Faqja zyrtare" }, page)], dataShtimit: x.dataShtimit });
+    }));
+    eps.sort((a, b) => (a.sezoni || 1) - (b.sezoni || 1) || (a._n || 9000 + (a.nr || 0)) - (b._n || 9000 + (b.nr || 0)));
+    const cnt = {};
+    eps.forEach((e) => { const s = e.sezoni || 1; cnt[s] = (cnt[s] || 0) + 1; e.nr = cnt[s]; });
+    x.episodet = eps;
+  }
   function knBadge(x) {
     if (x.statusi === "së shpejti") return ["soon", "SË SHPEJTI"];
     if (x.tipi === "seri") {
@@ -6682,12 +6774,13 @@ function pickPhoto(it) {
     return out.sort((a, b) => String(b.at).localeCompare(String(a.at)));
   }
   const knUnseen = () => { const s = new Set(store.get("kn.seen", [])); return knFresh().filter((f) => !s.has(f.k)); };
+  const knImg = (x, extra) => (x.posteri ? `<img src="${esc(x.posteri)}"${x.posteriOrig && x.posteriOrig !== x.posteri ? ` data-fb="${esc(x.posteriOrig)}"` : ""} alt="" decoding="async" referrerpolicy="no-referrer" onerror="knImgErr(this)"${extra || ""}>` : "");
   function knPoster(x, cls) {
-    const b = knBadge(x), p = x.posteri;
+    const b = knBadge(x);
     const pr = (() => { const ks = [knKey(x), ...knEps(x).map((e) => knKey(x, e))]; const ps = ks.map((k) => VidPos.get(k)).filter(Boolean).sort((a, b) => b.at - a.at)[0]; return ps && ps.d ? Math.min(100, Math.round(ps.t / ps.d * 100)) : 0; })();
     return `<a class="kn-card${cls ? " " + cls : ""}" href="#/kinema/t/${encodeURIComponent(x.id)}">
-      <span class="kn-pos">${p ? `<img src="${esc(p)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}<span class="kn-ph">${esc(x.titulli)}</span>
-        ${b ? `<i class="kn-badge ${b[0]}">${b[1]}</i>` : ""}${pr ? `<i class="kn-prog" style="--p:${pr}%"></i>` : ""}</span>
+      <span class="kn-pos">${knImg(x, ' loading="lazy"')}<span class="kn-ph">${esc(x.titulli)}</span>
+        ${b ? `<i class="kn-badge ${b[0]}">${b[1]}</i>` : ""}${knSq(x) ? '<i class="kn-lang">SHQIP</i>' : ""}${pr ? `<i class="kn-prog" style="--p:${pr}%"></i>` : ""}</span>
       <span class="kn-t"><b>${esc(x.titulli)}</b><small>${[x.tipi === "seri" ? knEps(x).length + " episode" : x.kohezgjatja ? x.kohezgjatja + " min" : "", x.viti || ""].filter(Boolean).join(" · ")}</small></span></a>`;
   }
   function knResume() {
@@ -6699,6 +6792,8 @@ function pickPhoto(it) {
     });
     return out.slice(0, 10);
   }
+  const KN_KINDS = [["", "Të gjitha"], ["film", "Filma"], ["seri", "Seriale"], ["sq", "Në shqip"], ["huaj", "Të huaja"]];
+  const knKindOk = (k) => (x) => !k || (k === "film" ? x.tipi !== "seri" : k === "seri" ? x.tipi === "seri" : k === "sq" ? knSq(x) : !knSq(x));
   async function viewKinema(sub, arg) {
     if (sub === "t" && arg) return viewKinemaTitle(decodeURIComponent(arg));
     listPane.innerHTML = `
@@ -6709,29 +6804,52 @@ function pickPhoto(it) {
       <nav class="kn-cats" id="knCats"></nav>
       <div id="knBody"><p class="muted" style="text-align:center;padding:24px 0">Po ngarkohet…</p></div>`;
     enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
-    let cat = sub === "k" && arg ? decodeURIComponent(arg) : "";
+    // filtrat: lloji / gjuha (Filma · Seriale · Në shqip · Të huaja) dhe tema; mbahen te adresa që «Kthehu» t'i rikthejë
+    let cat = "", kind = "";
+    if (sub === "k" && arg) cat = decodeURIComponent(arg);
+    else if (sub === "l" && arg) kind = decodeURIComponent(arg);
+    else if (sub === "f" && arg) [kind, cat] = decodeURIComponent(arg).split("|");
+    if (!KN_KINDS.some(([k]) => k === kind)) kind = "";
+    const remember = () => { try { history.replaceState(null, "", kind || cat ? "#/kinema/f/" + encodeURIComponent(kind + "|" + cat) : "#/kinema"); } catch (e) { /* */ } };
     const draw = () => {
       const q = nrmQ($("#knQ").value), items = knItems.filter((x) => !q || nrmQ([x.titulli, x.titulliOrigjinal, x.pershkrimi, ...knEps(x).map((e) => e.titulli)].join(" ")).includes(q));
+      const live = items.filter((x) => x.statusi !== "së shpejti");
       const cats = KN_CATS.filter((c) => knItems.some((x) => x.kategoria === c));
-      $("#knCats").innerHTML = cats.length ? `<button class="kn-cat" data-cat="" aria-pressed="${!cat}">Të gjitha</button>` + cats.map((c) => `<button class="kn-cat" data-cat="${esc(c)}" aria-pressed="${cat === c}">${esc(c)}</button>`).join("") : "";
+      $("#knCats").innerHTML = `<div class="kn-kinds">${KN_KINDS.map(([k, t]) => `<button class="kn-cat" data-kind="${k}" aria-pressed="${kind === k && (k || !cat)}">${t}</button>`).join("")}</div>`
+        + (cats.length ? `<div class="kn-themes">${cats.map((c) => `<button class="kn-cat kn-th" data-cat="${esc(c)}" aria-pressed="${cat === c}">${esc(c)}</button>`).join("")}</div>` : "");
       const unseen = knUnseen(); $(".kn-dot").hidden = !unseen.length;
       if (!knItems.length) { $("#knBody").innerHTML = `<div class="empty">${icon("film")}<h3>Kinemaja po përgatitet</h3><p>Filmat dhe seritë e para shfaqen këtu sapo të shtohen.</p></div>`; return; }
-      const list = cat ? items.filter((x) => x.kategoria === cat) : items;
-      if (q || cat) { $("#knBody").innerHTML = list.length ? `<div class="kn-grid">${list.map((x) => knPoster(x)).join("")}</div>` : `<p class="muted" style="text-align:center;padding:24px 0">Asgjë nuk u gjet.</p>`; return; }
+      const none = `<p class="muted" style="text-align:center;padding:24px 0">Asgjë nuk u gjet.</p>`;
+      const grid = (arr) => `<div class="kn-grid">${knSort(arr).map((x) => knPoster(x)).join("")}</div>`;
+      const sec = (t, arr) => (arr.length ? `<section class="kn-grp"><h2 class="hub-h">${esc(t)} <small class="kn-n">${arr.length}</small></h2>${grid(arr)}</section>` : "");
+      if (q) { $("#knBody").innerHTML = items.length ? grid(items) : none; return; }
+      if (kind || cat) {
+        const pool = live.filter(knKindOk(kind)).filter((x) => !cat || x.kategoria === cat);
+        $("#knBody").innerHTML = !pool.length ? none
+          : cat && kind ? grid(pool)
+          : cat ? sec("Në shqip", pool.filter(knSq)) + sec("Seriale të huaja", pool.filter((x) => !knSq(x) && x.tipi === "seri")) + sec("Filma të huaj", pool.filter((x) => !knSq(x) && x.tipi !== "seri"))
+          : KN_CATS.map((c) => sec(c, pool.filter((x) => x.kategoria === c))).join("") + sec("Të tjera", pool.filter((x) => !KN_CATS.includes(x.kategoria)));
+        return;
+      }
       const feat = items.find((x) => x.statusi !== "së shpejti" && knBadge(x)) || items.find((x) => x.statusi !== "së shpejti");
       const res = knResume(), prem = items.filter((x) => x.statusi === "së shpejti" && x.premiera).sort((a, b) => String(a.premiera).localeCompare(String(b.premiera)));
       const row = (t, arr, link) => arr.length ? `<section class="kn-row"><h2 class="hub-h">${esc(t)}${link ? `<a class="kn-more" href="${link}">Të gjitha ›</a>` : ""}</h2><div class="kn-strip">${arr.join("")}</div></section>` : "";
+      const strip = (arr) => knSort(arr).map((x) => knPoster(x));
       $("#knBody").innerHTML =
-        (feat ? `<a class="kn-hero" href="#/kinema/t/${encodeURIComponent(feat.id)}">${feat.posteri ? `<img src="${esc(feat.posteri)}" alt="" decoding="async" referrerpolicy="no-referrer">` : ""}
+        (feat ? `<a class="kn-hero" href="#/kinema/t/${encodeURIComponent(feat.id)}">${knImg(feat)}
           <span class="kn-hero-tx">${knBadge(feat) ? `<i class="kn-badge ${knBadge(feat)[0]}">${knBadge(feat)[1]}</i>` : ""}<small>${esc(feat.kategoria || "")}</small><b>${esc(feat.titulli)}</b>
           <span class="btn primary">${icon("play")}<span>Shiko</span></span></span></a>` : "")
         + row("Vazhdo shikimin", res.map((r) => knPoster(r.x, "res")))
-        + row("Të rejat", items.filter((x) => knBadge(x) && x.statusi !== "së shpejti").map((x) => knPoster(x)))
+        + row("Të rejat", live.filter((x) => knBadge(x)).slice(0, 20).map((x) => knPoster(x)))
         + (prem.length ? `<section class="kn-row"><h2 class="hub-h">Premierat</h2><ul class="kn-prem">${prem.map((x) => knPremLi(x)).join("")}</ul></section>` : "")
-        + KN_CATS.map((c) => row(c, items.filter((x) => x.kategoria === c && x.statusi !== "së shpejti").map((x) => knPoster(x)), `#/kinema/k/${encodeURIComponent(c)}`)).join("");
+        + row("Në shqip", strip(live.filter(knSq)), "#/kinema/l/sq")
+        + row("Seriale", strip(live.filter((x) => x.tipi === "seri")), "#/kinema/l/seri")
+        + row("Filma", strip(live.filter((x) => x.tipi !== "seri")), "#/kinema/l/film")
+        + KN_CATS.map((c) => row(c, strip(live.filter((x) => x.kategoria === c)), `#/kinema/k/${encodeURIComponent(c)}`)).join("");
     };
     listPane.onclick = (e) => {
-      const c = e.target.closest("[data-cat]"); if (c) { haptic(6); cat = c.dataset.cat; draw(); return; }
+      const kb = e.target.closest("[data-kind]"); if (kb) { haptic(6); kind = kb.dataset.kind; if (!kind) cat = ""; remember(); draw(); listPane.scrollTo?.({ top: 0 }); return; }
+      const c = e.target.closest("[data-cat]"); if (c) { haptic(6); cat = cat === c.dataset.cat ? "" : c.dataset.cat; remember(); draw(); listPane.scrollTo?.({ top: 0 }); return; }
       const r = e.target.closest("[data-remind]"); if (r) { e.preventDefault(); knRemind(r.dataset.remind); draw(); return; }
       const i = e.target.closest("[data-ics]"); if (i) { e.preventDefault(); knIcs(i.dataset.ics); }
     };
@@ -6800,45 +6918,61 @@ function pickPhoto(it) {
     const x = knItems.find((y) => y.id === id);
     if (!x) { listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/kinema" aria-label="Kthehu">${icon("back")}</a><h1>Kinemaja</h1></header><div class="empty">${icon("film")}<h3>Ky titull nuk u gjet</h3></div>`; enter(listPane); setMode("list"); return; }
     const eps = knEps(x), b = knBadge(x), soon = x.statusi === "së shpejti";
-    const seasons = [...new Set(eps.map((e) => e.sezoni || 1))];
-    let season = store.get("kn.season." + x.id, seasons[0] || 1);
+    const sOf = (e) => (e.sezoni != null && e.sezoni !== "" ? +e.sezoni : 1);
+    const seasons = [...new Set(eps.map(sOf))].sort((a, c) => (a === 0) - (c === 0) || a - c);   // specialet (0) në fund
+    const sLabel = (s) => (s === 0 ? "Speciale" : "Sezoni " + s);
+    let season = +store.get("kn.season." + x.id, seasons[0] != null ? seasons[0] : 1);
+    if (!seasons.includes(season)) season = seasons[0];
+    const onlyPage = (e) => { const s = knSrcs(e); return s.length > 0 && s.every((z) => z.lloji === "faqe"); };
+    const thumb = (e) => { const y = knSrcs(e).map((s) => ytId(s.url)).find(Boolean); return y ? `<img src="https://i.ytimg.com/vi/${esc(y)}/mqdefault.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">` : e.emo ? `<span class="kn-ep-emo" style="--h:${((e._n || e.nr || 1) * 47) % 360}">${e.emo}</span>` : ""; };
     const resumeOf = () => {
       if (!eps.length) { const p = VidPos.get(knKey(x)); return { e: null, p }; }
       const ps = eps.map((e) => [e, VidPos.get(knKey(x, e))]).filter(([, p]) => p).sort((a, b2) => b2[1].at - a[1].at)[0];
-      return ps ? { e: ps[0], p: ps[1] } : { e: eps[0], p: null };
+      return ps ? { e: ps[0], p: ps[1] } : { e: eps.find((e) => !onlyPage(e)) || eps[0], p: null };
     };
-    const epHtml = () => eps.filter((e) => (e.sezoni || 1) === season).map((e) => {
-      const p = VidPos.get(knKey(x, e)), nb = knAge(e.dataShtimit) < KN_NEW && knAge(x.dataShtimit) >= KN_NEW;
-      return `<li><button class="kn-ep" data-ep="${esc(String(e.id || e.nr))}"><span class="kn-ep-th">${ytId(e.burimi && e.burimi.url) ? `<img src="https://i.ytimg.com/vi/${esc(ytId(e.burimi.url))}/mqdefault.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}<i class="kn-play">${icon("play")}</i>${p && p.d ? `<i class="kn-prog" style="--p:${Math.round(p.t / p.d * 100)}%"></i>` : ""}</span>
-        <span class="kn-ep-tx"><b>${e.nr ? e.nr + ". " : ""}${esc(e.titulli || "Episodi " + (e.nr || ""))}</b><small>${[e.kohezgjatja ? e.kohezgjatja + " min" : "", e.dataShtimit ? fmtDate(e.dataShtimit) : ""].filter(Boolean).join(" · ")}${nb ? ' <i class="kn-badge ep">EPISOD I RI</i>' : ""}</small></span></button></li>`;
-    }).join("");
+    const epHtml = () => {
+      const list = eps.filter((e) => sOf(e) === season);
+      return list.map((e) => {
+        const p = VidPos.get(knKey(x, e)), nb = knAge(e.dataShtimit) < KN_NEW && knAge(x.dataShtimit) >= KN_NEW, ns = knSrcs(e).length, pg = onlyPage(e);
+        return `<li><button class="kn-ep${pg ? " page" : ""}" data-ep="${esc(String(e.id || e.nr))}"><span class="kn-ep-th">${thumb(e)}<i class="kn-play">${icon("play")}</i>${p && p.d ? `<i class="kn-prog" style="--p:${Math.round(p.t / p.d * 100)}%"></i>` : ""}</span>
+        <span class="kn-ep-tx"><b>${e.nr ? e.nr + ". " : ""}${esc(e.titulli || "Episodi " + (e.nr || ""))}</b><small>${[e.kohezgjatja ? e.kohezgjatja + " min" : "", pg ? "↗ faqja zyrtare" : ns > 1 ? ns + " serverë" : "", !pg && e.dataShtimit ? fmtDate(e.dataShtimit) : ""].filter(Boolean).join(" · ")}${nb ? ' <i class="kn-badge ep">EPISOD I RI</i>' : ""}</small></span></button></li>`;
+      }).join("") + (list.some(onlyPage) ? `<li class="kn-note">Episodet me ↗ hapen në faqen zyrtare të Superlibrit (CBN)${season > 2 ? ": ky sezon gjendet vetëm te superbookkids.com" : ", që kërkon një llogari Superbook falas"}.</li>` : "");
+    };
     const r = resumeOf();
+    const gj = x.titraShqipUrl ? x.gjuha || "" : String(x.gjuha || "").replace(/\s*·\s*titra shqip/i, "");
+    const nSrv = knSrcs(x).length, nSeas = seasons.filter((s) => s > 0).length;
     listPane.innerHTML = `
       <header class="page-head"><a class="back-btn" href="#/kinema" aria-label="Kthehu">${icon("back")}</a><h1>Kinemaja</h1>${x._local && authorOK() ? `<button class="icon-btn" id="knEditT" aria-label="Ndrysho">${icon("pen")}</button>` : ""}</header>
       <section class="kn-det">
         <div class="kn-det-bg"${x.posteri ? ` style="background-image:url('${esc(x.posteri)}')"` : ""}></div>
-        <div class="kn-det-pos">${x.posteri ? `<img src="${esc(x.posteri)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<span class="kn-ph">${esc(x.titulli)}</span>`}</div>
+        <div class="kn-det-pos">${x.posteri ? knImg(x) : `<span class="kn-ph">${esc(x.titulli)}</span>`}</div>
         <div class="kn-det-tx">${b ? `<i class="kn-badge ${b[0]}">${b[1]}</i>` : ""}
-          <h2>${esc(x.titulli)}</h2>${x.titulliOrigjinal ? `<p class="kn-orig">${esc(x.titulliOrigjinal)}</p>` : ""}
-          <p class="kn-meta">${[x.kategoria, x.viti, x.tipi === "seri" ? eps.length + " episode" : x.kohezgjatja ? x.kohezgjatja + " min" : "", x.titraShqipUrl || eps.some((e) => e.titraShqipUrl) ? "Titra shqip" : ""].filter(Boolean).map(esc).join(" · ")}</p>
+          <h2>${esc(x.titulli)}</h2>${x.titulliOrigjinal ? `<p class="kn-orig no-ortho" lang="und">${escO(x.titulliOrigjinal)}</p>` : ""}
+          <p class="kn-meta">${[x.kategoria, x.viti, gj, x.tipi === "seri" ? eps.length + " episode" + (nSeas > 1 ? " · " + nSeas + " sezone" : "") : x.kohezgjatja ? x.kohezgjatja + " min" : "", nSrv > 1 ? nSrv + " serverë" : "", (x.titraShqipUrl || eps.some((e) => e.titraShqipUrl)) && !/titra shqip/i.test(gj) ? "Titra shqip" : ""].filter(Boolean).map(esc).join(" · ")}</p>
           ${soon ? `<p class="kn-soon">${icon("calendar")} Premiera: <b>${x.premiera ? esc(fmtDate(x.premiera)) : "së shpejti"}</b></p><div class="kn-acts">${x.premiera ? `<button class="btn primary${store.get("kn.remind", []).includes(x.id) ? " on" : ""}" data-remind="${esc(x.id)}">${icon("bell")}<span>${store.get("kn.remind", []).includes(x.id) ? "Do të të kujtojmë" : "Më kujto"}</span></button><button class="btn" data-ics="${esc(x.id)}">${icon("calendar")}<span>Në kalendar</span></button>` : ""}</div>`
-            : `<div class="kn-acts"><button class="btn primary" id="knPlay">${icon("play")}<span>${r.p ? "Vazhdo" + (r.e ? ` · ep. ${esc(String(r.e.nr || ""))}` : "") + ` (${fmtT(r.p.t)})` : eps.length ? "Shiko episodin 1" : "Shiko"}</span></button>${r.p ? `<button class="btn" id="knStart">${icon("refresh")}<span>Nga fillimi</span></button>` : ""}</div>`}
+            : `<div class="kn-acts"><button class="btn primary" id="knPlay">${icon("play")}<span>${r.p ? "Vazhdo" + (r.e ? ` · ep. ${esc(String(r.e.nr || ""))}` : "") + ` (${fmtT(r.p.t)})` : eps.length ? `Shiko episodin ${esc(String((r.e && r.e.nr) || 1))}` : "Shiko"}</span></button>${r.p ? `<button class="btn" id="knStart">${icon("refresh")}<span>Nga fillimi</span></button>` : ""}</div>`}
           ${x.pershkrimi ? `<p class="kn-desc">${esc(x.pershkrimi)}</p>` : ""}
-          ${x.burimiEmri ? `<p class="kn-src">${icon("video")} ${esc(x.burimiEmri)}</p>` : ""}
         </div></section>
-      ${eps.length ? `<section class="kn-eps"><h2 class="hub-h">Episodet${seasons.length > 1 ? `<span class="kn-seas">${seasons.map((s) => `<button data-seas="${s}" aria-pressed="${s === season}">Sezoni ${s}</button>`).join("")}</span>` : ""}</h2><ul id="knEpList">${epHtml()}</ul></section>` : ""}`;
+      ${eps.length ? `<section class="kn-eps"><h2 class="hub-h">Episodet${seasons.length > 1 ? `<span class="kn-seas">${seasons.map((s) => `<button data-seas="${s}" aria-pressed="${s === season}">${sLabel(s)}</button>`).join("")}</span>` : ""}</h2><ul id="knEpList">${epHtml()}</ul></section>` : ""}
+      ${x.burimiEmri ? `<p class="kn-credit">Burimi: <span class="no-ortho">${escO(x.burimiEmri)}</span></p>` : ""}`;
     enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
     // të rejat e këtij titulli shënohen si të para
     store.set("kn.seen", [...new Set([...store.get("kn.seen", []), ...knFresh().filter((f) => f.x === x).map((f) => f.k)])].slice(-400));
     const here = () => { if (location.hash === "#/kinema/t/" + encodeURIComponent(id)) viewKinemaTitle(id); };
+    const pageSeen = (e) => { if (e && e.slug) { const s = store.get("sb.seen", {}); s[e.slug] = Date.now(); store.set("sb.seen", s); } };
+    // episodi k me serverët e vet (ose të serisë) dhe vazhdimi vetë te episodi pasardhës
+    const opt = (k) => {
+      const n = eps[k], ns = knSrcs(n).length ? knSrcs(n) : knSrcs(x);
+      if (!ns.length) return null;
+      const nx = eps[k + 1];
+      return { key: knKey(x, n), title: n.titulli, sub: x.titulli, srcs: ns, subs: n.titraShqipUrl || x.titraShqipUrl || "",
+        next: nx && !onlyPage(nx) ? () => opt(k + 1) : null, onClose: here, onPage: () => pageSeen(n) };
+    };
     const play = (e, fromStart) => {
-      const s = e ? e.burimi || x.burimi : x.burimi;
-      if (!s || !s.url) { toast("Ky titull nuk ka ende burim për t'u luajtur"); return; }
-      const key = knKey(x, e); if (fromStart) VidPos.set(key, 0, 0);
-      const i = e ? eps.indexOf(e) : -1;
-      playVideo({ key, title: e ? e.titulli : x.titulli, sub: e ? x.titulli : x.kategoria, src: s, subs: (e && e.titraShqipUrl) || x.titraShqipUrl || "",
-        next: i >= 0 && eps[i + 1] ? () => { const n = eps[i + 1], ns = n.burimi || x.burimi; return ns && ns.url ? { key: knKey(x, n), title: n.titulli, sub: x.titulli, src: ns, subs: n.titraShqipUrl || x.titraShqipUrl || "", next: null, onClose: here } : null; } : null,
-        onClose: here });
+      const o = e ? opt(eps.indexOf(e)) : knSrcs(x).length ? { key: knKey(x), title: x.titulli, sub: x.kategoria, srcs: knSrcs(x), subs: x.titraShqipUrl || "", next: null, onClose: here } : null;
+      if (!o) { toast("Ky titull nuk ka ende burim për t'u luajtur"); return; }
+      if (fromStart) VidPos.set(o.key, 0, 0);
+      playVideo(o);
     };
     $("#knPlay")?.addEventListener("click", () => { haptic(10); play(r.e, false); });
     $("#knStart")?.addEventListener("click", () => { haptic(10); play(r.e || eps[0] || null, true); });
@@ -7817,7 +7951,7 @@ function pickPhoto(it) {
 
 
   // ---------- Kalendari Kishtar (i plotë): muaji, dita, leximet, shkurtimet ----------
-  const TON = { I: "Tingulli i Parë", II: "Tingulli i Dytë", III: "Tingulli i Tretë", IV: "Tingulli i Katërt", V: "Tingulli Tërthor i Parë", VI: "Tingulli Tërthor i Dytë", R: "Tingulli i Rëndë", VIII: "Tingulli Tërthor i Katërt" };
+  const TON = { I: "Tingulli i Parë", II: "Tingulli i Dytë", III: "Tingulli i Tretë", IV: "Tingulli i Katërt", V: "Tingulli Tërthor i të Parit", VI: "Tingulli Tërthor i të Dytit", R: "Tingulli Rëndë", VII: "Tingulli Rëndë", VIII: "Tingulli Tërthor i të Katërtit" };
   function calDay(d) {
     const kd = ((window.FS_DATA || {}).kalendari || {}).dite;
     const m = kd && kd[`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`];
@@ -7871,7 +8005,7 @@ function pickPhoto(it) {
           ${kd.ap ? `<div><small>${icon("letter")} Apostulli</small><b>${esc(kd.ap)}</b>${kd.j ? `<em>Java e ${kd.j}-të</em>` : ""}</div>` : ""}
           ${kd.ev ? `<div><small>${icon("book")} Ungjilli</small><b>${esc(kd.ev)}</b></div>` : ""}
           ${kd.note ? `<p class="muted">${esc(kd.note)}</p>` : ""}
-          ${kd.t ? `<div><small>${icon("music")} Tingulli i javës</small><b>${esc(TON[kd.t] || kd.t)}</b>${kd.um ? `<em>Ungjilli Mëngjesor ${esc(kd.um)}</em>` : ""}</div>` : ""}
+          ${kd.t ? `<div><small>${icon("music")} Tingulli i javës</small><b>${esc(TONE_FULL[kalTone(kd, date)] || TON[kd.t] || kd.t)}</b>${kd.um ? `<em>Ungjilli Mëngjesor ${esc(kd.um)}</em>` : ""}</div>` : ""}
         </div>` : ""}
         <div class="kal-acts">
           <a class="btn" href="#/sinaksari/${mo + 1}/${dd}">${icon("calendar")}<span>Sinaksari</span></a>
@@ -8641,19 +8775,24 @@ function pickPhoto(it) {
   }
 
   // ---------- Shërbesa e së Dielës: Tipikoja + Tetëtingullshi + shërbesat e plota ----------
-  const TONE_FULL = ["", "Tingulli i Parë", "Tingulli i Dytë", "Tingulli i Tretë", "Tingulli i Katërt", "Tingulli Tërthor i Parë", "Tingulli Tërthor i Dytë", "Tingulli i Rëndë", "Tingulli Tërthor i Katërt"];
-  const KAL_TONE = { I: 1, II: 2, III: 3, IV: 4, R: 7 };
+  const TONE_FULL = ["", "Tingulli i Parë", "Tingulli i Dytë", "Tingulli i Tretë", "Tingulli i Katërt", "Tingulli Tërthor i të Parit", "Tingulli Tërthor i të Dytit", "Tingulli Rëndë", "Tingulli Tërthor i të Katërtit"];
+  const KAL_TONE = { I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6, R: 7, VII: 7, VIII: 8 };
+  // tingulli i javës: kalendari shënon «I…IV» edhe për tingujt tërthorë → e rrëfen llogaria nga Pashka (Tingulli I që nga e diela e Thomait)
+  function kalTone(kd, d) {
+    const k = kd ? KAL_TONE[kd.t] || 0 : 0, c = window.Music && Music.liturgy ? Music.liturgy(d).tone : 0;
+    return c && k ? (c === k || c === k + 4 ? c : k) : k || c || 1;
+  }
   // Çfarë psalet saktësisht: (1) himnet që Tipikoja i citon me fillimin e tyre (“…”);
   // (2) pjesët e tingullit vetëm kur Tipikoja i kërkon, me numrin e saktë të vargëzimeve.
   const OKTO_RULES = [
-    { re: /(\d+)\s+Vargëzimet ngjallësore/i, part: "mbr", keys: ["thirrtoret"], count: true },
+    { re: /(\d+)\s+Vargëzim\w*\s+ngjallësore/i, part: "mbr", keys: ["thirrtoret"], count: true },
     { re: /PASVARGJET ngjallësore/i, part: "mbr", keys: ["pasvargjet"] },
     { re: /NDENJËSORET ngjallësore/i, part: "men", keys: ["ndenjesoret1", "ndenjesoret2", "ndenjesoret3"] },
     { re: /DËGJIMI/, part: "men", keys: ["degjimi"] },
     { re: /SHKALLESAT/, part: "men", keys: ["shkallesat"] },
     { re: /PARAVARGU[^.]*të tingullit/i, part: "men", keys: ["paravargu"] },
     { re: /SHKURTORJA[^.]*të tingullit/i, part: "men", keys: ["shkurtorja", "shtepia"] },
-    { re: /LAVDËRIMET:?\s*(\d+)\s+Vargëzimet ngjallësore/i, part: "men", keys: ["lavderimet"], count: true },
+    { re: /LAVDËRIMET:?\s*(\d+)\s+Vargëzim\w*\s+ngjallësore/i, part: "men", keys: ["lavderimet"], count: true },
   ];
   const nrmH = (t) => nrm(t).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
   // ---------- Shërbesa e plotë e së Dielës (si DCS): teksti i shërbesës + himnet e ditës në vendin e tyre ----------
@@ -8684,6 +8823,57 @@ function pickPhoto(it) {
     const b = blocks.findIndex((x, i) => i > a && endFn(x));
     return b < 0 ? blocks : blocks.slice(0, a).concat(blocks.slice(b));
   }
+  // ---------- Tipikoja e së dielës → rregullat e shërbesës: çfarë psalet nga Tetëtingullshi dhe çfarë nga Mujori ----------
+  const TIP_WHO = /\b(së kremtes|shenjt(?:it|orit|ores|ëve|orëve)|ungjillorit|apostull(?:it|ëve)|profetit|dëshmor\w*|kryeengjëjve|engjëjve|Kryqit)\b/i;
+  function tipDay(sun) {
+    const tp = data.tipikoja, sc = tp && sun.getFullYear() === 2026 ? tp.sections[sun.getMonth()] : null;
+    const it = sc ? sc.items.find((x) => parseInt(x.title, 10) === sun.getDate()) : null;
+    if (!it) return null;
+    const o = { mbr: "", men: "", lit: "" }; let part = "";
+    it.blocks.forEach((b) => {
+      if (b.t === "h") part = /Mëngjesore/i.test(b.x) ? "men" : /Liturgji/i.test(b.x) ? "lit" : /Mbrëmësore/i.test(b.x) ? "mbr" : part;
+      else if (b.t === "p" && part) o[part] += " " + b.x;
+    });
+    for (const k in o) o[k] = o[k].replace(/(\p{L})-\s+(\p{L})/gu, "$1$2").replace(/\bdhe dhe\b/g, "dhe").replace(/\s+/g, " ").trim();
+    return o;
+  }
+  // pjesa e udhëzimit nga «from» deri te «to» (pa e përfshirë)
+  const tipSeg = (s, from, to) => { const a = (s || "").search(from); if (a < 0) return ""; const r = s.slice(a); const b = to ? r.slice(1).search(to) : -1; return (b < 0 ? r : r.slice(0, b + 1)).trim(); };
+  // një fjali e Tipikosë: deri te pika që mbyll citimin ose fjalinë (jo te “Ting. Tërth.”)
+  const tipCut = (a) => { const m = /”\s*\.|\.\s+(?=“|(?![IVX]+\b)[A-ZËÇ]{4,})|\.\s*$|,?\s*“\s*“?\s*Tani/.exec(a); return (m ? a.slice(0, m.index + (m[0][0] === "”" ? 1 : 0)) : a).trim(); };
+  // “Lavdi…” dhe “Tani…”: kujt i takojnë
+  function tipGT(seg) {
+    const L = /“\s*Lavdi[^”]*”/.exec(seg || "");
+    if (!L) return null;
+    const r = { lavdi: "", tani: "", joint: false };
+    let a = seg.slice(L.index + L[0].length);
+    const J = /^\s*(?:dhe|,)\s*“\s*Tani[^”]*”/.exec(a);
+    if (J) { r.joint = true; a = a.slice(J[0].length); }
+    r.lavdi = tipCut(a.replace(/^[\s,]+/, ""));
+    if (r.joint) r.tani = r.lavdi;
+    else { const T2 = /“\s*Tani[^”]*”/.exec(a); if (T2) r.tani = tipCut(a.slice(T2.index + T2[0].length).replace(/^[\s,]+/, "")); }
+    return r;
+  }
+  function tipKind(s) {
+    if (!s) return "";
+    if (/^po (?:ajo|ai)\b/i.test(s)) return "same";
+    if (/ngjallësor|Lavdia mëngjesore/i.test(s)) return "okto";
+    if (/dogmatik/i.test(s)) return "dogm";
+    if (/Hyjlindësor/i.test(s) && !TIP_WHO.test(s.split(/Hyjlindësor/i)[0])) return /tingullit të Lavdisë|njëjtin tingull|\be (?:saj|tyre)\b/i.test(s) ? "theo-x" : "theo";
+    if (TIP_WHO.test(s)) return "men";
+    return "other";
+  }
+  const tipWho = (s) => { const m = TIP_WHO.exec(s || ""); return m ? m[1] : ""; };
+  const tipQ = (s) => [...(s || "").matchAll(/“\s*([^”]+?)\s*”/g)].map((m) => m[1].replace(/[\s.…]+$/, "")).filter((x) => x.length > 2);
+  // numrat e vargëzimeve: «6 Vargëzime ngjallësore dhe 3 të së kremtes, që bëhen 4»
+  function tipCount(cl) {
+    const R = /(\d+)\s+Vargëzim\w*\s+ngjallësore(?:,?\s*që bëhen\s+(\d+))?/i.exec(cl || "");
+    if (!R) return null;
+    const res = +R[1], resSlots = R[2] ? +R[2] : res, rest = cl.slice(R.index + R[0].length);
+    const n = /(\d+)/.exec(rest), b = /që bëhen\s+(\d+)/i.exec(rest);
+    const men = n ? +n[1] : 0;
+    return { res, resSlots, men, menSlots: b ? +b[1] : men, who: tipWho(rest) };
+  }
   async function composeSunday(kind, sun, tone, T, kd) {
     const sh = await load("sherbesa");
     const find = (title) => { for (const s of sh.sections) { const it = s.items.find((x) => x.title === title); if (it) return it; } return null; };
@@ -8698,10 +8888,10 @@ function pickPhoto(it) {
       B = cutRange(B, (b) => b.t === "rubric" && /^Gjatë të dielave të Triodit/.test(b.x), (b) => b.t === "rubric" && /^Pastaj Dhjaku thotë/.test(b.x));
     }
     B = keepTone(B, tone);
+    const okP = (k) => { const sc = T.sections.find((x) => x.k === k); return sc ? sc.blocks.filter((b) => b.t === "p").map((b) => b.x) : []; };
     // Përlëshorja dhe Hyjlindësorja e tingullit: teksti fiks nga Tetëtingullshi (jo nga libri i shërbesës)
     {
       let grp = "";
-      const okP = (k) => { const sc = T.sections.find((x) => x.k === k); return sc ? sc.blocks.filter((b) => b.t === "p").map((b) => b.x) : []; };
       const per = okP("perleshorja"), hyj = okP("hyjlindesorja");
       for (let i = 0; i < B.length; i++) {
         const b = B[i];
@@ -8714,83 +8904,191 @@ function pickPhoto(it) {
         } else if (b.t === "rubric" || (b.t === "h" && !/^Ting\./.test(b.x))) grp = "";
       }
     }
+    // ---- Tipikoja e kësaj të diele (udhëzimet e bashkuara, pa ndarjet e rreshtave) ----
+    const TD = tipDay(sun), tx = TD ? TD[kind] : "";
+    // himnet e cituara me fillimin e tyre: i kërkojmë në të tetë tingujt e Tetëtingullshit
+    const OKA = await load("tetetingullshi"), pool = [];
+    OKA.tones.forEach((tt, ti) => tt.sections.forEach((sc) => sc.blocks.forEach((b) => { if (b.t === "p") pool.push({ x: b.x, n: nrmH(b.x), title: sc.title, tone: ti + 1 }); })));
+    const look = (inc) => { const w = nrmH(inc || "").split(" ").filter(Boolean); if (w.length < 2) return null; const k = w.slice(0, 4).join(" "); return k.length < 8 ? null : pool.find((h) => h.n.startsWith(k)) || null; };
     const shown = new Set();
-    const box = (title, src, blocks, open = true) => `<details class="okto"${open ? " open" : ""}><summary>${icon("music")} ${esc(title)} <small>${esc(src)}</small></summary>
-      ${blocks.map((b) => (b.t === "sub" ? `<p class="okto-sub">${esc(b.x)}</p>` : `<p class="okto-p">${versify(b.x)}</p>`)).join("")}</details>`;
-    const okto = (k, count) => {
+    const box = (title, src, blocks, open = true, extra = "") => `<details class="okto"${open ? " open" : ""}><summary>${icon("music")} ${esc(title)} <small>${esc(src)}</small></summary>
+      ${blocks.map((b) => (b.t === "sub" ? `<p class="okto-sub">${esc(b.x)}</p>` : `<p class="okto-p">${versify(b.x)}</p>`)).join("")}${extra}</details>`;
+    const okto = (k, count, cutTani, extra) => {
       const sc = T.sections.find((x) => x.k === k);
       if (!sc) return "";
       let n = 0, blocks = sc.blocks.filter((b) => b.t === "sub" || !count || ++n <= count);
+      if (cutTani) { const i = blocks.findIndex((b) => b.t === "sub" && /^Tani/.test(b.x)); if (i >= 0) blocks = blocks.slice(0, i); }
       while (blocks.length && blocks[blocks.length - 1].t === "sub") blocks = blocks.slice(0, -1);
       blocks.forEach((b) => shown.add(b.x));
-      return box(sc.title + (count ? ` (${count})` : ""), "Nga Tetëtingullshi · " + TONE_FULL[tone], blocks);
+      return box(sc.title + (count ? ` (${count})` : ""), "Nga Tetëtingullshi · " + TONE_FULL[tone], blocks, true, extra || "");
+    };
+    // vendet që Tipikoja ia jep Mujorit: titulli me fjalët e Tipikosë + fillimi i himnit që citon ajo (teksti është te Mujori)
+    const menH = (label, q, src = "Nga Mujori") => `<div class="tip-men"><span class="okto-src">${icon("book")} ${esc(src)}</span><p><b>${esc(label)}</b>${q ? ` · <i>“${esc(q)}…”</i>` : ""}</p></div>`;
+    const noteH = (s) => (s ? `<p class="tip-note"><b>Tipikoja:</b> ${esc(s)}</p>` : "");
+    const stH = (x, src) => `<div class="okto-st"><span class="okto-src">${icon("music")} ${esc(src)}</span><p class="okto-p">${versify(x)}</p></div>`;
+    const hymnH = (h) => stH(h.x, `${h.title} · Tetëtingullshi · ${TONE_FULL[h.tone]}`);
+    const subH = (x) => `<p class="okto-sub">${esc(x)}</p>`;
+    // një vend “Lavdi…” / “Tani…” sipas Tipikosë
+    const slotH = (s, dflt, name, art, same) => {
+      if (!s) return dflt || "";
+      const k = tipKind(s), q = tipQ(s)[0], h = q ? look(q) : null;
+      if (h) return hymnH(h);
+      if (k === "same") return same || dflt || "";
+      if ((k === "okto" || k === "theo" || k === "dogm") && dflt) return dflt;
+      if (k === "men") return menH(`${name} ${art} ${tipWho(s)}`, q);
+      return menH(s.replace(/\s*:\s*“.*$/, "").replace(/[.\s]+$/, ""), q, k === "theo" || k === "theo-x" ? "Sipas Tipikosë" : "Nga Mujori");
+    };
+    // një varg himnesh të Mujorit të cituara njëra pas tjetrës («…”, “Lavdi…”, …”. “Tani…”, …»)
+    const seqH = (s) => s.split(/(“\s*(?:Lavdi|Tani)[^”]*”)/).map((p) => {
+      if (/^“\s*(?:Lavdi|Tani)/.test(p)) return subH(p.replace(/[“”]/g, ""));
+      return [...p.matchAll(/([^“”,.]*?)\s*:?\s*“\s*([^”]+?)\s*”/g)].map((m) => {
+        const q = m[2].replace(/[\s.…]+$/, ""), h = look(q);
+        return h ? hymnH(h) : menH(m[1].trim().replace(/^[,.\s]+/, "") || "Nga Mujori", q);
+      }).join("");
+    }).join("");
+    const putAfter = (pred, html, from = 0) => { const i = B.findIndex((b, j) => j >= from && b.t !== "html" && pred(b)); if (i < 0) return -1; B.splice(i + 1, 0, { t: "html", html }); return i + 1; };
+    // Përlëshoret: “Lavdi…” / “Tani…” sipas Tipikosë (në vend të Hyjlindësores së tingullit kur ajo s'psalet)
+    const apolyt = (seg, anchor) => {
+      const g = tipGT(seg);
+      if (!g) return;
+      const a = B.findIndex((b) => b.t === "rubric" && anchor.test(b.x)); if (a < 0) return;
+      const h0 = B.findIndex((b, i) => i > a && /^Hyjlindësoret/i.test(b.x)); if (h0 < 0) return;
+      let h1 = h0 + 1;
+      while (h1 < B.length && B[h1].t !== "rubric" && !(B[h1].t === "h" && !/^Ting\./.test(B[h1].x))) h1++;
+      const theo = B.slice(h0 + 1, h1).find((b) => b.t === "p"), per = okP("perleshorja")[0];
+      const dTheo = theo ? stH(theo.x, `Hyjlindësorja · ${TONE_FULL[tone]}`) : "", dPer = per ? stH(per, `Përlëshorja ngjallësore · ${TONE_FULL[tone]}`) : "";
+      let html = noteH(seg);
+      if (g.joint) html += subH("Lavdi… Tani…") + slotH(g.lavdi, dTheo, "Përlëshorja", "e", dPer);
+      else html += subH("Lavdi…") + slotH(g.lavdi, dPer, "Përlëshorja", "e", dPer) + subH("Tani…") + slotH(g.tani, dTheo, "Përlëshorja", "e", dPer);
+      B.splice(h0, h1 - h0, { t: "html", html });
     };
     const ins = [];   // [kushti mbi bllokun, html, pas/para]
     if (kind === "mbr") {
-      // e shtuna mbrëma: vetëm paravargu i së shtunës; pa vargjet e të kremteve
-      B = cutRange(B, (b) => b.t === "rubric" && /^Gjatë të kremteve Zotërore dhe Hyjlindësore, psalen vargjet/.test(b.x), (b) => b.t === "rubric" && /lavdia se së kremtes/.test(b.x));
-      ins.push([(b) => b.t === "rubric" && /^Dhe psalet Hyjlindësorja\.\s*Të shtunën/.test(b.x), okto("dogmatiku"), "after"]);
-      // ---- “O Zot thirra”: të dielën nis gjithmonë nga “Nxirr shpirtin tim prej burgut” (10 vargje) ----
-      const tpd = (() => { const tp = data.tipikoja; const sc = tp && sun.getFullYear() === 2026 ? tp.sections[sun.getMonth()] : null; return sc ? sc.items.find((x) => parseInt(x.title, 10) === sun.getDate()) : null; })();
-      const instr = tpd ? tpd.blocks.map((b) => b.x).join(" ") : "";
-      const mm = /(\d+)\s+Vargëzimet ngjallësore(?:,\s*që bëhen\s+(\d+))?/i.exec(instr);
-      const nSt = mm ? +mm[1] : 7, nSlots = mm && mm[2] ? +mm[2] : nSt;
+      // pasvargjet: vargjet e së shtunës; «Lavdi Atit…» mbetet para lavdisë
+      B = cutRange(B, (b) => b.t === "rubric" && /^Gjatë të kremteve Zotërore dhe Hyjlindësore, psalen vargjet/.test(b.x), (b) => b.t === "p" && /^Lavdi Atit/.test(b.x));
+      // ---- “O Zot thirra”: vargëzimet ngjallësore + ato të Mujorit, aq sa thotë Tipikoja ----
+      const thCl = tipSeg(tx, /THIRRA/, /“\s*Lavdi/).replace(/^THIRRA[^”]*”\s*/, "");
+      const C = tipCount(thCl) || { res: 7, resSlots: 7, men: 3, menSlots: 3, who: "shenjtorit të ditës" };
+      C.menSlots = Math.max(0, Math.min(C.menSlots, 10 - C.resSlots));
+      const total = [4, 6, 8, 10].find((x) => x >= C.resSlots + C.menSlots) || 10;
       const thSec = T.sections.find((x) => x.k === "thirrtoret");
-      const st = thSec ? thSec.blocks.filter((b) => b.t === "p").slice(0, nSt).map((b) => b.x) : [];
-      const slots = st.length ? Array(Math.max(0, nSlots - st.length)).fill(st[0]).concat(st) : [];   // “i pari 2 herë”
-      const a0 = B.findIndex((b) => b.t === "rubric" && /^Kur ka dhjetë vargje/.test(b.x));
+      const st = thSec ? thSec.blocks.filter((b) => b.t === "p").slice(0, C.res).map((b) => b.x) : [];
+      const slots = st.length ? Array(Math.max(0, C.resSlots - st.length)).fill(st[0]).concat(st) : [];   // “i pari 2 herë”
+      const men = [];   // vargëzimet e Mujorit: të parat përsëriten kur «bëhen» më shumë
+      for (let i = 0; i < C.men; i++) { men.push(`Vargëzimi ${i + 1} i ${C.who}`); if (men.length < C.menSlots && i < C.menSlots - C.men) men.push(`Vargëzimi ${i + 1} i ${C.who} (edhe një herë)`); }
+      while (men.length < C.menSlots) men.push(`Vargëzim i ${C.who}`);
+      men.length = C.menSlots;
+      const NUMW = { 10: "dhjetë", 8: "tetë", 6: "gjashtë", 4: "katër" };
+      let a0 = B.findIndex((b) => b.t === "rubric" && new RegExp(`^Kur ka ${NUMW[total]} vargje`).test(b.x));
+      if (a0 < 0) a0 = B.findIndex((b) => b.t === "rubric" && /^Kur ka dhjetë vargje/.test(b.x));
       const a1 = B.findIndex((b, i) => i > a0 && /^Lavdi Atit e Birit edhe Shpirtit të Shenjtë\.$/.test(b.x.trim()));
       if (a0 >= 0 && a1 > a0) {
         const verses = B.slice(a0, a1).filter((b) => b.t === "p").flatMap((b) => b.x.split(/(?<=[.!?])\s+(?=[A-ZËÇ])/));
-        let html = `<p class="blk-rubric">Të dielën vargëzimet nisin nga vargu i dhjetë, sipas Tipikosë: ${nSt} vargëzime ngjallësore${nSlots > nSt ? `, që bëhen ${nSlots} (i pari dy herë)` : ""}.</p>`;
+        let html = thCl ? noteH(tipCut(thCl)) : `<p class="blk-rubric">Të dielën vargëzimet nisin nga vargu i dhjetë: 7 vargëzime ngjallësore dhe 3 të Mujorit.</p>`;
         verses.forEach((v, i) => {
-          html += `<p class="verse para thv"><span class="vl"><b class="vlab">Varg ${10 - i}:</b> ${esc(v)}</span></p>`;
-          html += i < slots.length ? `<div class="okto-st"><span class="okto-src">${icon("music")} Tetëtingullshi · ${esc(TONE_FULL[tone])}</span><p class="okto-p">${versify(slots[i])}</p></div>`
-            : `<p class="okto-miss">Vargëzim i shenjtorit të ditës (nga Mineu).</p>`;
+          html += `<p class="verse para thv"><span class="vl"><b class="vlab">Varg ${verses.length - i}:</b> ${esc(v)}</span></p>`;
+          html += i < slots.length ? stH(slots[i], `Tetëtingullshi · ${TONE_FULL[tone]}`) : menH(men[i - slots.length] || `Vargëzim i ${C.who}`, "");
         });
         B.splice(a0, a1 - a0, { t: "html", html });
       }
-      // ---- Pasvargjet: i pari pa varg, nga i dyti me vargjet “Zoti mbretëroi…” ----
+      // “Lavdi…” dhe “Tani…” pas vargëzimeve: Lavdia sipas Tipikosë, pastaj Hyjlindësorja dogmatike (e cituar → nga tingulli i saj)
+      const g1 = tipGT(tipSeg(tx, /“\s*Lavdi/, /HYRJA/));
+      const dogm = (() => { const q = g1 && tipQ(g1.tani)[0], h = q && look(q); return h ? hymnH(h) : okto("dogmatiku"); })();
+      if (!g1) putAfter((b) => b.t === "rubric" && /^Dhe psalet Hyjlindësorja\.\s*Të shtunën/.test(b.x), dogm);
+      else {
+        if (!g1.joint) putAfter((b) => b.t === "rubric" && /^Dhe psalet Lavdia siç e përcakton/.test(b.x), slotH(g1.lavdi, "", "Lavdia", "e"));
+        putAfter((b) => b.t === "rubric" && /^Dhe psalet Hyjlindësorja\.\s*Të shtunën/.test(b.x), slotH(g1.tani, dogm, "Lavdia", "e"));
+      }
+      // ---- Pasvargjet: i pari pa varg, nga i dyti me vargjet “Zoti mbretëroi…”; Lavdi/Tani sipas Tipikosë ----
       const pv = B.findIndex((b) => /^Vargu i pare: Zoti mbretëroi/.test(b.x));
       const pvSec = T.sections.find((x) => x.k === "pasvargjet");
       if (pv >= 0 && pvSec) {
+        const pasCl = tipSeg(tx, /PASVARGJET/, /PËRLËSHOR/), g2 = tipGT(pasCl);
         const pverses = B[pv].x.split(/Vargu i (?:pare|parë|dytë|tretë):\s*/).map((x) => x.trim()).filter(Boolean);
         const sts = []; let tail = [];
         pvSec.blocks.forEach((b) => { if (tail.length || b.t === "sub") tail.push(b); else sts.push(b.x); });
-        let html = "";
+        let html = noteH(pasCl);
         sts.forEach((x, i) => {
           if (i > 0 && pverses[i - 1]) html += `<p class="verse para thv"><span class="vl"><b class="vlab">Varg ${i}:</b> ${esc(pverses[i - 1])}</span></p>`;
-          html += `<div class="okto-st"><span class="okto-src">${icon("music")} Tetëtingullshi · ${esc(TONE_FULL[tone])}</span><p class="okto-p">${versify(x)}</p></div>`;
+          html += stH(x, `Tetëtingullshi · ${TONE_FULL[tone]}`);
         });
-        tail.forEach((b) => { html += b.t === "sub" ? `<p class="okto-sub">${esc(b.x)}</p>` : `<div class="okto-st"><p class="okto-p">${versify(b.x)}</p></div>`; });
+        const theo = tail.filter((b) => b.t === "p").map((b) => b.x)[0], dTheo = theo ? stH(theo, `Hyjlindësorja e Pasvargjeve · ${TONE_FULL[tone]}`) : "";
         B.splice(pv, 1, { t: "html", html });
+        const lv = B.findIndex((b, i) => i > pv && b.t === "p" && /^Lavdi Atit/.test(b.x)), tn = B.findIndex((b, i) => i > lv && b.t === "p" && /^Tani e përherë/.test(b.x));
+        if (lv > 0 && tn > lv) {
+          if (!g2) B.splice(tn + 1, 0, { t: "html", html: dTheo });
+          else if (g2.joint) B.splice(tn + 1, 0, { t: "html", html: slotH(g2.lavdi, dTheo, "Lavdia", "e") });
+          else { B.splice(tn + 1, 0, { t: "html", html: slotH(g2.tani, dTheo, "Hyjlindësorja", "e") }); B.splice(lv + 2, 0, { t: "html", html: slotH(g2.lavdi, "", "Lavdia", "e") }); }
+        }
       }
+      // ---- Përlëshorja: “Lavdi…” / “Tani…” sipas Tipikosë ----
+      apolyt(tipSeg(tx, /PËRLËSHOR/, null), /^Pastaj psalet përlëshorja sipas rregullit/);
     } else {
-      ins.push([(b) => b.t === "rubric" && /psalen ndenjësoret e tingullit/.test(b.x), okto("ndenjesoret1") + okto("ndenjesoret2") + okto("ndenjesoret3"), "after"]);
+      // ---- Përlëshoret (“Perëndi është Zoti…”) ----
+      let apCl = tipSeg(tx, /ZOTI/, /NDENJ/).replace(/^ZOTI[^”]*”\s*,?\s*/, "");
+      if (/si në Mbrëmësore/i.test(apCl) && TD) apCl = tipSeg(TD.mbr, /PËRLËSHOR/, null);
+      apolyt(apCl, /^Pastaj psalet përlëshorja dhe Hyjlindësorja e tingullit/);
+      // ---- Ndenjësoret: ngjallësore; Hyjlindësoret e tyre zëvendësohen kur Tipikoja i jep të kremtes / shenjtit ----
+      const ndCl = tipSeg(tx, /NDENJ/, /BEKIMTOR/);
+      let ndH = "";
+      if (/Stihologjia\s+I\b/i.test(ndCl)) {
+        const parts = ndCl.split(/Stihologjia\s+(I{1,3})\s*:/i);
+        for (let i = 1; i < parts.length; i += 2) {
+          const n = parts[i].length, s = parts[i + 1] || "";
+          if (/ngjallësore/i.test(s) && T.sections.some((x) => x.k === "ndenjesoret" + n)) {
+            const rep = /në vend të Hyjlindësor/i.test(s) ? s.split(/\bpsal(?:et|en)\b/i).slice(1).join(" ").trim() : "";
+            ndH += rep ? okto("ndenjesoret" + n, 0, true, subH("Tani…") + slotH(rep, "", "Ndenjësorja", "e")) : okto("ndenjesoret" + n);
+          } else ndH += `<div class="tip-grp">${subH("Pas Stihologjisë " + parts[i])}${seqH(s)}</div>`;
+        }
+      } else if (/në vend të Hyjlindësor/i.test(ndCl)) {
+        const rep = ndCl.split(/\bpsal(?:et|en)\b/i).slice(1).join(" ").trim();
+        ndH = ["ndenjesoret1", "ndenjesoret2"].map((k) => okto(k, 0, true, subH("Tani…") + slotH(rep, "", "Ndenjësorja", "e"))).join("");
+      } else ndH = okto("ndenjesoret1") + okto("ndenjesoret2") + okto("ndenjesoret3");
+      ins.push([(b) => b.t === "rubric" && /psalen ndenjësoret e tingullit/.test(b.x), noteH(ndCl) + ndH, "after"]);
       ins.push([(b) => b.t === "rubric" && /lexon dëgjimin e tingullit/.test(b.x), okto("degjimi") + okto("shkallesat") + okto("paravargu"), "after"]);
-      // shkurtorja, shtëpia dhe sinaksari i ditës
+      // shkurtorja dhe shtëpia (e tingullit dhe/ose e Mujorit), sinaksari i ditës, zbritësoret
+      const kCl = tipSeg(tx, /SHKURTORJA/, /SINAKSARI/), kWho = tipWho(kCl);
+      const kH = !kCl || /tingullit/i.test(kCl) || !kWho ? okto("shkurtorja") + okto("shtepia") : "";
       const sx = await sxDay(sun.getMonth() + 1, sun.getDate());
       const sxHtml = sx ? box(`Sinaksari · ${sun.getDate()} ${MUAJ_G[sun.getMonth()]}`, "Nga Sinaksari", sx.blocks.filter((b) => ["intro", "li", "end"].includes(b.t)).map((b) => ({ t: "p", x: b.x }))) : "";
-      ins.push([(b) => b.t === "rubric" && /lexohet shkurtorja dhe shtëpia/.test(b.x), okto("shkurtorja") + okto("shtepia") + sxHtml, "after"]);
-      // Ungjilli mëngjesor sipas numrit në kalendar (ose tingullit)
-      const um = kd && kd.um ? ROMAN[kd.um] : 0;
+      const zCl = tipSeg(tx, /ZBRITËSORET/, /“\s*Le t/), zq = tipQ(zCl)[0];
+      ins.push([(b) => b.t === "rubric" && /lexohet shkurtorja dhe shtëpia/.test(b.x),
+        noteH(kCl) + kH + (kWho ? menH(`Shkurtorja dhe Shtëpia e ${kWho}`, "") : "") + sxHtml + (zq ? menH("Zbritësoret · katavasitë", zq) : ""), "after"]);
+      // Ungjilli mëngjesor sipas numrit në kalendar (ose në Tipikojë)
+      const tum = /UNGJILLI mëngjesor ngjallësor ([IVX]+)/.exec(tx);
+      const umR = kd && kd.um ? kd.um : tum ? tum[1] : "", um = umR ? ROMAN[umR] : 0;
       if (um) {
         const u = await load("ungjilli");
         const sec = u.sections.find((s) => /Mëngjesor/.test(s.title));
         const it = sec && sec.items.find((x) => { const m = /Mëngjesor i (\S+)/.exec(x.title); return m && UM_ORD[m[1]] === um; });
         ins.push([(b) => b.t === "rubric" && /Prifti lexon Ungjillin e Mëngjesores/.test(b.x),
-          it ? box(`${it.title}${it.ref ? " · " + it.ref : ""}`, "Ungjilli Mëngjesor " + kd.um, it.v.map((x) => ({ t: "p", x })))
-             : `<p class="okto-miss">Ungjilli Mëngjesor ${esc(kd.um)}: teksti nuk është ende në aplikacion.</p>`, "after"]);
+          it ? box(`${it.title}${it.ref ? " · " + it.ref : ""}`, "Ungjilli Mëngjesor " + umR, it.v.map((x) => ({ t: "p", x })))
+             : `<p class="okto-miss">Ungjilli Mëngjesor ${esc(umR)}: teksti nuk është ende në aplikacion.</p>`, "after"]);
       }
-      ins.push([(b) => /^Do të të lavdëroj me gjithë zemër, o Zot/.test(b.x), okto("lavderimet", 8), "after"]);
-      // Dërgimsorja dhe Lavdia mëngjesore sipas Ungjillit mëngjesor (fundi i Tetëtingullshit)
-      const eo = (await load("tetetingullshi")).eothina;
+      // Madhështimet: kënga IX e zbritësoreve sipas Tipikosë
+      const mgCl = tipSeg(tx, /MADHËSHTIMET/, /“\s*I shenjtë është Zoti/), mg9 = /Zbritësorja IX\s*:?\s*(“[^”]+”)?/.exec(mgCl);
+      if (mgCl) ins.push([(b) => b.t === "rubric" && /psal këngën e IX-të të zbritësoreve/.test(b.x), noteH(mgCl) + (mg9 && mg9[1] ? menH("Zbritësorja IX", tipQ(mg9[1])[0]) : ""), "after"]);
+      // Lavdërimet: aq vargëzime ngjallësore sa thotë Tipikoja, pastaj ato të Mujorit
+      const lvCl = tipSeg(tx, /LAVDËRIMET/, /DHOKSOLOGJI/), LC = tipCount(lvCl);
+      let lvH = lvCl ? noteH(lvCl) : "";
+      if (LC) {
+        lvH += okto("lavderimet", LC.res);
+        for (let i = 0; i < Math.min(LC.menSlots, 8); i++) lvH += menH(`Vargëzimi ${Math.min(i + 1, LC.men || i + 1)} i ${LC.who}${i >= LC.men ? " (edhe një herë)" : ""}`, "");
+      } else lvH += okto("lavderimet", 8);
+      ins.push([(b) => /^Do të të lavdëroj me gjithë zemër, o Zot/.test(b.x), lvH, "after"]);
+      // Dërgimsorja dhe Lavdia mëngjesore sipas Ungjillit mëngjesor (fundi i Tetëtingullshit) dhe Tipikosë
+      const eo = OKA.eothina;
+      const dgCl = tipSeg(tx, /DËRGIMSOR/, /LAVDËRIMET/), dgWho = tipWho(dgCl);
+      const gL = tipGT(lvCl), lvMen = gL && tipKind(gL.lavdi) === "men";
       if (um && eo) {
         const dg = eo.dergimsore[um - 1], lv = eo.lavdi[um - 1];
         if (dg) ins.push([(b) => b.t === "rubric" && /psalet dërgimsorja e Ngjalljes/.test(b.x),
-          box(`Dërgimsorja ngjallësore ${kd.um}`, (eo.mel || "") + " · Tetëtingullshi", [{ t: "p", x: dg.x }, { t: "sub", x: "Lavdi dhe tani · Hyjlindësorja" }, { t: "p", x: dg.theo }]), "after"]);
-        if (lv) ins.push([(b) => b.t === "rubric" && /psalet lavdia mëngjesore/.test(b.x),
-          box(`Lavdia mëngjesore ${kd.um}`, lv.tone + " · Tetëtingullshi", [{ t: "p", x: lv.x }]), "after"]);
+          noteH(dgCl) + (dgWho
+            ? box(`Dërgimsorja ngjallësore ${umR}`, (eo.mel || "") + " · Tetëtingullshi", [{ t: "p", x: dg.x }], true,
+              /Hyjlindësor/i.test(dgCl) ? subH("Lavdi…") + menH(`Dërgimsorja e ${dgWho}`, "") + subH("Tani…") + menH("Hyjlindësorja e saj", "") : subH("Lavdi… Tani…") + menH(`Dërgimsorja e ${dgWho}`, ""))
+            : box(`Dërgimsorja ngjallësore ${umR}`, (eo.mel || "") + " · Tetëtingullshi", [{ t: "p", x: dg.x }, { t: "sub", x: "Lavdi dhe tani · Hyjlindësorja" }, { t: "p", x: dg.theo }])), "after"]);
+        if (lv || lvMen) ins.push([(b) => b.t === "rubric" && /psalet lavdia mëngjesore/.test(b.x),
+          lvMen ? menH(`Lavdia e ${tipWho(gL.lavdi)}`, tipQ(gL.lavdi)[0]) : box(`Lavdia mëngjesore ${umR}`, lv.tone + " · Tetëtingullshi", [{ t: "p", x: lv.x }]), "after"]);
       }
     }
     // ndërthur
@@ -8819,7 +9117,7 @@ function pickPhoto(it) {
     const [okto, tp, sh] = await Promise.all([load("tetetingullshi"), load("tipikoja"), load("sherbesa"), load("kalendari")]);
     const sun = isoStr ? new Date(isoStr + "T12:00:00") : sundayFor();
     const kd = calDay(sun);
-    const tone = (kd && KAL_TONE[kd.t]) || (window.Music && Music.liturgy ? Music.liturgy(sun).tone : 1);
+    const tone = kalTone(kd, sun);
     const T = okto.tones[tone - 1];
     const sec = sun.getFullYear() === 2026 ? tp.sections[sun.getMonth()] : null;
     const ii = sec ? sec.items.findIndex((x) => parseInt(x.title, 10) === sun.getDate()) : -1;
@@ -9970,7 +10268,8 @@ function pickPhoto(it) {
       <article class="reader">
         <h2>Psalmi ${p.n}</h2>
         <p class="super">${esc(p.title || "")}</p>
-        <div class="verses" lang="sq">${p.v.map((v, i) => `${marks[i] ? `<p class="stasis">✣ ${esc(marks[i])} ✣</p>` : ""}<p class="verse${isLiked(`ps:${p.n}:${i + 1}`) ? " liked" : ""}" data-i="${i}" tabindex="0" role="button"><sup>${i + 1}</sup>${esc(v)}</p>`).join("")}</div>
+        ${p.n <= 150 ? `<button type="button" class="ra-go" data-listen="psalm:${p.n}">${icon("play")}<span>Dëgjo psalmin</span></button>` : ""}
+        <div class="verses" lang="sq">${p.v.map((v, i) => `${marks[i] ? `<p class="stasis">✣ ${esc(marks[i])} ✣</p>` : ""}<p class="verse${isLiked(`ps:${p.n}:${i + 1}`) ? " liked" : ""}" data-i="${i}" data-cv="${p.n}:${i + 1}" tabindex="0" role="button"><sup>${i + 1}</sup>${esc(v)}</p>`).join("")}</div>
         ${p.doxa ? `<p class="doxa">Lavdi Atit e Birit edhe Shpirtit të Shenjtë.<br>Tani e përherë e në jetë të jetëve. Amin.<br>Aliluia, aliluia, aliluia. Lavdi më ty, o Perëndi. <small>(3 herë)</small></p>` : ""}
         <nav class="pager">
           ${prev ? `<a class="btn" href="#/psaltiri/${prev.n}">${icon("back")} Psalmi ${prev.n}</a>` : "<span></span>"}
@@ -10381,7 +10680,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.1.8";
+  const APP_VERSION = "3.2.5";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
@@ -10499,8 +10798,9 @@ function pickPhoto(it) {
     function bgOf(el) {
       if (cache.has(el)) return cache.get(el);
       let res;
-      const cs = getComputedStyle(el);
+      const cs = getComputedStyle(el), pseudo = (w) => { const q = getComputedStyle(el, w); return q.content !== "none" && q.content !== "normal" && ((q.backgroundImage && q.backgroundImage !== "none") || (rgb(q.backgroundColor) || [0, 0, 0, 0])[3] > .3); };
       if (cs.backgroundImage && cs.backgroundImage !== "none") res = null;
+      else if (pseudo("::before") || pseudo("::after")) res = null;   // sfond i pikturuar nga ::before/::after (p.sh. kartat e kalendarit/gazetës): s'dihet
       else {
         const c = rgb(cs.backgroundColor);
         if (c && c[3] >= .9) res = c;

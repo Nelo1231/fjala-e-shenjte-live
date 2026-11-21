@@ -2627,3 +2627,30 @@ html.mzv-open, html.mzv-open body { overflow: hidden; }
 .ra-now { background: color-mix(in srgb, var(--gold) 18%, transparent); border-radius: 10px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--gold) 18%, transparent); transition: background .3s; }
 section.ra-now { padding: 4px 6px; }
 @media (max-width: 380px) { .ra-bar [data-ra="prev"] { display: none; } }
+
+/* Kinemaja · serverët, filtrat (lloji / gjuha / tema), grupet kronologjike, Superlibri */
+.vp-srv { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 0 12px 10px; }
+.vp-srv::-webkit-scrollbar { display: none; }
+.vp-srv button { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #fff3; background: #ffffff12; color: #fff6e3; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background .2s, opacity .2s; }
+.vp-srv button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.vp-srv button.bad { opacity: .45; text-decoration: line-through; }
+.vp-srv small { font-size: 11px; font-weight: 500; opacity: .75; }
+.kn-cats { display: grid; gap: 8px; overflow: visible; padding: 2px 0 10px; }
+.kn-kinds, .kn-themes { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.kn-kinds::-webkit-scrollbar, .kn-themes::-webkit-scrollbar { display: none; }
+.kn-cat.kn-th { font-size: 12.5px; font-weight: 500; padding: 6px 12px; }
+.kn-grp + .kn-grp { margin-top: 18px; }
+.kn-n { font-size: 12px; font-weight: 500; opacity: .6; letter-spacing: 0; }
+.kn-lang { position: absolute; top: 8px; right: 8px; z-index: 2; font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .06em; padding: 3px 7px; border-radius: 6px; background: #c0392bdd; color: #fff; }
+.kn-credit { font-size: 11.5px; opacity: .6; margin: 16px 4px 6px; text-align: center; font-style: italic; }
+.kn-ep-emo { position: absolute; inset: 0; display: grid; place-items: center; font-size: 34px; background: linear-gradient(150deg, hsl(var(--h, 20) 55% 42%), hsl(calc(var(--h, 20) + 40) 50% 20%)); }
+.kn-ep.page .kn-play { opacity: .85; }
+.kn-note { list-style: none; font-size: 12.5px; opacity: .75; margin: 8px 4px 0; line-height: 1.45; }
+
+/* Shërbesa e së dielës sipas Tipikosë: shënimi i Tipikosë dhe vendet e Mujorit */
+.tip-note { font-size: calc(var(--read-size) - 4px); line-height: 1.5; color: var(--rubric, #b3261e); font-style: italic; margin: 12px 0 6px; padding: 6px 10px; border-left: 3px solid var(--gold); background: color-mix(in srgb, var(--gold) 8%, transparent); border-radius: 0 10px 10px 0; }
+.tip-note b { font-style: normal; font-family: var(--font-cap); font-weight: 500; letter-spacing: .04em; }
+.tip-men { margin: 0 0 6px 10px; padding: 6px 0 6px 12px; border-left: 3px dashed var(--gold); }
+.tip-men p { margin: 2px 0 0; color: var(--ink-2); }
+.tip-men b { color: var(--ink); font-weight: 600; }
+.tip-grp { margin: 8px 0; }
