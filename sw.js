@@ -1,5 +1,5 @@
 ﻿/* Punon pa internet: ruan aplikacionin dhe tekstet në telefon. */
-const VERSION = "fs-v117";
+const VERSION = "fs-v118";
 const SHELL = [
   "./", "index.html", "css/app.css", "css/glass.css", "js/app.js", "js/lexime.js", "js/share.js", "js/music.js",
   "data/psaltiri.js", "data/kuizi.js", "data/eterit.js", "data/ungjilli.js", "data/apostulli.js", "data/profecite.js", "data/tipikoja.js", "data/sherbesa.js", "data/imazhet.js", "data/jerontikoni.js", "data/himnet.js", "data/pasdarka.js", "js/cross.js", "js/radio.js", "manifest.webmanifest",
@@ -64,7 +64,16 @@ async function nState(set) {
 const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 // secili lloj njoftimi ndizet / fiket te Cilësimet e aplikacionit (st.prefs)
 const getJson = async (u) => { try { const r = await fetch(u + "?t=" + Date.now(), { cache: "no-store" }); return r.ok ? await r.json() : null; } catch (e) { return null; } };
-async function notifyCheck() {
+// një kontroll në një kohë: ping-u çdo 5 min, kthimi në aplikacion dhe periodicsync mund të vijnë njëkohësisht
+// dhe pa këtë do lexonin të njëjtën gjendje e do jepnin të njëjtin njoftim dy herë
+let nBusy = null;
+function notifyCheck() {
+  if (!nBusy) nBusy = notifyRun().catch(() => {}).finally(() => { nBusy = null; });
+  return nBusy;
+}
+// mban mend çfarë është parë (jo vetëm të fundit), që një lajm/video i vjetër që rikthehet në krye të mos njoftohet sërish
+const remember = (arr, add, max) => [...new Set([...(arr || []), ...add])].slice(-max);
+async function notifyRun() {
   if (self.Notification && Notification.permission !== "granted") return;
   const st = await nState(), now = new Date(), day = isoDay(now);
   const on = (k) => !st.prefs || st.prefs[k] !== false;
@@ -73,16 +82,22 @@ async function notifyCheck() {
   if (now.getDay() === 0 && now.getHours() >= 12 && st.wk !== day) { st.wk = day; if (on("javore")) await show("javore", "⛪ Gazetat e javës dolën", "Mitropolitë, Fanari dhe Vatikani · lajmet e kësaj jave", "#/gazetat"); }
   const news = await getJson("data/lajme_bota.json");
   if (news) {
-    const top = (news.items || []).filter((n) => (n.lang || "sq") === "sq")[0];
-    if (top && st.news && st.news !== top.link && on("news")) await show("lajme", "📰 Lajm i ri", top.title, "#/kisha");
-    if (top) st.news = top.link;
+    const sq = (news.items || []).filter((n) => n && n.link && (n.lang || "sq") === "sq");
+    if (st.newsSeen) {
+      const seen = new Set(st.newsSeen);
+      // vetëm lajme vërtet të reja: të papara dhe (kur kanë datë) jo më të vjetra se 2 ditë
+      const fresh = sq.filter((n) => !seen.has(n.link) && (!n.date || Date.now() - Date.parse(n.date) < 2 * 864e5 || isNaN(Date.parse(n.date))));
+      if (fresh.length && on("news")) await show("lajme", "📰 Lajm i ri", fresh[0].title + (fresh.length > 1 ? ` (+${fresh.length - 1})` : ""), "#/kisha");
+    }
+    st.newsSeen = remember(st.newsSeen || (st.news ? [st.news] : []), sq.map((n) => n.link), 600);
   }
   // Shërbesat live: shërbesa më e re e Radio Ngjallja (kur ka nisur ose po nis)
   const lv = await getJson("data/transmetimet.json");
   if (lv) {
-    const svc = (lv.videos || []).filter((v) => v.svc && Date.parse(v.date) <= Date.now() + 15 * 6e4)[0];
-    if (svc && st.live && st.live !== svc.id && Date.now() - Date.parse(svc.date) < 3 * 36e5 && on("live")) await show("live", "🔴 LIVE · Radio Ngjallja", svc.title, "#/transmetime");
-    if (svc) st.live = svc.id;
+    const svcs = (lv.videos || []).filter((v) => v && v.id && v.svc && Date.parse(v.date) <= Date.now() + 15 * 6e4);
+    const svc = svcs[0];
+    if (svc && st.liveSeen && !st.liveSeen.includes(svc.id) && Date.now() - Date.parse(svc.date) < 3 * 36e5 && on("live")) await show("live", "🔴 LIVE · Radio Ngjallja", svc.title, "#/transmetime");
+    st.liveSeen = remember(st.liveSeen || (st.live ? [st.live] : []), svcs.map((v) => v.id), 300);
   }
   // Kinemaja: film, seri ose episod i ri + premierat që ke ruajtur
   const kn = await getJson("data/kinema.json");
@@ -90,14 +105,14 @@ async function notifyCheck() {
     const keys = [], names = {};
     (kn.items || []).forEach((x) => {
       if (!x || !x.id || x.statusi === "së shpejti") return;
-      keys.push("t:" + x.id); names["t:" + x.id] = (x.tipi === "seri" ? "Seri e re: " : "Film i ri: ") + x.titulli;
+      keys.push("t:" + x.id); names["t:" + x.id] = (x.tipi === "seri" || x.tipi === "serial" ? "Seri e re: " : "Film i ri: ") + x.titulli;
       (x.episodet || []).forEach((e) => { const k = "e:" + x.id + ":" + (e.id || e.nr); keys.push(k); names[k] = "Episod i ri: " + (e.titulli || "") + " · " + x.titulli; });
     });
     if (st.kn) {
       const old = new Set(st.kn), fresh = keys.filter((k) => !old.has(k));
       if (fresh.length && on("kinema")) await show("kinema", "🎬 E re në Kinema", names[fresh[0]] + (fresh.length > 1 ? ` (+${fresh.length - 1})` : ""), "#/kinema");
     }
-    st.kn = keys.slice(0, 1500);
+    st.kn = remember(st.kn, keys, 4000);   // bashkim: një titull që mungon përkohësisht s'njoftohet sërish kur kthehet
   }
   if (on("kinema")) for (const r of st.knRemind || []) {
     if (r.d === day && now.getHours() >= 9 && !(st.knDone || []).includes(r.id)) { st.knDone = (st.knDone || []).concat(r.id).slice(-60); await show("kn-" + r.id, "🎬 Premiera sot në Kinema", r.t || "", "#/kinema/t/" + encodeURIComponent(r.id)); }

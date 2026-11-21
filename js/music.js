@@ -314,6 +314,7 @@
     onChange(fn) { listeners.push(fn); },
     get justStarted() { return false; },
     suspend, resume, get suspended() { return suspended; },
+    get wanted() { return wantPlay && !userPaused; },
     get player() { return player; },
   };
 })();

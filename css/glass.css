@@ -2423,3 +2423,207 @@ html.mzv-open, html.mzv-open body { overflow: hidden; }
 .kn-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .kn-ed-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .kn-ed .sheet-card { max-height: 92dvh; }
+
+
+
+/* Kinemaja: butoni mbi «Shkrimi në Art» */
+
+.kn-cta { display: flex; align-items: center; gap: 14px; max-width: 520px; margin: 18px auto 0; padding: 14px 18px; border-radius: 22px; position: relative; overflow: hidden;
+
+  background: linear-gradient(135deg, #14203d 0%, #2a1748 55%, #4a1230 100%); color: #f8e3a8; text-decoration: none; box-shadow: 0 0 0 1.5px #c9a24a inset, 0 10px 26px rgba(20,16,48,.32); }
+
+.kn-cta::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 35%, rgba(255,236,190,.16) 50%, transparent 65%); transform: translateX(-100%); animation: gc-shine 4.2s ease-in-out infinite; pointer-events: none; }
+
+.kn-cta-ic { flex: 0 0 auto; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #3b4a7a, #141a33); box-shadow: 0 0 0 1.5px #c9a24a, 0 0 0 5px rgba(201,162,74,.18); }
+
+.kn-cta-ic svg { width: 22px; height: 22px; color: #f1cc72; }
+
+.kn-cta > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; text-align: center; min-width: 0; }
+
+.kn-cta b { font-family: "Cinzel", "EB Garamond", serif; font-size: 17px; letter-spacing: .06em; color: #fff4d6; }
+
+.kn-cta small { color: #f3e6c4; font-size: 12.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.kn-cta i { font-style: normal; font-size: 22px; color: #f1cc72; }
+
+.kn-cta:active { transform: scale(.98); }
+
+.kn-cta + .art-cta { margin-top: 10px; }
+
+/* Jerondikon i ditës */
+
+.geron-by { margin: 10px 0 0; text-align: right; font-style: italic; color: var(--ink-2); }
+
+.geron-ch { margin-top: 18px; }
+
+/* Kontrasti: ngjyrat dytësore lexohen mirë në çdo temë */
+
+:root { --muted: var(--ink-2); }
+
+:root[data-theme="dark"] .ks-cat > summary i, :root[data-theme="dark"] .ks-link i, :root[data-theme="dark"] .art-x small, :root[data-theme="dark"] .art-x-ref,
+
+:root[data-theme="dark"] .klt .rub, :root[data-theme="dark"] .klt .spk, :root[data-theme="dark"] .klt .dc, :root[data-theme="dark"] .klt .ini,
+
+:root[data-theme="dark"] .lit-doc .lit-r, :root[data-theme="dark"] .lit-doc .lit-h::after, :root[data-theme="dark"] .mzw-v.new b::before { color: #f0a094; }
+
+:root[data-theme="dark"] .ks-cat > summary small { color: var(--ink-2); opacity: 1; }
+
+
+
+/* =====================================================================
+
+   v3.1.7 — shumë kombinime ngjyrash (zgjidhen te Cilësimet → Ngjyrat)
+
+   ===================================================================== */
+
+:root[data-palette] body { background-color: var(--bg); }
+
+:root[data-theme="light"][data-palette="fildish"] {
+
+  --bg: #fbf8f1; --bg-2: #f3eee2; --card: #ffffff; --ink: #241a12; --ink-2: #62513f; --line: #e6dcc8;
+
+  --accent: #8f2a1f; --accent-ink: #ffffff; --gold: #a8822e; --rubric: #8f2a1f;
+
+  --glass: rgba(255, 255, 255, .92); --glass-2: rgba(255, 253, 248, .82); --glass-brd: rgba(176, 138, 53, .25);
+
+}
+
+:root[data-theme="light"][data-palette="qielli"] {
+
+  --bg: #edf2f8; --bg-2: #e2eaf3; --card: #f8fbfe; --ink: #15233a; --ink-2: #46586f; --line: #cfdbe8;
+
+  --accent: #1f4f8a; --accent-ink: #ffffff; --gold: #a8822e; --rubric: #a0312a;
+
+  --glass: rgba(250, 252, 255, .92); --glass-2: rgba(240, 246, 252, .82); --glass-brd: rgba(31, 79, 138, .2);
+
+}
+
+:root[data-theme="light"][data-palette="ulliri"] {
+
+  --bg: #f1f0e4; --bg-2: #e7e5d3; --card: #fbfaf1; --ink: #22261a; --ink-2: #555b40; --line: #dad7bf;
+
+  --accent: #5a6b26; --accent-ink: #ffffff; --gold: #9a8034; --rubric: #8f2a1f;
+
+  --glass: rgba(252, 251, 242, .92); --glass-2: rgba(244, 243, 230, .82); --glass-brd: rgba(90, 107, 38, .22);
+
+}
+
+:root[data-theme="light"][data-palette="trendafil"] {
+
+  --bg: #f8eeee; --bg-2: #f1e2e2; --card: #fff8f7; --ink: #2b1719; --ink-2: #674a4e; --line: #ecd6d6;
+
+  --accent: #9a2b3c; --accent-ink: #ffffff; --gold: #a8822e; --rubric: #9a2b3c;
+
+  --glass: rgba(255, 249, 248, .92); --glass-2: rgba(250, 240, 240, .82); --glass-brd: rgba(154, 43, 60, .18);
+
+}
+
+:root[data-theme="dark"][data-palette="athos"] {
+
+  --bg: #0e1a15; --bg-2: #13231c; --card: #1a2e25; --ink: #ece6d6; --ink-2: #a9bba9; --line: #284236;
+
+  --accent: #c0654a; --accent-ink: #fff3e0; --gold: #d6b55e; --gold-2: #ecd08a; --rubric: #f0a48f;
+
+  --glass: rgba(28, 48, 39, .92); --glass-2: rgba(22, 40, 32, .86); --glass-brd: rgba(214, 200, 150, .14);
+
+  --glass-hi: rgba(220, 235, 210, .08); --glass-lo: rgba(0, 0, 0, .35); --glass-sh: 0 10px 28px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .28);
+
+  --shadow: 0 10px 30px rgba(0, 0, 0, .55);
+
+}
+
+:root[data-theme="dark"][data-palette="vjollce"] {
+
+  --bg: #17111f; --bg-2: #1e1629; --card: #281d36; --ink: #eee6f2; --ink-2: #b9a9c6; --line: #3a2c4d;
+
+  --accent: #c0577a; --accent-ink: #fff3e0; --gold: #d9b866; --gold-2: #ecd08a; --rubric: #f09ab4;
+
+  --glass: rgba(42, 31, 57, .92); --glass-2: rgba(34, 25, 47, .86); --glass-brd: rgba(217, 184, 102, .15);
+
+  --glass-hi: rgba(240, 225, 255, .08); --glass-lo: rgba(0, 0, 0, .35); --glass-sh: 0 10px 28px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .28);
+
+  --shadow: 0 10px 30px rgba(0, 0, 0, .55);
+
+}
+
+:root[data-theme="dark"][data-palette="bordo"] {
+
+  --bg: #1e0e0d; --bg-2: #281312; --card: #341a18; --ink: #f3e6dc; --ink-2: #c8aea3; --line: #4a2a26;
+
+  --accent: #d0574a; --accent-ink: #fff3e0; --gold: #dcb866; --gold-2: #ecd08a; --rubric: #f2a091;
+
+  --glass: rgba(54, 28, 25, .92); --glass-2: rgba(44, 22, 20, .86); --glass-brd: rgba(220, 184, 102, .15);
+
+  --glass-hi: rgba(255, 230, 220, .08); --glass-lo: rgba(0, 0, 0, .35); --glass-sh: 0 10px 28px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .28);
+
+  --shadow: 0 10px 30px rgba(0, 0, 0, .55);
+
+}
+
+:root[data-theme="dark"][data-palette="grafit"] {
+
+  --bg: #17191c; --bg-2: #1d2024; --card: #25292e; --ink: #eceae6; --ink-2: #b0b5bc; --line: #353a41;
+
+  --accent: #c8574a; --accent-ink: #fff3e0; --gold: #d2b46e; --gold-2: #e6cf95; --rubric: #ef9a8a;
+
+  --glass: rgba(40, 44, 50, .92); --glass-2: rgba(33, 36, 41, .86); --glass-brd: rgba(220, 220, 225, .12);
+
+  --glass-hi: rgba(255, 255, 255, .07); --glass-lo: rgba(0, 0, 0, .35); --glass-sh: 0 10px 28px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .28);
+
+  --shadow: 0 10px 30px rgba(0, 0, 0, .55);
+
+}
+
+:root[data-theme="dark"][data-palette="oled"] {
+
+  --bg: #000000; --bg-2: #050505; --card: #0d0d0d; --ink: #f2ede4; --ink-2: #b9b2a6; --line: #222222;
+
+  --accent: #d4604f; --accent-ink: #fff3e0; --gold: #d8b56a; --gold-2: #ecd08a; --rubric: #ef9a8a;
+
+  --glass: rgba(16, 16, 16, .94); --glass-2: rgba(8, 8, 8, .9); --glass-brd: rgba(255, 240, 210, .12);
+
+  --glass-hi: rgba(255, 255, 255, .06); --glass-lo: rgba(0, 0, 0, .35); --glass-sh: 0 10px 28px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .28);
+
+  --shadow: 0 10px 30px rgba(0, 0, 0, .55);
+
+}
+
+.th-opts { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+
+
+
+/* Lajmet: 3 të fundit + «Shiko të gjitha» / sipas datës */
+
+.news-list > [hidden], .lj-list > [hidden] { display: none !important; }
+
+.nf-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin: 6px 0 14px; grid-column: 1 / -1; }
+
+.nf-bar .nf-all[hidden] { display: none; }
+
+.nf-pick { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+
+.nf-sel { font: inherit; font-size: 14px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; max-width: 220px; }
+
+/* Dëgjo leximet — butoni dhe lojtësi i vogël */
+.ra-go { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 12px 0 4px; padding: 12px 16px; border: 0; border-radius: 16px; font: inherit; font-weight: 700; font-size: 15px; color: #fff8ea; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #1a0f0a)); box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 35%, transparent), inset 0 1px 0 rgba(255, 255, 255, .25); cursor: pointer; }
+.ra-go svg { width: 20px; height: 20px; fill: currentColor; }
+.ra-go.on { background: linear-gradient(135deg, var(--gold), color-mix(in srgb, var(--gold) 50%, #2b1d14)); color: #1d140c; }
+.ra-go.busy { opacity: .7; pointer-events: none; }
+.reader .ra-go { max-width: 420px; margin: 6px auto 18px; }
+.ra-bar { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 86px); transform: translateX(-50%); z-index: 70; width: min(560px, calc(100% - 24px)); display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 12px; border-radius: 20px; background: var(--glass, var(--card)); color: var(--ink); border: 1px solid var(--glass-brd, var(--line)); box-shadow: 0 14px 34px rgba(0, 0, 0, .28); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); animation: raIn .28s ease both; }
+.ra-bar.bye { animation: raOut .25s ease both; }
+@keyframes raIn { from { opacity: 0; transform: translate(-50%, 16px); } }
+@keyframes raOut { to { opacity: 0; transform: translate(-50%, 16px); } }
+.ra-ic { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; flex: none; color: #fff8ea; background: linear-gradient(135deg, var(--accent), var(--gold)); }
+.ra-ic svg { width: 18px; height: 18px; fill: currentColor; }
+.ra-bar.on .ra-ic { animation: raPulse 1.6s ease-in-out infinite; }
+@keyframes raPulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--gold) 25%, transparent); } }
+.ra-t { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.ra-t b { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ra-t small { font-size: 12px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ra-bar .icon-btn { width: 36px; height: 36px; flex: none; }
+.ra-bar [data-ra="next"] svg, .ra-bar [data-ra="prev"] svg { width: 18px; height: 18px; }
+.ra-rate { flex: none; min-width: 42px; height: 30px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.ra-now { background: color-mix(in srgb, var(--gold) 18%, transparent); border-radius: 10px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--gold) 18%, transparent); transition: background .3s; }
+section.ra-now { padding: 4px 6px; }
+@media (max-width: 380px) { .ra-bar [data-ra="prev"] { display: none; } }

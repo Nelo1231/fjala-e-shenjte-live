@@ -24,10 +24,10 @@
 
   function play() {
     const a = ensure();
-    if (window.Music) Music.suspend();
+    if (window.AudioDuck) AudioDuck.take("radio"); else if (window.Music) Music.suspend();
     loading = true; playing = true; retries = 0;
     a.src = STREAM + "?t=" + Date.now();       // gjithmonë transmetimi i çastit
-    a.play().catch(() => { loading = false; playing = false; emit(); if (window.Music) Music.resume(); });
+    a.play().catch(() => { loading = false; playing = false; emit(); if (window.AudioDuck) AudioDuck.release("radio"); else if (window.Music) Music.resume(); });
     if ("mediaSession" in navigator && window.MediaMetadata) {
       navigator.mediaSession.metadata = new MediaMetadata({ title: "Radio Ngjallja", artist: "Live", album: "Kisha Orthodhokse Autoqefale e Shqipërisë" });
     }
@@ -40,7 +40,8 @@
     const was = playing || loading;
     playing = false; loading = false;
     emit();
-    if (was && !silent && window.Music) Music.resume();
+    if (window.AudioDuck) { if (silent) AudioDuck.drop("radio"); else if (was) AudioDuck.release("radio"); }
+    else if (was && !silent && window.Music) Music.resume();
   }
 
   function toggle() { (playing || loading) ? stop() : play(); }

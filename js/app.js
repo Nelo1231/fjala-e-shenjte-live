@@ -1153,6 +1153,7 @@ function pickPhoto(it) {
       <h2 class="section-title">Lajmet e fundit</h2>
       <div id="newsList" class="news-list">${cached ? newsHtml(cached.items) : `<p class="muted">Po ngarkohen lajmet…</p>`}</div>`;
     enter(listPane);
+    newsFold($("#newsList", listPane), ".news-card");
     // vetëm një kategori e hapur njëherësh
     $$(".ks-cats", listPane).forEach((h) => h.addEventListener("toggle", (e) => { if (e.target.open) $$(".ks-cat[open]", h).forEach((d) => d !== e.target && (d.open = false)); }, true));
     // seksionet/faqet e reja që faqja e Kishës krijon: i zbulon vetë sinkronizimi → hapen te ne, me citim
@@ -1199,7 +1200,7 @@ function pickPhoto(it) {
       const items = src === "kisha" ? await fetchNews() : await fetchNgjallja();
       if (!items.length) throw new Error("bosh");
       store.set(src === "kisha" ? "news" : "news.ngj", { at: Date.now(), items });
-      if ($("#newsList") && churchTab === src) { $("#newsList").innerHTML = newsHtml(items); enter($("#newsList")); }
+      if ($("#newsList") && churchTab === src) { $("#newsList").innerHTML = newsHtml(items); newsFold($("#newsList"), ".news-card"); enter($("#newsList")); }
     } catch (e) {
       const has = store.get(src === "kisha" ? "news" : "news.ngj", null);
       if (!has && $("#newsList")) {
@@ -1211,11 +1212,38 @@ function pickPhoto(it) {
       if ($("#newsList")) $("#newsList").classList.remove("loading");
     }
   }
+  // çdo listë lajmesh: duken vetëm 3 të fundit; të tjerat me «Shiko të gjitha» ose sipas muajit e vitit
+  function newsFold(box, sel) {
+    if (!box) return;
+    $(".nf-bar", box)?.remove();
+    const cards = $$(sel, box);
+    if (cards.length <= 3) return;
+    const ym = (c) => { const t = Date.parse(c.dataset.d || ""); if (isNaN(t)) return ""; const x = new Date(t); return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0"); };
+    const months = [...new Set(cards.map(ym).filter(Boolean))].sort().reverse();
+    const years = [...new Set(months.map((m) => m.slice(0, 4)))];
+    const bar = document.createElement("div");
+    bar.className = "nf-bar";
+    bar.innerHTML = `<button type="button" class="btn nf-all">${icon("news")}<span>Shiko të gjitha (${cards.length})</span></button>
+      ${months.length ? `<label class="nf-pick"><span>Sipas datës</span><select class="nf-sel" aria-label="Lajmet sipas muajit ose vitit">
+        <option value="top">3 të fundit</option><option value="all">Të gjitha</option>
+        ${years.map((y) => `<optgroup label="${y}"><option value="y${y}">Gjithë viti ${y}</option>${months.filter((m) => m.startsWith(y)).map((m) => `<option value="${m}">${MUAJT[+m.slice(5) - 1].replace(/^./, (c) => c.toUpperCase())} ${y}</option>`).join("")}</optgroup>`).join("")}
+      </select></label>` : ""}`;
+    box.appendChild(bar);
+    const sel2 = $(".nf-sel", bar), all = $(".nf-all", bar);
+    const show = (f) => {
+      cards.forEach((c, i) => { c.hidden = f === "top" ? i >= 3 : f === "all" ? false : f[0] === "y" ? !ym(c).startsWith(f.slice(1)) : ym(c) !== f; });
+      all.hidden = f !== "top";
+      if (sel2) sel2.value = f;
+    };
+    all.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); haptic(6); show("all"); });
+    if (sel2) { sel2.addEventListener("click", (e) => e.stopPropagation()); sel2.addEventListener("change", () => { haptic(6); show(sel2.value); }); }
+    show("top");
+  }
   // çdo listë lajmesh: kronologjikisht, nga më i riu (pa datë → në fund)
   const byDate = (l) => [...(l || [])].sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
   function newsHtml(items) {
     return byDate(items).map((n) => `
-      <a class="news-card" href="${n.id ? `#/lajm/kisha/${n.id}` : n.link.startsWith(NGJ) ? `#/lajm/ngj/${encodeURIComponent(n.link.slice(NGJ.length))}` : esc(n.link)}">
+      <a class="news-card" data-d="${esc(n.date || "")}" href="${n.id ? `#/lajm/kisha/${n.id}` : n.link.startsWith(NGJ) ? `#/lajm/ngj/${encodeURIComponent(n.link.slice(NGJ.length))}` : esc(n.link)}">
         ${n.img ? `<div class="news-img" style="background-image:url('${esc(n.img)}')">${n.cat ? `<span class="news-cat">${esc(n.cat)}</span>` : ""}</div>` : ""}
         <div class="news-body">${n.date ? `<p class="news-date">${fmtDate(n.date)}</p>` : ""}<h3>${esc(n.title)}</h3>${n.excerpt ? `<p class="news-ex">${esc(shortText(n.excerpt, 160))}</p>` : ""}</div>
       </a>`).join("");
@@ -1398,8 +1426,10 @@ function pickPhoto(it) {
     const yt = $("#ropeYt"), lb = $("#ropeListen");
     const setL = (on) => { lb.classList.toggle("on", on); lb.innerHTML = `${icon(on ? "pause" : "play")}<span>${on ? "Ndalo zërin" : "Dëgjo Lutjen e Jisuit"}</span>`; };
     lb.addEventListener("click", () => {
-      if (yt.firstChild) { yt.innerHTML = ""; yt.hidden = true; setL(false); return; }
-      try { if (window.Music && Music.pause) Music.pause(); if (window.Radio && Radio.playing) Radio.stop(); } catch (e) { /* */ }
+      if (yt.firstChild) { yt.innerHTML = ""; yt.hidden = true; setL(false); AudioDuck.release("jp"); return; }
+      AudioDuck.take("jp");
+      const off = () => { removeEventListener("hashchange", off); AudioDuck.release("jp"); };
+      addEventListener("hashchange", off);
       yt.hidden = false;
       yt.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${JP_VIDEO}?autoplay=1&loop=1&playlist=${JP_VIDEO}&playsinline=1&rel=0&modestbranding=1" allow="autoplay; encrypted-media" title="Lutja e Jisuit"></iframe>`;
       setL(true);
@@ -1814,7 +1844,7 @@ function pickPhoto(it) {
             document.querySelector('.nav-btn[data-go="kisha"]')?.classList.add("has-new");
             toast(`🔔 ${src === "kisha" ? "Kisha" : "Radio Ngjallja"}: ${shortText(fresh[0].title, 70)}`);
           }
-          if (location.hash.replace(/^#\/?/, "") === "kisha" && churchTab === src && $("#newsList")) $("#newsList").innerHTML = newsHtml(items);
+          if (location.hash.replace(/^#\/?/, "") === "kisha" && churchTab === src && $("#newsList")) { $("#newsList").innerHTML = newsHtml(items); newsFold($("#newsList"), ".news-card"); }
         } catch (e) { /* pa internet ose burim jashtë funksionit */ }
       }
     }
@@ -2029,6 +2059,235 @@ function pickPhoto(it) {
     }));
   }
 
+  /* =====================================================================
+     ZËRI NË NJË KOHË — kur nis radioja, një video/live, shërbesa ose leximi me zë,
+     muzika e sfondit pushon; kur mbarojnë të gjitha, rikthehet vetë (vetëm nëse luante)
+     ===================================================================== */
+  const AudioDuck = (() => {
+    const owners = new Set();
+    let was = false;
+    const M = () => window.Music;
+    return {
+      take(k) {
+        try {
+          if (!owners.size) was = !!(M() && !M().suspended && M().wanted !== false);
+          owners.add(k);
+          if (M() && M().suspend) M().suspend();
+          if (k !== "radio" && window.Radio && Radio.playing) { owners.delete("radio"); Radio.stop(true); }
+          if (k !== "lexim" && window.ReadAloud && ReadAloud.on) ReadAloud.stop(true);
+        } catch (e) { /* */ }
+      },
+      release(k) {
+        if (!owners.delete(k) || owners.size) return;
+        try { if (was && M() && M().resume) M().resume(); } catch (e) { /* */ }
+        was = false;
+      },
+      drop(k) { owners.delete(k); },      // u ndal sepse e zëvendësoi një tjetër: pa rikthim
+      get busy() { return owners.size > 0; },
+    };
+  })();
+  window.AudioDuck = AudioDuck;
+  // video në lojtësin e telefonit (Android): kur kthehesh në aplikacion, muzika rikthehet
+  let nativeVideo = false;
+  const nativeBack = () => { if (nativeVideo && !document.hidden) { nativeVideo = false; AudioDuck.release("video"); } };
+  window.FSResume = () => setTimeout(nativeBack, 600);
+  document.addEventListener("visibilitychange", () => setTimeout(nativeBack, 600));
+  function openNativeVideo(url, title) { AudioDuck.take("video"); nativeVideo = true; android.openVideo(url, title); }
+
+  /* =====================================================================
+     DËGJO LEXIMET — Apostulli dhe Ungjilli i ditës me zë, varg pas vargu
+     (sipas Tipikosë së ditës: kremtet, periudhat dhe të dielat ndjekin kalendarin kishtar)
+     ===================================================================== */
+  const ReadAloud = (() => {
+    const BASE = "https://orthodoxalbania.org/2026/wp-content/uploads/2026/06/";
+    const BK = { MAT: "matt", MRK: "mark", LUK: "luke", JHN: "john", ACT: "acts", ROM: "rom", "1CO": "cor1", "2CO": "cor2", GAL: "gal", EPH: "eph", PHP: "phil", COL: "col",
+      "1TH": "thes1", "2TH": "thes2", "1TI": "tim1", "2TI": "tim2", TIT: "tit", PHM: "phm", HEB: "heb", JAS: "jas", "1PE": "pet1", "2PE": "pet2", "1JN": "john1", "2JN": "john2", "3JN": "john3", JUD: "jude", REV: "rev", PSA: "psal" };
+    const ONE = { JUD: 1, PHM: 1, "2JN": 1, "3JN": 1 };
+    const p2 = (n) => String(n).padStart(2, "0"), p3 = (n) => String(n).padStart(3, "0");
+    const fileOf = (b, c, v) => `${BASE}${b}_ch${p2(c)}_v${p3(v)}.mp3${b === "psal" ? "?v=2" : ""}`;
+    const audioId = (code) => { if (!code) return ""; const u = String(code).toUpperCase(); return BK[u] || (Object.values(BK).includes(String(code).toLowerCase()) ? String(code).toLowerCase() : ""); };
+    // «4:9-16» · «10:1, 5-8» · «11:33-12:2» · «6:31-36; 7:1-5» → [{ c, v, c2, v2 }]
+    function ranges(ref, code) {
+      const s = String(ref || "").replace(/[–—]/g, "-");
+      let i = s.search(/\d+\s*:\s*\d+/), c = 0;
+      if (i < 0 && ONE[code]) { i = s.search(/\d+\s*-\s*\d+/); c = 1; }
+      if (i < 0) return [];
+      const out = [];
+      for (const seg of s.slice(i).split(/[,;]/)) {
+        const m = seg.match(/^\s*(?:(\d+)\s*:\s*)?(\d+)(?:\s*-\s*(?:(\d+)\s*:\s*)?(\d+))?/);
+        if (!m) break;
+        if (m[1]) c = +m[1];
+        if (!c) break;
+        const v = +m[2], c2 = m[3] ? +m[3] : c, v2 = m[4] ? +m[4] : v;
+        if (c2 < c || (c2 === c && v2 < v)) break;
+        out.push({ c, v, c2, v2 });
+        c = c2;
+      }
+      return out;
+    }
+    let tracks = [], ti = 0, pi = 0, c = 0, v = 0, a = null, nx = null, bar = null, on = false, fails = 0, rate = store.get("ra.rate", 1), title = "";
+    const part = () => tracks[ti] && tracks[ti].parts[pi];
+    const nameOf = (code) => { const b = BIBLE_BOOKS.find((x) => x[0] === code); return b ? b[1] : ""; };
+
+    function ui() {
+      if (!bar) return;
+      const t = tracks[ti];
+      const playingNow = a && !a.paused;
+      $(".ra-ref", bar).textContent = t ? `${t.label} · ${t.name || nameOf(t.code)} ${c}:${v}` : "";
+      $('[data-ra="pp"]', bar).innerHTML = icon(playingNow ? "pause" : "play");
+      $('[data-ra="pp"]', bar).setAttribute("aria-label", playingNow ? "Pauzë" : "Luaj");
+      $('[data-ra="rate"]', bar).textContent = rate + "×";
+      bar.classList.toggle("on", !!playingNow);
+    }
+    function mark() {
+      $$(".ra-now").forEach((e) => e.classList.remove("ra-now"));
+      const t = tracks[ti];
+      if (!t) return;
+      const el = t.vsel ? $(t.vsel(c, v)) : t.sel ? $(t.sel) : null;
+      if (!el) return;
+      el.classList.add("ra-now");
+      const r = el.getBoundingClientRect();
+      if (r.top < 70 || r.top > innerHeight * 0.6) el.scrollIntoView({ behavior: "smooth", block: t.vsel ? "center" : "start" });
+    }
+    function preNext() {                        // vargu pasardhës, që zëri të vijë pa pritje
+      const p = part();
+      if (!p || !nx) return;
+      if (c < p.c2 || v < p.v2) nx.src = fileOf(tracks[ti].b, c, v + 1);
+    }
+    function load() {
+      const t = tracks[ti];
+      if (!t) return stop();
+      a.src = fileOf(t.b, c, v);
+      a.playbackRate = rate;
+      a.play().catch(() => { /* gabimi trajtohet nga «error» */ });
+      mark(); ui(); preNext();
+    }
+    function nextPart() {
+      fails = 0;
+      pi++;
+      if (pi >= tracks[ti].parts.length) { ti++; pi = 0; }
+      const p = part();
+      if (!p) return stop();
+      c = p.c; v = p.v;
+      load();
+    }
+    function step(err) {
+      const p = part();
+      if (!p) return stop();
+      if (err) {
+        if (++fails > 4) { toast("Zëri i leximit nuk u ngarkua — kontrollo internetin"); return stop(); }
+        if (c < p.c2) { c++; v = 1; return load(); }      // fundi i kapitullit → kapitulli tjetër
+        if (v < p.v2) { v++; return load(); }             // varg pa zë → vargu tjetër
+        return nextPart();
+      }
+      fails = 0;
+      if (c === p.c2 && v >= p.v2) return nextPart();
+      v++;
+      load();
+    }
+    function stop(silent) {
+      if (!on) return;
+      on = false;
+      try { a.pause(); a.removeAttribute("src"); a.load(); } catch (e) { /* */ }
+      if (nx) nx.removeAttribute("src");
+      $$(".ra-now").forEach((e) => e.classList.remove("ra-now"));
+      $$("[data-listen].on").forEach((b) => b.classList.remove("on"));
+      if (bar) { const b = bar; b.classList.add("bye"); setTimeout(() => b.remove(), 260); bar = null; }
+      if (silent) AudioDuck.drop("lexim"); else AudioDuck.release("lexim");
+    }
+    function start(list, label) {
+      stop(true);
+      tracks = (list || []).filter((t) => t.b && t.parts && t.parts.length);
+      if (!tracks.length) { toast("Ky lexim nuk ka ende zë"); return false; }
+      ti = 0; pi = 0; c = tracks[0].parts[0].c; v = tracks[0].parts[0].v; fails = 0; title = label || "Leximi i ditës";
+      if (!a) {
+        a = new Audio(); a.preload = "auto";
+        nx = new Audio(); nx.preload = "auto"; nx.muted = true;
+        a.addEventListener("ended", () => on && step(false));
+        a.addEventListener("error", () => on && a.getAttribute("src") && step(true));
+        a.addEventListener("playing", () => { fails = 0; ui(); });
+        a.addEventListener("pause", ui);
+      }
+      AudioDuck.take("lexim");
+      on = true;
+      bar = document.createElement("div");
+      bar.className = "ra-bar";
+      bar.setAttribute("role", "region");
+      bar.setAttribute("aria-label", "Dëgjo leximin");
+      bar.innerHTML = `<span class="ra-ic" aria-hidden="true">${icon("book")}</span>
+        <div class="ra-t"><b>${esc(title)}</b><small class="ra-ref"></small></div>
+        <button class="icon-btn" data-ra="prev" aria-label="Vargu i mëparshëm">${icon("back")}</button>
+        <button class="icon-btn ra-pp" data-ra="pp" aria-label="Pauzë">${icon("pause")}</button>
+        <button class="icon-btn" data-ra="next" aria-label="Vargu tjetër">${icon("next")}</button>
+        <button class="ra-rate" data-ra="rate" aria-label="Shpejtësia e zërit">1×</button>
+        <button class="icon-btn" data-ra="x" aria-label="Mbyll zërin">${icon("close")}</button>`;
+      document.body.appendChild(bar);
+      bar.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-ra]");
+        if (!b) return;
+        haptic(6);
+        const k = b.dataset.ra;
+        if (k === "x") return stop();
+        if (k === "pp") { if (a.paused) { AudioDuck.take("lexim"); a.play().catch(() => {}); } else a.pause(); return; }
+        if (k === "next") return step(false);
+        if (k === "prev") {
+          const p = part();
+          if (p && (c > p.c || v > p.v)) { if (v > 1) v--; else { c--; v = p.c === c ? p.v : 1; } }
+          else if (pi > 0 || ti > 0) { if (pi > 0) pi--; else { ti--; pi = tracks[ti].parts.length - 1; } const q = part(); c = q.c; v = q.v; }
+          return load();
+        }
+        if (k === "rate") { rate = rate === 1 ? 1.25 : rate === 1.25 ? 1.5 : rate === 1.5 ? 0.85 : 1; store.set("ra.rate", rate); a.playbackRate = rate; ui(); }
+      });
+      if ("mediaSession" in navigator && window.MediaMetadata) {
+        try { navigator.mediaSession.metadata = new MediaMetadata({ title, artist: "Fjala e Shenjtë", album: "Leximet e ditës" }); } catch (e) { /* */ }
+      }
+      load();
+      return true;
+    }
+    return { start, stop, ranges, audioId, get on() { return on; } };
+  })();
+  window.ReadAloud = ReadAloud;
+
+  // leximet e ditës sipas Tipikosë → pjesët me zë
+  async function listenTracks(which) {
+    const lx = await tipikonReadings(new Date());
+    const t = Today.data || await Today.load();
+    const out = [];
+    for (const w of which === "both" ? ["apostulli", "ungjilli"] : [which]) {
+      const list = lx ? (w === "apostulli" ? lx.apostle : lx.gospel) : [];
+      const api = t ? (w === "apostulli" ? t.epistle : t.gospel) : null;
+      const label = w === "apostulli" ? "Apostulli" : "Ungjilli";
+      const here = location.hash.startsWith("#/dita/" + w);
+      if (list.length) {
+        list.forEach((r, k) => {
+          const code = r.book || (r.item && window.Lexime && Lexime.bookOfData(r.item.ref)) || "";
+          const b = ReadAloud.audioId(code);
+          const own = r.item ? ReadAloud.ranges(r.item.ref, code) : [];
+          const parts = own.length ? own : ReadAloud.ranges(r.ref, code);
+          if (b && parts.length) out.push({ b, code, parts, label, sel: here ? `.lx-read[data-k="${k}"]` : "" });
+        });
+      } else if (api && api.verses.length) {
+        const code = window.Lexime ? Lexime.bookOfData(api.book) : "";
+        const b = ReadAloud.audioId(api.id) || ReadAloud.audioId(code);
+        out.push({ b, code, name: api.book, label, parts: api.verses.map((x) => ({ c: x.c, v: x.v, c2: x.c, v2: x.v })),
+          vsel: here ? (c, v) => `.verse[data-cv="${c}:${v}"]` : null });
+      }
+    }
+    return out;
+  }
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-listen]");
+    if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    haptic(10);
+    if (b.classList.contains("on") && ReadAloud.on) { ReadAloud.stop(); return; }
+    const w = b.dataset.listen;
+    b.classList.add("busy");
+    const list = await listenTracks(w).catch(() => []);
+    b.classList.remove("busy");
+    if (ReadAloud.start(list, w === "both" ? "Apostulli dhe Ungjilli i ditës" : w === "apostulli" ? "Apostulli i ditës" : "Ungjilli i ditës")) b.classList.add("on");
+  }, true);
+
   const Today = (() => {
     let data = null, loading = null;
     const dkey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
@@ -2043,6 +2302,7 @@ function pickPhoto(it) {
         return {
           display: r.display,
           book: (sd.book && sd.book.name && sd.book.name.sq) || "",
+          id: (sd.book && (sd.book.id || sd.book.code || sd.book.slug)) || "",
           ref: sd.reference || r.display,
           verses: (sd.verses || []).map((v) => ({ c: v.chapter, v: v.verse, t: (v.text && (v.text.sq || v.text.en)) || "" })).filter((v) => v.t),
         };
@@ -2113,6 +2373,27 @@ function pickPhoto(it) {
     };
     requestAnimationFrame(step);
   })();
+  // faqja e Kishës i ngjit tregimit në fund etiketat e temës: «… - thoshte ava Amonai. inati · ava Amonai · lutja»
+  function geronClean(x) {
+    return String(x || "").replace(/([.!?…»”"])\s+[^.!?…«»“”"]{1,60}(?:\s·\s[^.!?…«»“”"]{1,60})+\s*$/u, "$1").trim();
+  }
+  // gjen tregimin te Jerondikoni ynë: ati (blloku «saints» pas tij) dhe kapitulli ku ndodhet
+  async function geronFind(text) {
+    const B = await load("jerontikoni").catch(() => null), n = (s) => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
+    const key = n(geronClean(text)).slice(0, 70);
+    if (!B || !key) return null;
+    for (let si = 0; si < (B.sections || []).length; si++) {
+      const S = B.sections[si];
+      for (let ii = 0; ii < (S.items || []).length; ii++) {
+        const bl = S.items[ii].blocks || [];
+        const bi = bl.findIndex((b) => b.t === "p" && n(b.x).startsWith(key));
+        if (bi < 0) continue;
+        const by = bl.slice(bi + 1).find((b) => b.t === "saints" || b.t === "p");
+        return { si, ii, title: S.items[ii].title || S.title, by: by && by.t === "saints" ? by.x : "" };
+      }
+    }
+    return null;
+  }
   function todayCardHtml(t) {
     if (!t) return "";
     const ep = t.epistle, gs = t.gospel;
@@ -2139,11 +2420,12 @@ function pickPhoto(it) {
           ${gr || (gs && gs.verses.length) ? `<a class="today-read" href="#/dita/ungjilli">${icon("book")}<span><b>Ungjilli</b><small>${esc(gr || Today.niceDisplay(gs))}</small></span></a>` : ""}`; })()}
           <a class="today-read" href="#/sinaksari/sot">${icon("calendar")}<span><b>Sinaksari</b><small>Shenjtorët e sotëm</small></span></a>
         </div>
+        <button type="button" class="ra-go" data-listen="both">${icon("play")}<span>Dëgjo Apostullin dhe Ungjillin</span></button>
         ${t.saints.length ? (() => { const chips = (clone) => t.saints.map((s) => `
           <a class="saint-chip"${clone ? ' data-clone aria-hidden="true" tabindex="-1"' : ""} href="#/lajm/shenjt/${encodeURIComponent((s.link.split("ods_saint=")[1] || "").split("&")[0])}">
             ${s.img ? `<span class="saint-img" style="background-image:url('${esc(s.img)}')"></span>` : ""}<span>${esc(s.title)}</span></a>`).join("");
           return `<div class="today-saints${t.saints.length > 1 ? " auto" : ""}">${chips(false)}${t.saints.length > 1 ? chips(true) : ""}</div>`; })() : ""}
-        ${t.geron ? `<a class="today-geron" href="#/dita/jerontikon">${icon("quote")}<span><b>Historia e ditës</b><small>${esc(shortText(t.geron.text, 90))}</small></span></a>` : ""}
+        ${t.geron ? `<a class="today-geron" href="#/dita/jerontikon">${icon("quote")}<span><b>Historia e ditës</b><small>${esc(shortText(geronClean(t.geron.text), 90))}</small></span></a>` : ""}
       </section>`;
   }
 
@@ -2168,13 +2450,14 @@ function pickPhoto(it) {
       const word = which === "apostulli" ? "Apostulli" : "Ungjilli";
       mainPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">${esc(lx.title || "")}</h2></header>
         <article class="reader"><h2 class="reading-title">${word} i ditës</h2>
-        ${list.map((r, k) => `<section class="lx-read">
+        <button type="button" class="ra-go" data-listen="${which}">${icon("play")}<span>Dëgjo ${word.toLowerCase()}n</span></button>
+        ${list.map((r, k) => `<section class="lx-read" data-k="${k}">
           <p class="eyebrow">${esc(capFirst(word.toLowerCase() + " " + r.desc))}</p>
           <p class="super ref-exact">${esc(r.ref)}</p>
           ${r.pre && r.pre.length ? `<div class="prokimen">${r.pre.map((l) => `<p>${esc(l)}</p>`).join("")}</div>` : ""}
           ${r.item ? `<p class="lx-src">${esc(r.item.ref)}</p>
           <div class="verses" lang="sq">${r.item.v.map((x, i) => `<p class="verse para" data-k="${k}" data-i="${i}" tabindex="0" role="button">${esc(x)}</p>`).join("")}</div>`
-          : k === 0 && api && api.verses.length ? `<div class="verses" lang="sq">${api.verses.map((v, i) => `<p class="verse" data-api="${i}" tabindex="0" role="button"><sup>${v.v}</sup>${esc(v.t)}</p>`).join("")}</div>`
+          : k === 0 && api && api.verses.length ? `<div class="verses" lang="sq">${api.verses.map((v, i) => `<p class="verse" data-api="${i}" data-cv="${v.c}:${v.v}" tabindex="0" role="button"><sup>${v.v}</sup>${esc(v.t)}</p>`).join("")}</div>`
           : `<p class="bible-note">Teksti i këtij leximi lexohet në kishë sipas referencës së mësipërme.</p>`}
         </section>`).join("")}</article>`;
       $$(".verse", mainPane).forEach((el) => el.addEventListener("click", () => {
@@ -2191,8 +2474,14 @@ function pickPhoto(it) {
     if (which === "jerontikon" && t.geron) {
       mainPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">Jerondikon</h2></header>
         <article class="reader"><p class="eyebrow">Historia e ditës · ${esc(t.geron.section || "")}</p>
-        <div class="verses"><p class="verse para" data-i="0" tabindex="0" role="button">${esc(t.geron.text)}</p></div></article>`;
-      $(".verse", mainPane).addEventListener("click", (e) => VerseSheet.open({ kind: "eterit", id: "geron:" + t.key, text: shortText(t.geron.text, 260), ref: "Jerondikon", link: "#/dita/jerontikon" }, e.currentTarget));
+        <div class="verses"><p class="verse para" data-i="0" tabindex="0" role="button">${esc(geronClean(t.geron.text))}</p></div>
+        <div id="geronMore"></div></article>`;
+      $(".verse", mainPane).addEventListener("click", (e) => VerseSheet.open({ kind: "eterit", id: "geron:" + t.key, text: shortText(geronClean(t.geron.text), 260), ref: "Jerondikon", link: "#/dita/jerontikon" }, e.currentTarget));
+      geronFind(t.geron.text).then((g) => {
+        const slot = $("#geronMore", mainPane);
+        if (!g || !slot) return;
+        slot.innerHTML = `${g.by ? `<p class="geron-by">${esc(g.by)}</p>` : ""}<a class="btn geron-ch" href="#/jerontikoni/${g.si}/${g.ii}">${icon("book")}<span>Lexo gjithë kapitullin «${esc(g.title)}»</span></a>`;
+      });
     } else {
       const rd = which === "apostulli" ? t.epistle : t.gospel;
       const label = which === "apostulli" ? "Apostulli i ditës" : "Ungjilli i ditës";
@@ -2200,7 +2489,8 @@ function pickPhoto(it) {
       const disp = Today.niceDisplay(rd);
       mainPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">${esc(t.date || "")}</h2></header>
         <article class="reader"><h2 class="reading-title">${label}</h2><p class="super ref-exact">${esc(disp)}</p>
-        <div class="verses" lang="sq">${rd.verses.map((v, i) => `<p class="verse" data-i="${i}" tabindex="0" role="button"><sup>${v.v}</sup>${esc(v.t)}</p>`).join("")}</div></article>`;
+        <button type="button" class="ra-go" data-listen="${which}">${icon("play")}<span>Dëgjo ${which === "apostulli" ? "apostullin" : "ungjillin"}</span></button>
+        <div class="verses" lang="sq">${rd.verses.map((v, i) => `<p class="verse" data-i="${i}" data-cv="${v.c}:${v.v}" tabindex="0" role="button"><sup>${v.v}</sup>${esc(v.t)}</p>`).join("")}</div></article>`;
       $$(".verse", mainPane).forEach((el) => el.addEventListener("click", () => {
         const v = rd.verses[+el.dataset.i];
         VerseSheet.open({ kind: which === "apostulli" ? "apostulli" : "ungjilli", id: `dita:${which}:${v.c}:${v.v}`, text: v.t, ref: `${rd.book} ${v.c}:${v.v}`, link: `#/dita/${which}` }, el);
@@ -4905,7 +5195,7 @@ function pickPhoto(it) {
     if (hiddenNews(n)) return "";
     Reader.add([n]);
     const src = NEWS_SRC[n.src] || n.src;
-    return `<article class="lj-card g-${n.grp}" data-out="${esc(n.link)}">
+    return `<article class="lj-card g-${n.grp}" data-d="${esc(n.date || "")}" data-out="${esc(n.link)}">
       ${n.img ? `<div class="lj-ph"><img data-ns="${esc(n.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}
       <div class="lj-b">
         <p class="lj-meta"><span class="lj-tag">${esc(src)}</span>${n.cat ? `<span>${esc(n.cat)}</span>` : ""}<span>${esc(ago(n.date))}</span>${n.lang === "en" ? `<span class="lj-en">anglisht</span>` : ""}</p>
@@ -4920,6 +5210,7 @@ function pickPhoto(it) {
       const items = byDate((doc.items || []).filter((n) => tab === "all" || n.grp === tab));
       const box = $("#ljList"); if (!box) return;
       box.innerHTML = items.length ? items.map(newsCard).join("") : `<p class="muted" style="text-align:center;padding:30px 0">Lajmet shfaqen pas sinkronizimit të parë.</p>`;
+      newsFold(box, ".lj-card");
       const up = $("#ljUp"); if (up && doc.updated) up.textContent = "Përditësuar " + ago(doc.updated);
       NewsImg.watch(box);
     };
@@ -6069,31 +6360,35 @@ function pickPhoto(it) {
     });
   }
   function playSchoolVideo(id, title) {
-    try { if (window.Music && Music.pause) Music.pause(); if (window.Radio && Radio.playing) Radio.stop(); } catch (e) { /* */ }
-    if (android && android.openVideo) { android.openVideo("https://www.youtube.com/watch?v=" + id, title || "Kori bizantin"); return; }
+    if (android && android.openVideo) { openNativeVideo("https://www.youtube.com/watch?v=" + id, title || "Kori bizantin"); return; }
+    AudioDuck.take("video");
     const el = document.createElement("div");
     el.className = "sheet mz-player";
     el.innerHTML = `<div class="sheet-card"><div class="mz-frame"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&modestbranding=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen title="${esc(title || "")}"></iframe></div>
       <p class="mz-pt">${esc(title || "")}</p><button class="btn" data-x>Mbyll</button></div>`;
     document.body.appendChild(el);
-    el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-x]")) el.remove(); });
+    const shut = () => { if (!el.isConnected) return; el.remove(); removeEventListener("hashchange", shut); AudioDuck.release("video"); };
+    addEventListener("hashchange", shut);
+    el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-x]")) shut(); });
   }
 
   // =====================================================================
   //  CILËSIMET · ngjyrat, të dhënat e mia, njoftimet (secili lloj sipas dëshirës)
   // =====================================================================
   const NOTIF_TYPES = [
-    ["verse", "Vargu i ditës", "Çdo mëngjes në 8:00"],
-    ["liturgy", "Liturgjia dhe të kremtet", "Mbrëmjen para dhe në mëngjes"],
-    ["names", "Ditët e emrit", "Për ty dhe për njerëzit e tu"],
-    ["candles", "Qirinjtë", "Kur shuhet një qiri që ke ndezur"],
-    ["kungimi", "Përgatitja për Kungim", "Kur ke caktuar ditën e Kungimit"],
-    ["live", "Shërbesat live", "Kur nis një transmetim i Radio Ngjallja"],
-    ["kinema", "Kinemaja", "Film, seri ose episod i ri dhe premierat që ruan"],
-    ["gazeta", "Gazeta e ditës", "Çdo ditë në 20:00"],
-    ["javore", "Gazetat e javës", "Të dielën në 12:00"],
-    ["news", "Lajmet e reja", "Kur del një lajm i ri nga Kisha"],
+    ["verse", "Vargu i ditës", "Çdo mëngjes në 8:00", "a"],
+    ["liturgy", "Liturgjia dhe të kremtet", "Mbrëmjen para dhe në mëngjes", "a"],
+    ["names", "Ditët e emrit", "Për ty dhe për njerëzit e tu", "a"],
+    ["candles", "Qirinjtë", "Kur shuhet një qiri që ke ndezur", "a"],
+    ["kungimi", "Përgatitja për Kungim", "Kur ke caktuar ditën e Kungimit", "a"],
+    ["live", "Shërbesat live", "Kur nis një transmetim i Radio Ngjallja", "aw"],
+    ["kinema", "Kinemaja", "Premierat që ruan · në shfletues edhe filmat e episodet e reja", "aw"],
+    ["gazeta", "Gazeta e ditës", "Çdo ditë në 20:00", "w"],
+    ["javore", "Gazetat e javës", "Të dielën në 12:00", "w"],
+    ["news", "Lajmet e reja", "Kur del një lajm i ri nga Kisha", "w"],
   ];
+  // vetëm ato që punojnë në këtë pajisje: kujtesat e telefonit (Android) dhe kontrolli i shfletuesit (web)
+  const notifHere = () => NOTIF_TYPES.filter((x) => x[3].includes(android ? "a" : "w"));
   const notifOn = (k) => store.get("notif." + k, true) !== false;
   function pushPrefs() {
     const p = {}; NOTIF_TYPES.forEach(([k]) => (p[k] = notifOn(k)));
@@ -6103,12 +6398,11 @@ function pickPhoto(it) {
   const settingsBtn = () => `<a class="icon-btn set-btn" href="#/cilesimet" aria-label="Cilësimet">${icon("gear")}</a>`;
   function viewSettings() {
     const cur = store.get("theme", "auto");
-    const opts = [["light", "Pergamenë", "E çelët, si letra e vjetër"], ["dark", "Kafe", "E errët e ngrohtë"], ["blu", "Blu bizantine", "E errët, blu e thellë me ar"], ["auto", "Sipas telefonit", "Ndërrohet vetë ditë/natë"]];
     const webPerm = !android && "Notification" in window ? Notification.permission : "";
     listPane.innerHTML = `
       <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Cilësimet</h1></header>
       <section class="set-sec glass"><h2 class="set-h">${icon("sun")}Ngjyrat</h2>
-        <div class="th-opts">${opts.map(([k, n, d]) => `<button type="button" class="th-opt th-${k}" data-th="${k}" aria-checked="${cur === k}"><span class="th-sw"><i></i><i></i><i></i></span><b>${n}</b><small>${d}</small></button>`).join("")}</div></section>
+        <div class="th-opts">${themeOptsHtml(cur)}</div></section>
       <section class="set-sec glass"><h2 class="set-h">${icon("pen")}Të dhënat e mia</h2>
         <form id="setMe" class="set-form">
           <label>Emri<input id="setName" maxlength="30" value="${esc(store.get("me.name", ""))}" autocomplete="given-name"></label>
@@ -6120,7 +6414,7 @@ function pickPhoto(it) {
       <section class="set-sec glass"><h2 class="set-h">${icon("bell")}Njoftimet</h2>
         ${webPerm && webPerm !== "granted" ? `<div class="set-perm"><p>${webPerm === "denied" ? "Njoftimet janë të bllokuara nga shfletuesi. Lejoji te cilësimet e faqes." : "Që të marrësh njoftime, lejoji një herë."}</p>${webPerm === "default" ? `<button class="btn primary" id="setPerm" type="button">${icon("bell")}<span>Aktivizo njoftimet</span></button>` : ""}</div>` : ""}
         <p class="set-note">Zgjidh për çfarë do të njoftohesh.</p>
-        <ul class="set-list">${NOTIF_TYPES.map(([k, t, d]) => `<li><label class="set-row"><span><b>${esc(t)}</b><small>${esc(d)}</small></span><input type="checkbox" class="set-sw" data-nf="${k}"${notifOn(k) ? " checked" : ""}></label></li>`).join("")}</ul>
+        <ul class="set-list">${notifHere().map(([k, t, d]) => `<li><label class="set-row"><span><b>${esc(t)}</b><small>${esc(d)}</small></span><input type="checkbox" class="set-sw" data-nf="${k}"${notifOn(k) ? " checked" : ""}></label></li>`).join("")}</ul>
         <div class="set-all"><button class="btn" type="button" data-nfall="1">Të gjitha</button><button class="btn" type="button" data-nfall="0">Asnjë</button></div></section>
       <p class="set-ver">Fjala e Shenjtë · v${esc(APP_VERSION)}</p>`;
     enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
@@ -6170,15 +6464,15 @@ function pickPhoto(it) {
   };
   function playVideo(o) {
     // o: { key, title, sub, src: {lloji, url}, subs, next: () => o | null }
-    try { if (window.Music && Music.pause) Music.pause(); if (window.Radio && Radio.playing) Radio.stop(); } catch (e) { /* */ }
     const src = o.src || {}, kind = src.lloji || (ytId(src.url) ? "youtube" : "direct"), pos = o.key ? VidPos.get(o.key) : null, from = pos ? pos.t : 0;
     if (kind === "youtube" && android && android.openVideo) {
       const id = ytId(src.url);
-      android.openVideo(src.live ? src.url : `https://www.youtube.com/watch?v=${id}${from > 5 ? "&t=" + from + "s" : ""}`, o.title || "");
+      openNativeVideo(src.live ? src.url : `https://www.youtube.com/watch?v=${id}${from > 5 ? "&t=" + from + "s" : ""}`, o.title || "");
       if (o.key && !src.live) VidPos.set(o.key, Math.max(from, 1), pos ? pos.d : 0);
       return;
     }
     $(".vp-sheet")?.remove();
+    AudioDuck.take("video");
     const el = document.createElement("div");
     el.className = "sheet vp-sheet";
     const head = `<header class="vp-top"><div><b>${esc(o.title || "")}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ""}</div><button class="icon-btn vp-x" aria-label="Mbyll">${icon("close")}</button></header>`;
@@ -6218,6 +6512,7 @@ function pickPhoto(it) {
       const v = $("video", el); if (v && o.key && v.duration) VidPos.set(o.key, v.currentTime, v.duration);
       if (cueUrl) URL.revokeObjectURL(cueUrl);
       el.classList.remove("open"); setTimeout(() => el.remove(), 250);
+      setTimeout(() => { if (!$(".vp-sheet.open")) AudioDuck.release("video"); }, 400);   // episodi tjetër e mban
       if (typeof o.onClose === "function") o.onClose();
     };
     addEventListener("hashchange", close);
@@ -7936,6 +8231,7 @@ function pickPhoto(it) {
       if (run.stream) run.stream.getTracks().forEach((t) => t.stop());
       if (run.ctx) run.ctx.close().catch(() => {});
       orb.classList.remove("in", "out", "hold", "on", "mic"); lvl.style.transform = "";
+      AudioDuck.release("breath");
       const n = run.n; run = null;
       store.set("breath.total", store.get("breath.total", 0) + n);
       word.textContent = finished ? `Lavdi Perëndisë · ${n} lutje` : "Prek rrethin për të nisur";
@@ -8034,7 +8330,7 @@ function pickPhoto(it) {
         // në mënyrën me mikrofon: prekja e rrethit gjatë lutjes rregullon fazën (thithje ↔ nxjerrje)
         return stop(false);
       }
-      try { if (window.Music && Music.pause) Music.pause(); } catch (e) { /* */ }
+      AudioDuck.take("breath");
       run = { n: 0, end: Date.now() + mins * 60000 };
       orb.classList.add("on"); haptic(25, true);
       run.clock = setInterval(() => {
@@ -9482,7 +9778,6 @@ function pickPhoto(it) {
       ["kanonet", "scroll", "Kanonet e Kishës", "Apostujt · Sinodet · Pidalioni"],
       ["biblioteka", "book", "Biblioteka", "Lutjet · Fjalori · Pyetje · Pagëzimi"],
       ["sherbesat", "candle", "Shërbesat", "Live · Mbrëmësorja · Mëngjesorja · e Diela · Pasdarka · Akathisti · Kungimi"],
-      ["kinema", "film", "Kinemaja", "Filma · seri · dokumentarë orthodhoksë"],
       ["jerontikoni", "quote", "Jerondikon", "Fjalët e Etërve të Shkretëtirës"],
       ["eterit", "quote", "Thesari i Etërve", "836 fjalë · sipas temave · kërkim"],
     ];
@@ -9495,12 +9790,20 @@ function pickPhoto(it) {
       <div id="icSlot"></div>
       ${gazetaRowHtml()}
       <div id="todaySlot">${todayCardHtml(t)}</div>
+      <a class="kn-cta" href="#/kinema"><span class="kn-cta-ic">${icon("film")}</span><span><b>Kinemaja</b><small id="knCtaSub">Filma · seri · dokumentarë orthodhoksë</small></span><i>›</i></a>
       <a class="art-cta" href="#/art"><span class="art-cta-ic">${icon("image")}</span><span><b>Shkrimi në Art</b><small id="artCtaSub">Ungjilli i festave në veprat e artit</small></span><i>›</i></a>
       <h2 class="hub-h">Librat</h2>
       <div class="tiles">${tiles.map(([k, ic, t, s]) => `
         <a class="tile" href="#/${k}">${icon(ic)}<strong>${t}</strong><span>${s}</span></a>`).join("")}</div>
 `;
     bindCards(listPane, { [v.id]: v });
+    liveJson("kinema", false, true).then((doc) => {
+      const its = ((doc && doc.items) || []).filter((x) => x && x.titulli);
+      const el = $("#knCtaSub");
+      if (!el || !its.length) return;
+      const last = its.slice().sort((a, b) => String(b.dataShtimit || "").localeCompare(String(a.dataShtimit || "")))[0];
+      el.textContent = `${its.length} tituj · i fundit: ${last.titulli}`;
+    }).catch(() => {});
     // butoni «Shkrimi në Art»: vepra e ditës (domain publik) në rreth; po s'pati vepër sot → ikona e ditës
     Promise.all([load("vcs_art"), load("vcs_vepra").catch(() => null)]).then(async ([, V]) => {
       const t = artToday(), el = $("#artCtaSub"), ic = $(".art-cta-ic");
@@ -10078,7 +10381,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.1.7";
+  const APP_VERSION = "3.1.8";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
@@ -10168,18 +10471,85 @@ function pickPhoto(it) {
   /* ---------- Tema: ndërrim i butë i errët/i ndritshëm + kursim baterie ---------- */
   const rootEl = document.documentElement;
   // 3 ngjyra: Pergamenë (e çelët), Kafe (e errët), Blu bizantine (e errët ndryshe) — ose sipas telefonit
-  const APP_THEMES = { auto: null, light: { d: 0, bar: "#F6EFE2" }, dark: { d: 1, bar: "#362D25" }, blu: { d: 1, bar: "#141C2E" } };
+  // ngjyrat e aplikacionit: [çelësi, emri, përshkrimi, e errët, shiriti i sistemit, mostra]
+  function themeList() { return [["auto", "Sipas telefonit", "Ndërrohet vetë ditë/natë", null, null, ["#f6efe2", "linear-gradient(90deg,#f6efe2,#362d25)", "#362d25"]], ["light", "Pergamenë", "E çelët, si letra e vjetër", 0, "#F6EFE2", ["#f6efe2", "#fffaf0", "#842320"]], ["fildish", "Fildish e ar", "E bardhë e ngrohtë me ar", 0, "#FBF8F1", ["#fbf8f1", "#ffffff", "#b08a35"]], ["qielli", "Qiell", "E çelët, blu e butë e Hyjlindëses", 0, "#EDF2F8", ["#edf2f8", "#f8fbfe", "#1f4f8a"]], ["ulliri", "Ulliri", "E çelët, jeshile ulliri", 0, "#F1F0E4", ["#f1f0e4", "#fbfaf1", "#5a6b26"]], ["trendafil", "Trëndafil", "E çelët, rozë e butë", 0, "#F8EEEE", ["#f8eeee", "#fff8f7", "#9a2b3c"]], ["dark", "Kafe", "E errët e ngrohtë", 1, "#362D25", ["#362d25", "#463b31", "#d9ba78"]], ["blu", "Blu bizantine", "E errët, blu e thellë me ar", 1, "#141C2E", ["#121a2b", "#1f2b45", "#dcb866"]], ["athos", "Mali i Shenjtë", "E errët, jeshile e thellë me ar", 1, "#0E1A15", ["#0e1a15", "#1a2e25", "#d6b55e"]], ["vjollce", "Kreshma", "E errët, vjollcë me ar", 1, "#17111F", ["#17111f", "#281d36", "#d9b866"]], ["bordo", "Bordo", "E errët, e kuqe vere me ar", 1, "#1E0E0D", ["#1e0e0d", "#341a18", "#dcb866"]], ["grafit", "Grafit", "E errët, gri me argjend", 1, "#17191C", ["#17191c", "#25292e", "#c9c4b8"]], ["oled", "OLED", "E zezë e plotë, kursen baterinë", 1, "#000000", ["#000000", "#0d0d0d", "#d8b56a"]]]; }
+  const APP_THEMES = Object.fromEntries(themeList().map(([k, , , d, bar]) => [k, d === null ? null : { d, bar }]));
+  // pllakat e zgjedhjes (Cilësimet dhe fleta e ngjyrave)
+  const themeOptsHtml = (cur) => themeList().map(([k, n, d, , , sw]) => `<button type="button" class="th-opt th-${k}" data-th="${k}" aria-checked="${cur === k}"><span class="th-sw">${sw.map((c) => `<i style="background:${c}"></i>`).join("")}</span><b>${n}</b><small>${d}</small></button>`).join("");
   const sysDark = () => { try { if (android && android.isDark) return !!android.isDark(); } catch (e) { /* */ } return !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches); };
   function applyTheme(anim) {
     const ch = store.get("theme", "auto"), t = APP_THEMES[ch] || null;
-    const dark = t ? !!t.d : sysDark(), pal = ch === "blu" ? "blu" : "";
+    const dark = t ? !!t.d : sysDark(), pal = t && ch !== "light" && ch !== "dark" ? ch : "";
     if (anim) { rootEl.classList.add("theme-anim"); clearTimeout(window.__thT); window.__thT = setTimeout(() => rootEl.classList.remove("theme-anim"), 520); }
     rootEl.dataset.theme = dark ? "dark" : "light";
     if (pal) rootEl.dataset.palette = pal; else delete rootEl.dataset.palette;
     const bar = t ? t.bar : dark ? "#362D25" : "#F6EFE2";
     $('meta[name="theme-color"]')?.setAttribute("content", bar);
     try { if (android && android.setBars) android.setBars(bar, dark); } catch (e) { /* */ }
+    if (typeof Contrast !== "undefined") Contrast.all();
   }
+  // Roja e kontrastit: pas çdo ndryshimi në faqe kontrollon tekstet që kanë ngjyrë të afërt me sfondin e tyre
+  // (p.sh. kuq i errët mbi blu të errët) dhe u jep ngjyrë të çelët mbi sfond të errët / të errët mbi sfond të çelët.
+  // Tekstet mbi foto ose gradient anashkalohen (aty sfondi s'dihet).
+  const Contrast = (() => {
+    const rgb = (c) => { const m = c && c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(/[\s,/]+/).filter(Boolean).map(parseFloat); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; };
+    const lum = (c) => { const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(c[0]) + .7152 * f(c[1]) + .0722 * f(c[2]); };
+    const over = (top, bot) => { const a = top[3]; return [top[0] * a + bot[0] * (1 - a), top[1] * a + bot[1] * (1 - a), top[2] * a + bot[2] * (1 - a), 1]; };
+    let cache = new WeakMap(), queue = new Set(), timer = 0;
+    function bgOf(el) {
+      if (cache.has(el)) return cache.get(el);
+      let res;
+      const cs = getComputedStyle(el);
+      if (cs.backgroundImage && cs.backgroundImage !== "none") res = null;
+      else {
+        const c = rgb(cs.backgroundColor);
+        if (c && c[3] >= .9) res = c;
+        else {
+          const up = el.parentElement ? bgOf(el.parentElement) : rgb(getComputedStyle(document.documentElement).backgroundColor) || [255, 255, 255, 1];
+          res = up && c && c[3] > 0 ? over(c, up) : up;
+        }
+      }
+      cache.set(el, res);
+      return res;
+    }
+    function check(root) {
+      if (!root || root.nodeType !== 1 || !root.isConnected) return;
+      const els = [root, ...root.querySelectorAll("*")];
+      for (const el of els.slice(0, 2500)) {
+        if (el.closest("svg, .reel, video, iframe, canvas, input, textarea, select")) continue;
+        let txt = false;
+        for (const n of el.childNodes) if (n.nodeType === 3 && n.nodeValue.trim()) { txt = true; break; }
+        if (!txt || !el.getClientRects().length) continue;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === "hidden") continue;   // (jo opacity: animacionet e hyrjes e nisin nga 0)
+        const bg = bgOf(el), fg0 = rgb(cs.color);
+        if (!bg || !fg0) continue;
+        const fg = fg0[3] < 1 ? over(fg0, bg) : fg0;
+        const a = lum(fg), b = lum(bg), r = (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+        const big = parseFloat(cs.fontSize) >= 20 || (parseFloat(cs.fontSize) >= 16 && +cs.fontWeight >= 600);
+        if (r >= (big ? 3 : 4.2)) continue;
+        el.style.setProperty("color", b < .18 ? "#f3ead8" : "#2b1d14", "important");
+        el.dataset.cfix = "1";
+      }
+    }
+    function flush() {
+      timer = 0;
+      const roots = [...queue]; queue.clear();
+      roots.forEach(check);
+    }
+    function soon(el) { queue.add(el); if (!timer) timer = (window.requestIdleCallback || setTimeout)(flush, { timeout: 400 }); }
+    function all() {
+      $$("[data-cfix]").forEach((e) => { e.style.removeProperty("color"); delete e.dataset.cfix; });
+      cache = new WeakMap();
+      setTimeout(() => soon(document.body), 560);
+    }
+    new MutationObserver((ms) => {
+      for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) soon(n);
+      cache = new WeakMap();
+    }).observe(document.body, { childList: true, subtree: true });
+    soon(document.body);
+    return { all };
+  })();
   window.FSTheme = () => applyTheme(true);   // thirret nga Android kur ndërrohet tema e telefonit
   applyTheme(false);
   if (!android && window.matchMedia) {
@@ -10190,12 +10560,11 @@ function pickPhoto(it) {
   function themeSheet() {
     $(".th-sheet")?.remove();
     const cur = store.get("theme", "auto");
-    const opts = [["light", "Pergamenë", "E çelët, si letra e vjetër"], ["dark", "Kafe", "E errët e ngrohtë"], ["blu", "Blu bizantine", "E errët, blu e thellë me ar"], ["auto", "Sipas telefonit", "Ndërrohet vetë ditë/natë"]];
     const el = document.createElement("div");
     el.className = "sheet th-sheet";
     el.innerHTML = `<div class="sheet-card th-card" role="dialog" aria-modal="true" aria-label="Ngjyrat">
       <h2>Ngjyrat e aplikacionit</h2>
-      <div class="th-opts">${opts.map(([k, n, d]) => `<button type="button" class="th-opt th-${k}" data-th="${k}" aria-checked="${cur === k}"><span class="th-sw"><i></i><i></i><i></i></span><b>${n}</b><small>${d}</small></button>`).join("")}</div>
+      <div class="th-opts">${themeOptsHtml(cur)}</div>
     </div>`;
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add("open"));

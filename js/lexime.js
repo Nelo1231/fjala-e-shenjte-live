@@ -208,7 +208,7 @@
       if (/m[eë]ngjesor/i.test(desc)) continue;
       const ref = parseRef(m[3], isG);
       const hit = find(index(isG ? ug : ap), ref, desc + " " + m[3], day, isG);
-      const r = { desc, ref: ref ? ref.raw : m[3].trim(), item: hit ? hit.it : null, section: hit ? hit.s : "" };
+      const r = { desc, ref: ref ? ref.raw : m[3].trim(), book: (ref && ref.book) || (hit && hit.book) || "", item: hit ? hit.it : null, section: hit ? hit.s : "" };
       if (!isG) {
         r.pre = hit && hit.it.pre && hit.it.pre.some((p) => p.trim()) ? hit.it.pre.filter((p) => p.trim()) : null;
         if (!r.pre && out.apostle.length === 0) r.pre = weekProkeimenon(ap, date.getDay(), tone);
@@ -228,5 +228,5 @@
     return (/LEXIMET biblike/i.test(t) || /Leximi I:/.test(t)) &&!/Leximet biblike[^.]{0,30}nuk thuhen/i.test(t);
   }
 
-  root.Lexime = { forDate, entryOf, hasVespersReadings, parseRef, weekNum, weekday, toneOf, weekProkeimenon, norm };
+  root.Lexime = { forDate, entryOf, hasVespersReadings, parseRef, weekNum, weekday, toneOf, weekProkeimenon, norm, bookOfData };
 })(typeof window !== "undefined" ? window : globalThis);
