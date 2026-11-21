@@ -1750,10 +1750,10 @@ html.eco .tile::after, html.eco .site-link::after { display: none; }
 
 /* «Sot në Kishë» · kartë më e pasur: data, ikona e ditës, vargu i Ungjillit, zbukurim */
 .tc2 .tc-top { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; }
-.tc2 .tc-date { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 64px; padding: 6px 0 7px; border-radius: 16px;
+.tc2 .tc-date { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; width: auto; min-width: 64px; padding: 6px 6px 7px; box-sizing: border-box; border-radius: 16px;
   background: linear-gradient(160deg, rgba(241,204,114,.22), rgba(241,204,114,.05)); box-shadow: 0 0 0 1px rgba(241,204,114,.45) inset; color: #f3d68a; line-height: 1; }
 .tc2 .tc-date b { font: 600 30px "Cinzel", Georgia, serif; margin: 3px 0 2px; color: #fff4d6; }
-.tc2 .tc-date small { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; opacity: .9; }
+.tc2 .tc-date small { font-size: 10px; letter-spacing: .03em; text-transform: uppercase; opacity: .9; max-width: 100%; white-space: nowrap; }
 .tc2 .tc-head { flex: 1; min-width: 0; }
 .tc2 .tc-head .eyebrow { margin: 0 0 2px; }
 .tc2 .today-title { margin: 0; font-size: 21px; line-height: 1.2; text-wrap: balance; }
@@ -1768,7 +1768,7 @@ html.eco .tile::after, html.eco .site-link::after { display: none; }
 .tc2 .today-read { transition: transform .15s, background .2s; }
 .tc2 .today-read:hover { background: rgba(255,255,255,.1); }
 .tc2 .saint-chip { box-shadow: 0 0 0 1px rgba(201,162,74,.28) inset; }
-@media (max-width: 420px) { .tc2 .tc-icon { width: 50px; height: 50px; } .tc2 .tc-date { width: 54px; } .tc2 .tc-date b { font-size: 25px; } .tc2 .today-title { font-size: 18px; } }
+@media (max-width: 420px) { .tc2 .tc-icon { width: 50px; height: 50px; } .tc2 .tc-date { width: auto; min-width: 54px; padding-left: 5px; padding-right: 5px; } .tc2 .tc-date small { font-size: 9px; letter-spacing: .02em; } .tc2 .tc-date b { font-size: 25px; } .tc2 .today-title { font-size: 18px; } }
 
 .today-saints.auto { scroll-snap-type: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 4%, #000 92%, transparent); }
 
@@ -2234,3 +2234,27 @@ html.mzv-open, html.mzv-open body { overflow: hidden; }
 /* kopertinat e videove: gjithmonë 16:9, pa vijat e zeza (edhe kur vjen hqdefault 4:3) */
 .mzw-ph.vid { aspect-ratio: 16 / 9; overflow: hidden; }
 .mzw-ph.vid img { width: 100%; height: 100%; object-fit: cover; }
+
+/* fotot e plota, pa prerje (gazeta dhe lexuesi) */
+.gz-ph img { object-fit: contain !important; }
+.gz-ph { background: #e6dcc0; }
+.ar-ph img { object-fit: contain !important; max-height: 72vh; margin: 0 auto; }
+.qz-road, .qz-road * { text-decoration: none !important; }
+.qz-road { color: inherit; }
+
+/* gazeta: shkrimet e plota, paragraf pas paragrafi */
+.gz-cp > p { margin: 0 0 .5em; text-align: justify; hyphens: auto; }
+.gz-cp .gz-src { margin-top: .2em; }
+.gz-vijon { margin: .4em 0 .35em; font: 700 1.02em/1.2 "Playfair Display", Georgia, serif; break-after: avoid; }
+.gz-vijon em { font: italic 400 .8em "Old Standard TT", Georgia, serif; color: #7a1616; }
+.gz-cont { font: italic 600 .82em "Old Standard TT", Georgia, serif; color: #7a1616; margin: .2em 0 .5em; }
+.gz-ph-in { margin: .4em 0 .7em; break-inside: avoid; }
+.gz-hd { break-after: avoid; margin-bottom: .2em !important; }
+.gz-hd h4 { break-after: avoid; }
+/* faqja 1: seksionet mbushen kolonë pas kolone deri në fund (asnjë zonë bosh) */
+.gz-secs .gz-flow.fill { column-fill: auto; overflow: hidden; }
+.gz-secs .gz-flow.fill .gz-art { break-inside: auto; }
+.gz-secs .gz-flow.fill .gz-art h4, .gz-secs .gz-flow.fill .gz-ph { break-inside: avoid; break-after: avoid; }
+/* tema e Etërve: titulli dhe hyrja si një brez i vetëm mbi thëniet */
+.gz-th-box:has(> .gz-th-in) { border-top: 0; padding-top: 0; margin-top: 0; }
+.gz-th-box:has(> .gz-th-in) > .gz-kick { column-span: all; border-top: 3px double #8a1c1c; padding-top: 10px; }

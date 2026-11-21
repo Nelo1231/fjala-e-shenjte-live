@@ -361,6 +361,15 @@
       return null;
     }
 
+    // ditët kur Mbrëmësorja ka Leximet biblike (sot; pas orës 14 edhe e kremtja e nesërme)
+    function feastProphecyKeys() {
+      const tp = data.tipikoja;
+      if (!tp || !window.Lexime) return null;
+      const M = ["janar", "shkurt", "mars", "prill", "maj", "qershor", "korrik", "gusht", "shtator", "tetor", "nentor", "dhjetor"];
+      const now = new Date(), days = [now];
+      if (now.getHours() >= 14) { const t = new Date(now); t.setDate(t.getDate() + 1); days.push(t); }
+      return days.filter((d) => Lexime.hasVespersReadings(Lexime.entryOf(tp, d))).map((d) => `${d.getDate()} ${M[d.getMonth()]}`);
+    }
     // Profecitë (Dhiata e Vjetër): disa vargje nga një lexim, me referencën e saktë
     let prophPool = null;
     function makeProphecy(pf) {
@@ -374,8 +383,12 @@
           }
         })));
       }
-      for (let tries = 0; tries < 20 && prophPool.length; tries++) {
-        const [si, ii, bi, ref] = prophPool[rand(prophPool.length)];
+      // Profecitë lexohen vetëm në Mbrëmësoren e së kremtes, kur Tipikoja i cakton
+      const keys = feastProphecyKeys();
+      if (!keys || !keys.length) return null;
+      const pool = prophPool.filter(([si, ii]) => keys.some((k) => Lexime.norm(pf.sections[si].items[ii].title).startsWith(k)));
+      for (let tries = 0; tries < 20 && pool.length; tries++) {
+        const [si, ii, bi, ref] = pool[rand(pool.length)];
         const b = pf.sections[si].items[ii].blocks[bi];
         let text = "";
         if (b.t === "verse") {
@@ -785,6 +798,7 @@ function pickPhoto(it) {
       $("#shareText").textContent = `“${it.text}”`;
       $("#shareRef").textContent = it.ref;
       el.hidden = false;
+      $("#shareSizes").hidden = true; $("#shareSizesLbl").hidden = true;
       photoImg = null;
       // çdo varg ndahet si foto + tekst: edhe kartat pa foto marrin një foto të bukur
       if (!it.photo) {
@@ -837,6 +851,13 @@ function pickPhoto(it) {
       if (!b) return;
       const to = b.dataset.to;
       if (to === "close") return close();
+      if (to === "save") {
+        const sz = $("#shareSizes"), open = sz.hidden;
+        sz.hidden = !open; $("#shareSizesLbl").hidden = !open;
+        b.setAttribute("aria-expanded", String(open));
+        if (open) { haptic(8); requestAnimationFrame(() => sz.scrollIntoView({ block: "nearest", behavior: "smooth" })); }
+        return;
+      }
       close();
       switch (to) {
         case "instagram": return toImageApp("post", PKG.instagram, "Instagram");
@@ -1245,23 +1266,14 @@ function pickPhoto(it) {
     return h > 0 ? `edhe ${h} orë e ${m} min` : `edhe ${m} min`;
   }
 
-  // Qiriri dhe Temjanica: një faqe e vetme (pa skeda, pa përsëritje)
+  // Qiriri (Temjanica dhe Kacia u hoqën me kërkesë të autorit)
   async function viewPrayer() {
     clearInterval(candleTimer);
     listPane.innerHTML = `
-      <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Qiriri & Temjanica</h1>${profileChip()}</header>
-      <div class="seg glass-jump"><button data-jump="candleBody" aria-checked="true">🕯 Qiriri</button><button data-jump="censerH" aria-checked="false">Temjanica</button></div>
-      <div id="candleBody"></div>
-      <h2 class="hub-h" id="censerH">Temjanica</h2>
-      <div id="censerBody"></div>`;
+      <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Qiriri</h1>${profileChip()}</header>
+      <div id="candleBody"></div>`;
     $("#profileChip").addEventListener("click", Profiles.open);
-    $$("[data-jump]", listPane).forEach((b) => b.addEventListener("click", () => {
-      $$("[data-jump]", listPane).forEach((x) => x.setAttribute("aria-checked", x === b));
-      const t = $("#" + b.dataset.jump);
-      if (t) listPane.scrollTo({ top: t.offsetTop - 70, behavior: "smooth" });
-    }));
     renderCandles();
-    renderCenser();
     enter(listPane);
     mainPane.innerHTML = emptyMain();
     setMode("list");
@@ -2103,8 +2115,9 @@ function pickPhoto(it) {
           const tip = t.fasting ? (FC[t.fasting] || (/^[a-z_]+$/.test(t.fasting) ? "" : t.fasting)) : "";
           return fastCardHtml(f, { liturgy: litDay(f, null), tip: tip && f.level && tip === f.level.name ? "" : tip }); })()}
         <div class="today-reads">
-          ${ep && ep.verses.length ? `<a class="today-read" href="#/dita/apostulli">${icon("letter")}<span><b>Apostulli</b><small>${esc(Today.niceDisplay(ep))}</small></span></a>` : ""}
-          ${gs && gs.verses.length ? `<a class="today-read" href="#/dita/ungjilli">${icon("book")}<span><b>Ungjilli</b><small>${esc(Today.niceDisplay(gs))}</small></span></a>` : ""}
+          ${(() => { const lx = tipikonRefs(new Date()), ar = lx && lx.apostle.length ? lx.apostle.map((r) => r.ref).join(" · ") : "", gr = lx && lx.gospel.length ? lx.gospel.map((r) => r.ref).join(" · ") : "";
+            return `${ar || (ep && ep.verses.length) ? `<a class="today-read" href="#/dita/apostulli">${icon("letter")}<span><b>Apostulli</b><small>${esc(ar || Today.niceDisplay(ep))}</small></span></a>` : ""}
+          ${gr || (gs && gs.verses.length) ? `<a class="today-read" href="#/dita/ungjilli">${icon("book")}<span><b>Ungjilli</b><small>${esc(gr || Today.niceDisplay(gs))}</small></span></a>` : ""}`; })()}
           <a class="today-read" href="#/sinaksari/sot">${icon("calendar")}<span><b>Sinaksari</b><small>Shenjtorët e sotëm</small></span></a>
         </div>
         ${t.saints.length ? (() => { const chips = (clone) => t.saints.map((s) => `
@@ -2115,9 +2128,46 @@ function pickPhoto(it) {
       </section>`;
   }
 
+  // Leximet e Liturgjisë sipas Tipikosë (tekstet: Apostulli dhe Ungjilli i KOASh)
+  function tipikonRefs(d) {
+    try { return window.Lexime && data.tipikoja ? Lexime.forDate(d, data.tipikoja, data.apostulli, data.ungjilli) : null; } catch (e) { return null; }
+  }
+  async function tipikonReadings(d) {
+    if (!window.Lexime) return null;
+    try { const [tp, ap, ug] = await Promise.all([load("tipikoja"), load("apostulli"), load("ungjilli")]); return Lexime.forDate(d, tp, ap, ug); } catch (e) { return null; }
+  }
+  const capFirst = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+
   async function viewDay(which) {
-    const t = Today.data || (await Today.load());
+    const lx = which === "apostulli" || which === "ungjilli" ? await tipikonReadings(new Date()) : null;
+    const list = lx ? (which === "apostulli" ? lx.apostle : lx.gospel) : [];
+    const t = Today.data || (list.some((r) => r.item) ? null : await Today.load());
     setNav("lexo");
+    if (list.some((r) => r.item)) {
+      const api = t ? (which === "apostulli" ? t.epistle : t.gospel) : null;
+      const kind = which === "apostulli" ? "apostulli" : "ungjilli";
+      const word = which === "apostulli" ? "Apostulli" : "Ungjilli";
+      mainPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">${esc(lx.title || "")}</h2></header>
+        <article class="reader"><h2 class="reading-title">${word} i ditës</h2>
+        ${list.map((r, k) => `<section class="lx-read">
+          <p class="eyebrow">${esc(capFirst(word.toLowerCase() + " " + r.desc))}</p>
+          <p class="super ref-exact">${esc(r.ref)}</p>
+          ${r.pre && r.pre.length ? `<div class="prokimen">${r.pre.map((l) => `<p>${esc(l)}</p>`).join("")}</div>` : ""}
+          ${r.item ? `<p class="lx-src">${esc(r.item.ref)}</p>
+          <div class="verses" lang="sq">${r.item.v.map((x, i) => `<p class="verse para" data-k="${k}" data-i="${i}" tabindex="0" role="button">${esc(x)}</p>`).join("")}</div>`
+          : k === 0 && api && api.verses.length ? `<div class="verses" lang="sq">${api.verses.map((v, i) => `<p class="verse" data-api="${i}" tabindex="0" role="button"><sup>${v.v}</sup>${esc(v.t)}</p>`).join("")}</div>`
+          : `<p class="bible-note">Teksti i këtij leximi lexohet në kishë sipas referencës së mësipërme.</p>`}
+        </section>`).join("")}</article>`;
+      $$(".verse", mainPane).forEach((el) => el.addEventListener("click", () => {
+        if (el.dataset.api != null) { const v = api.verses[+el.dataset.api]; return VerseSheet.open({ kind, id: `dita:${which}:${v.c}:${v.v}`, text: v.t, ref: `${api.book} ${v.c}:${v.v}`, link: `#/dita/${which}` }, el); }
+        const r = list[+el.dataset.k];
+        VerseSheet.open({ kind, id: `tip:${which}:${dkey(new Date())}:${el.dataset.k}:${el.dataset.i}`, text: shortText(r.item.v[+el.dataset.i], 400), ref: r.ref, link: `#/dita/${which}` }, el);
+      }));
+      enter(mainPane);
+      setMode("read");
+      mainPane.scrollTop = 0;
+      return;
+    }
     if (!t) { mainPane.innerHTML = `<div class="empty">${icon("calendar")}<h3>Pa internet</h3><p>Leximet e ditës shfaqen kur ka internet.</p></div>`; setMode("read"); return; }
     if (which === "jerontikon" && t.geron) {
       mainPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">Jerontikoni</h2></header>
@@ -2594,6 +2644,11 @@ function pickPhoto(it) {
             <span><b>Sfida e ditës</b><small>${dDone ? `Sot: ${dDone.ok}/7 · ${dDone.score} pikë · kthehu nesër` : "7 vargje, të njëjtat për të gjithë sot"}</small></span>
             <em>${prof.dstreak ? `🔥 ${prof.dstreak}` : ""}</em>
           </button>
+          <a class="qz-daily qz-road" href="#/udhetimi">
+            <span class="qz-daily-i">📖</span>
+            <span><b>Rruga e Fjalës</b><small>${(() => { const q = store.get("bq", null); return q ? `Niveli ${q.lvl}/1000 · ${"❤".repeat(Math.max(0, Math.min(5, q.lives)))}` : "1000 nivele pyetjesh nga Shkrimi"; })()}</small></span>
+            <em>›</em>
+          </a>
           <div class="qz-modes">${Object.entries(MODES).map(([k, [t, d, e]], i) => `
             <button class="qz-mode2 glass" data-mode="${k}" style="--i:${i}"><span class="qz-m-e">${e}</span><b>${t}</b><small>${d}</small><em>🏆 ${best[k] || 0}</em></button>`).join("")}</div>
           <details class="qz-badges glass"${nb ? "" : " open"}><summary>Arritjet · ${nb}/${BADGES.length}</summary>
@@ -3693,7 +3748,7 @@ function pickPhoto(it) {
           ${boss ? `<em>👑</em>` : ""}<b>${lock ? "🔒" : L}</b>${st ? `<span class="bq-st">${"★".repeat(st)}<i>${"★".repeat(3 - st)}</i></span>` : ""}</button>`);
       }
       listPane.innerHTML = `
-        <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Udhëtimi në Shkrim</h1></header>
+        <header class="page-head"><a class="back-btn" href="#/kuiz" aria-label="Kthehu">${icon("back")}</a><h1>Rruga e Fjalës</h1></header>
         <section class="bq-home" style="--wc:${WCOL[world]}">
           <div class="bq-bar glass">
             <span class="bq-lives" id="bqLives">${"❤".repeat(Math.min(S.lives, MAXLIVES))}<i>${"❤".repeat(Math.max(0, 3 - S.lives))}</i></span>
@@ -4418,7 +4473,7 @@ function pickPhoto(it) {
   const NEWS_SRC = { ugo: "UGO.al", koash: "KOASH", ot: "Orthodox Times", oca: "OCA", basil: "Basilica.ro", po: "Public Orthodoxy", pem: "Pemptousia", oaj: "Orthodox Arts Journal", vat: "Vatican News",
     ecp: "Patriarkana Ekumenike", alx: "Patriarkana e Aleksandrisë", ant: "Patriarkana e Antiokisë", jer: "Patriarkana e Jerusalemit", pred: "Predikim · KOASH",
     srb: "Patriarkana e Serbisë", geo: "Patriarkana e Gjeorgjisë", bul: "Patriarkana e Bullgarisë", mos: "Patriarkana e Moskës", gre: "Kisha e Greqisë",
-    cyp: "Kisha e Qipros", pol: "Kisha e Polonisë", cze: "Kisha e Çekisë dhe Sllovakisë", goa: "Kryepiskopata e Amerikës" };
+    cyp: "Kisha e Qipros", pol: "Kisha e Polonisë", cze: "Kisha e Çekisë dhe Sllovakisë", goa: "Kryepiskopata e Amerikës", orthinfo: "Orthodoxia.info", af: "Ancient Faith" };
   let newsDoc = null;
   // skedari më i ri: ai i faqes së aplikacionit (sinkronizohet disa herë në ditë) ose ai i paketuar
   // lajme që autori nuk do t'i shfaqë (fshihen kudo: lajme, gazeta, shkolla, lexuesi)
@@ -4460,11 +4515,26 @@ function pickPhoto(it) {
       clearTimeout(tm);
       if (r.ok) doc = await r.json();
     } catch (e) { /* pa internet */ }
-    if (!doc || (local && (local.updated || "") > (doc.updated || ""))) doc = local;
+    const stamp = (d) => !d ? "" : d.updated || (Array.isArray(d) ? d.reduce((m, x) => (x && x.date > m ? x.date : m), "") : "");
+    if (!doc || (local && stamp(local) > stamp(doc))) doc = local;
     return scrubNews(doc);
   }
+  // lajmet në çdo format të skriptit: { items } ose listë e thjeshtë me src_id / summary
+  const SRC_ID = [[/^ugo/, "ugo"], [/^koash|albania_koash/, "koash"], [/^ecp|ecumenical/, "ecp"], [/^alx|alexandria/, "alx"], [/^ant/, "ant"], [/^jer/, "jer"], [/^srb|serbia/, "srb"], [/^geo/, "geo"],
+    [/^bul/, "bul"], [/^mos/, "mos"], [/^gre/, "gre"], [/^cyp/, "cyp"], [/^pol/, "pol"], [/^cze|czech/, "cze"], [/^oca/, "oca"], [/^goa/, "goa"], [/^rom|^basil/, "basil"], [/^ot(?:_|$)|orthodoxtimes/, "ot"], [/^orthinfo/, "orthinfo"], [/^pem/, "pem"], [/^oaj/, "oaj"], [/^po$/, "po"], [/^ancientfaith/, "af"]];
+  function normNews(doc) {
+    if (!doc) return doc;
+    const items = Array.isArray(doc) ? doc : doc.items || [];
+    items.forEach((n) => {
+      if (!n || typeof n !== "object") return;
+      if (!n.ex && n.summary) n.ex = n.summary;
+      if (n.src_id && !NEWS_SRC[n.src]) { const hit = SRC_ID.find(([r]) => r.test(n.src_id)); n.src_name = n.src_name || n.src; n.src = hit ? hit[1] : n.src_id; }
+      if (typeof n.imgs === "string") { try { n.imgs = JSON.parse(n.imgs.replace(/'/g, '"')); } catch (e) { n.imgs = []; } }
+    });
+    return Array.isArray(doc) ? { items, sources: [] } : doc;
+  }
   async function newsLoad(force) {
-    if (!newsDoc || force) newsDoc = (await liveJson("lajme_bota", force)) || { items: [], sources: [] };
+    if (!newsDoc || force) newsDoc = normNews(await liveJson("lajme_bota", force)) || { items: [], sources: [] };
     return newsDoc;
   }
   const domainOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return ""; } };
@@ -4700,6 +4770,37 @@ function pickPhoto(it) {
       el.remove(); el = null; document.documentElement.classList.remove("ar-on");
       if (!fromPop && history.state && history.state.ar) history.back();
     }
+    const photos = (n) => [n.img, ...(Array.isArray(n.imgs) ? n.imgs : [])].filter((u, k, a) => u && /^https?:/.test(u) && a.indexOf(u) === k);
+    const textHtml = (n) => paras(n._live ? n.text : n.text ? (n.ex ? n.ex + "\n\n" : "") + n.text : n.sum || n.ex).map((x, i) => `<p${i === 0 ? ' class="ar-first"' : ""}>${esc(x)}</p>`).join("") || `<p class="muted">Botuesi nuk ka dhënë përmbledhje për këtë shkrim.</p>`;
+    const albumHtml = (n) => { const al = photos(n); return al.length > 1 ? `<section class="ar-album"><h2>Albumi i fotove <small>${al.length} foto</small></h2><div class="ar-grid">${al.map((u, k) => `<button class="ar-th" data-ph="${k}" aria-label="Foto ${k + 1}"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></button>`).join("")}</div></section>` : ""; };
+    // shkrimet e orthodoxalbania.org: merret i gjithë shkrimi (paragrafët si tekst, pa HTML të huaj) dhe të gjitha fotot
+    async function fullText(n) {
+      if (n.text && n.text.length > 600) return false;
+      const m = /orthodoxalbania\.org\/2026\/(?:[a-z]{2}\/)?\d{4}\/\d{2}\/\d{2}\/([^/?#]+)/.exec(n.link || "");
+      if (!m) return false;
+      const key = "art." + m[1];
+      let got = store.get(key, null);
+      if (!got) {
+        try {
+          const j = await fetch(`${SITE}wp-json/wp/v2/posts?slug=${encodeURIComponent(m[1])}&_fields=content`, { credentials: "omit" }).then((r) => (r.ok ? r.json() : []));
+          const html = j && j[0] && j[0].content && j[0].content.rendered;
+          if (!html) return false;
+          const d = new DOMParser().parseFromString(html, "text/html");
+          const ps = [...d.querySelectorAll("p, h2, h3, h4, blockquote, li")].filter((x) => !x.closest("figure, li li")).map((x) => x.textContent.replace(/\s+/g, " ").trim()).filter((x) => x.length > 1);
+          const im = [...d.querySelectorAll("img")].map((x) => {
+            const ss = (x.getAttribute("srcset") || "").split(",").map((z) => z.trim().split(/\s+/)).filter((z) => z[0]);
+            ss.sort((a, b) => (parseInt(b[1], 10) || 0) - (parseInt(a[1], 10) || 0));
+            return (ss[0] && ss[0][0]) || x.getAttribute("data-src") || x.getAttribute("src") || "";
+          }).filter((u) => /^https:\/\//.test(u));
+          got = { t: ps.join("\n\n").slice(0, 20000), i: im.slice(0, 60) };
+          if (got.t.length > 200) store.set(key, got);
+        } catch (e) { return false; }
+      }
+      if (!got || got.t.length < (n.ex || "").length) return false;
+      n.text = got.t; n._live = true;
+      n.imgs = [...new Set([...(Array.isArray(n.imgs) ? n.imgs : []), ...got.i])];
+      return true;
+    }
     function open(n) {
       if (el) el.remove();
       const src = NEWS_SRC[n.src] || n.src || domainOf(n.link);
@@ -4713,8 +4814,8 @@ function pickPhoto(it) {
           <h1>${esc(n._full || n.title)}</h1>
           <p class="ar-meta">${n.date ? esc(fmtDate(n.date)) : ""}</p>
           ${n.img ? `<figure class="ar-ph"><img src="${esc(n.img)}" alt="" decoding="async" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></figure>` : ""}
-          <div class="ar-text" lang="sq">${paras(n.text ? (n.ex ? n.ex + "\n\n" : "") + n.text : n.ex).map((x, i) => `<p${i === 0 ? ' class="ar-first"' : ""}>${esc(x)}</p>`).join("") || `<p class="muted">Botuesi nuk ka dhënë përmbledhje për këtë shkrim.</p>`}</div>
-          ${(() => { const al = [n.img, ...(n.imgs || [])].filter((u, k, a) => u && a.indexOf(u) === k); return al.length > 1 ? `<section class="ar-album"><h2>Albumi i fotove <small>${al.length} foto</small></h2><div class="ar-grid">${al.map((u, k) => `<button class="ar-th" data-ph="${k}" aria-label="Foto ${k + 1}"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></button>`).join("")}</div></section>` : ""; })()}
+          <div class="ar-text" lang="sq">${textHtml(n)}</div>
+          <div class="ar-alb">${albumHtml(n)}</div>
           <footer class="ar-src"${n.link && /^https?:/.test(n.link) ? "" : " hidden"}>
             <p>Burimi:</p>
             <a class="ar-go" data-go="${esc(n.link)}" href="${esc(n.link)}">${esc(src)} · ${esc(domainOf(n.link))} ↗</a>
@@ -4722,6 +4823,12 @@ function pickPhoto(it) {
           ${more.length ? `<section class="ar-more"><h2>Lexoni gjithashtu</h2>${more.map((x) => `<a class="ar-rel" data-rel="${esc(x.link)}" href="${esc(x.link)}"><b>${esc(x.title)}</b><small>${x.date ? esc(fmtDate(x.date)) : ""}</small></a>`).join("")}</section>` : ""}
         </article></div>`;
       document.body.appendChild(el); smartBody(el.querySelector(".ar-text"), true);
+      const mine = el;
+      fullText(n).then((ok) => {
+        if (!ok || el !== mine) return;
+        const tx = $(".ar-text", el); tx.innerHTML = textHtml(n); smartBody(tx, true);
+        $(".ar-alb", el).innerHTML = albumHtml(n);
+      });
       document.documentElement.classList.add("ar-on");
       if (!(history.state && history.state.ar)) history.pushState({ ar: 1 }, "");
       const pg = $(".ar-page", el); pg.scrollTop = 0; requestAnimationFrame(() => (pg.scrollTop = 0));
@@ -4730,7 +4837,7 @@ function pickPhoto(it) {
         const g = e.target.closest("[data-go]"); if (g) { e.preventDefault(); window.open(g.dataset.go, "_blank", "noopener"); return; }
         const r = e.target.closest("[data-rel]"); if (r) { e.preventDefault(); const m = reg.get(r.dataset.rel); if (m) open(m); return; }
         const ph = e.target.closest("[data-ph], .ar-ph");
-        if (ph) { const al = [n.img, ...(n.imgs || [])].filter((u, k, a) => u && a.indexOf(u) === k); photoViewer(al, ph.dataset.ph ? +ph.dataset.ph : 0, src); }
+        if (ph) photoViewer(photos(n), ph.dataset.ph ? +ph.dataset.ph : 0, src);
       });
       haptic && haptic(8);
     }
@@ -4748,6 +4855,24 @@ function pickPhoto(it) {
     const openUrl = (u) => open(reg.get(u));
     return { add, has, openUrl, open, close };
   })();
+  // Përmbledhje nxjerrëse: zgjidhen fjalitë më përfaqësuese të shkrimit (fjalë për fjalë, në radhën e tyre)
+  // derisa të arrihet rreth një e treta e gjatësisë. Fjalia e parë mbetet gjithmonë.
+  const SUM_STOP = new Set("dhe të në e i një për me që nga se u më ka si është janë do por ose edhe kjo ky ai ajo ata ato tij saj tyre së te pas mbi nën deri pa duke kur ku cili cila kanë kishte ishte ishin këtë këtij kësaj atë atij asaj gjithë shumë ende vetëm mund duhet".split(" "));
+  function summarize(text, ratio) {
+    const paras = String(text || "").split(/\n{2,}/).map((x) => x.replace(/\s+/g, " ").trim()).filter((x) => x.length > 1);
+    const S = [];
+    paras.forEach((pa, pi) => (pa.match(/[^.!?…]+(?:[.!?…]+["»”'’)]*|$)/g) || [pa]).forEach((t) => { t = t.trim(); if (t) S.push({ t, pi }); }));
+    if (!S.length || (S.length < 3 && ratio !== 0)) return paras;
+    const words = (t) => (t.toLowerCase().match(/\p{L}{3,}/gu) || []).filter((w) => !SUM_STOP.has(w));
+    const fq = {}; S.forEach((x) => words(x.t).forEach((w) => (fq[w] = (fq[w] || 0) + 1)));
+    S.forEach((x, i) => { const ws = words(x.t); x.sc = ws.reduce((a, w) => a + fq[w], 0) / Math.sqrt(ws.length || 1) * (i === 0 ? 3 : i < 3 ? 1.35 : 1) * (x.t.length < 25 ? 0.4 : 1); });
+    const total = S.reduce((a, x) => a + x.t.length, 0), target = total * (ratio == null ? 1 / 3 : ratio);
+    const pick = new Set([0]); let len = S[0].t.length;
+    for (const i of S.map((x, i) => i).sort((a, b) => S[b].sc - S[a].sc)) { if (len >= target) break; if (pick.has(i)) continue; pick.add(i); len += S[i].t.length; }
+    const out = []; let last = -1;
+    [...pick].sort((a, b) => a - b).forEach((i) => { if (S[i].pi !== last || !out.length) out.push(S[i].t); else out[out.length - 1] += " " + S[i].t; last = S[i].pi; });
+    return out;
+  }
   // titull gazete: pa «NJOFTIM», «Radio Ngjallja:» etj.; titujt shumë të gjatë (i gjithë njoftimi) shkurtohen te fjalia/fraza e parë
   function gzTitle(t) {
     let x = String(t || "").replace(/^\s*(?:NJOFTIM|Njoftim|NJOFTIMI|Radio Ngjallja|RADIO NGJALLJA)\s*[:–—-]?\s*/u, "").trim();
@@ -4851,6 +4976,7 @@ function pickPhoto(it) {
   // seksionet e gazetës (renditja e faqeve)
   const GZ_SECS = [
     ["koash", "Kisha e Shqipërisë", "KOASH · orthodoxalbania.org"],
+    ["patr", "Patriarkana Ekumenike dhe Patriarkanat", "Fanari · Patriarkanat orthodhokse"],
     ["ugo", "Bota orthodhokse", "UGO.al"],
     ["ugos", "Besimi, historia, kultura", "UGO.al"],
     ["bota", "Kishat e botës", "Orthodox Times · OCA · Basilica.ro · anglisht"],
@@ -4887,8 +5013,10 @@ function pickPhoto(it) {
     let srvDays = [];
     if (!M) try { const ix = await fetch(LIVE_BASE + "data/gazeta/index.json?t=" + Date.now(), { cache: "no-store", credentials: "omit" }).then((r) => (r.ok ? r.json() : null)); srvDays = (ix && ix.days) || []; } catch (e) { /* */ }
     if (!M && !srvDays.length) { try { const ix = await fetch("data/gazeta/index.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)); srvDays = (ix && ix.days) || []; } catch (e) { /* */ } }
-    const days = M ? [today] : [...new Set([today, ...Object.keys(arch), ...srvDays])].sort().reverse().slice(0, 60);
-    const day = dayArg && days.includes(dayArg) ? dayArg : today;
+    const liveDays = [];
+    if (!M) for (let k = 1; k <= 7; k++) { const d = isoD(new Date(new Date(today + "T12:00:00") - k * 864e5)); if (gzWindow(docLive.items || [], d).some((n) => n.date && (n.lang || "sq") === "sq")) liveDays.push(d); }
+    const days = M ? [today] : [...new Set([today, ...Object.keys(arch), ...srvDays, ...liveDays])].sort().reverse().slice(0, 60);
+    let day = dayArg && days.includes(dayArg) ? dayArg : today;
     if (dayArg === "arkiva") setTimeout(() => { const q = $("#gzQ"); if (q) { q.focus(); q.scrollIntoView({ block: "center" }); } }, 300);
     let doc = docLive;
     if (day !== today) {
@@ -4896,14 +5024,30 @@ function pickPhoto(it) {
       for (const u of [LIVE_BASE + "data/gazeta/" + day + ".json", "data/gazeta/" + day + ".json"]) {
         try { const j = await fetch(u, { cache: "no-store", credentials: "omit" }).then((r) => (r.ok ? r.json() : null)); if (j && j.items) { doc = j; break; } } catch (e) { /* */ }
       }
-      doc = doc || (arch[day] ? { items: arch[day] } : { items: [] });
+      doc = doc || (arch[day] ? { items: arch[day] } : liveDays.includes(day) ? docLive : { items: [] });
     }
+    // numri i ri ende bosh (burimet nuk janë përditësuar)? mbahet numri i fundit i vlefshëm, jo një faqe bosh
+    let gzKept = "";
+    const hasSq = (d, list) => gzWindow(list || [], d).some((n) => n.date && (n.lang || "sq") === "sq");
+    if (!M && day === today && !dayArg && !hasSq(day, doc.items)) {
+      for (const d of days.filter((x) => x < day)) {
+        let j = null;
+        for (const u of [LIVE_BASE + "data/gazeta/" + d + ".json", "data/gazeta/" + d + ".json"]) {
+          try { const r = await fetch(u, { cache: "no-store", credentials: "omit" }).then((x) => (x.ok ? x.json() : null)); if (r && r.items) { j = r; break; } } catch (e) { /* */ }
+        }
+        if (!j && arch[d]) j = { items: arch[d] };
+        if (!j && hasSq(d, docLive.items)) j = docLive;
+        if (j && hasSq(d, j.items)) { doc = j; day = d; gzKept = d; break; }
+      }
+    }
+    if (!$("#gzPages")) return;
     const now = M ? M.date : new Date(day + "T20:00:00");
     if (days.length > 1) {
       const nav = document.createElement("div"); nav.className = "lj-tabs gz-days"; nav.setAttribute("aria-label", "Arkiva e numrave");
-      nav.innerHTML = days.map((d) => `<a role="tab" href="#/gazeta/${d}" aria-selected="${d === day}">${d === today ? "Sot" : (+d.slice(8)) + " " + MUAJT[+d.slice(5, 7) - 1].slice(0, 3)}</a>`).join("");
+      nav.innerHTML = days.map((d) => `<a role="tab" href="#/gazeta/${d}" aria-selected="${d === day}">${(+d.slice(8)) + " " + MUAJT[+d.slice(5, 7) - 1].slice(0, 3)}${d === today ? " · i fundit" : ""}</a>`).join("");
       $("#gzPc").before(nav);
     }
+    if (gzKept) $("#gzPc").insertAdjacentHTML("beforebegin", `<p class="bible-note">Numri i sotëm po përgatitet — po shfaqet numri i fundit i plotë.</p>`);
     const doy = M ? M.no : gzNo(now);
     const DIT = ["E Diel", "E Hënë", "E Martë", "E Mërkurë", "E Enjte", "E Premte", "E Shtunë"];
     const dateTxt = `${DIT[now.getDay()]}, ${now.getDate()} ${MUAJT[now.getMonth()]} ${now.getFullYear()}`;
@@ -4929,12 +5073,38 @@ function pickPhoto(it) {
     const lead = M && M.full ? by("m").find((n) => n.img && (n.ex || "").length > 150) || by("m").find((n) => n.img) || items[0] : M ? by("m").find((n) => n.img) || by("m")[0] || items[0] : koash.find((n) => n.img) || ugo.find((n) => n.img) || items[0];
     const second = M && M.full ? items.find((n) => n.img && n !== lead && n.grp !== "v") || items.find((n) => n.img && n !== lead) : M ? by("m").find((n) => n.img && n !== lead) || by("p").find((n) => n.img && n !== lead) : ugo.find((n) => n.img && n !== lead) || bota.find((n) => n.img && n !== lead) || by("studime").find((n) => n.img && n !== lead);
     const rest = (arr) => arr.filter((n) => n !== lead && n !== second);
-    const srcLine = (n) => `<p class="gz-src">Burimi: ${esc(NEWS_SRC[n.src] || n.src)} · <a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(domainOf(n.link))}</a></p>`;
+    const srcLine = (n) => `<p class="gz-src">Burimi: ${esc(NEWS_SRC[n.src] || n.src)} · <a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(domainOf(n.link))}</a>${n.tr ? " · përkthim automatik" : ""}</p>`;
     const dropcap = (t) => t ? `<span class="gz-dc">${esc(t[0])}</span>${esc(t.slice(1))}` : "";
-    const art = (n, photo, cap) => `<article class="gz-art" data-i="${n._i}" data-g="${n.grp}">
+    // teksti i plotë i shkrimit (kur burimi e jep), përndryshe përmbledhja
+    // përmbledhja e shkrimit (1/3 e gjatësisë): nga skripti («sum») ose e llogaritur këtu nga teksti i plotë
+    const parasOf = (n) => {
+      if (n._ps) return n._ps;
+      const sum = n.sum ? String(n.sum).split(/\n{2,}/).map((x) => x.trim()).filter(Boolean) : null;
+      const full = String(n.text || "").trim();
+      const t = sum && sum.length ? sum : full.length > (n.ex || "").length * 1.2 ? summarize(full) : [];
+      return (n._ps = t.length && t.join(" ").length >= Math.min((n.ex || "").length, 200) ? t : [n.ex || ""].filter(Boolean));
+    };
+    const firstP = (n) => parasOf(n)[0] || "";
+    const moreOf = (n, k) => parasOf(n).length > (k || 1);
+    // mode: "front" (faqja 1: hyrja + «vijon»), "inner" (vetëm hyrja; paragrafët vijnë më pas), "solo" (i gjithë shkrimi)
+    // sa zë rrjedha e një seksioni të faqes 1: me lartësi të fiksuar kolonat mbushen njëra pas tjetrës;
+    // H + 1 = teprica kalon kufirin e djathtë; përndryshe H minus vendi i lirë që mbetet (kolona e fundit + kolonat bosh)
+    const flowNeed = (f, sc, H) => {
+      const base = f.offsetTop - sc.offsetTop;
+      if (!f.classList.contains("fill")) return base + f.offsetHeight;
+      const last = f.lastElementChild; if (!last) return base;
+      const r = f.getBoundingClientRect(), rs = last.getClientRects(), l = rs[rs.length - 1];
+      if (!l) return base;
+      if (l.left >= r.right - 2 || l.bottom > r.bottom + 1) return H + 1;
+      const cc = +f.style.columnCount || 2, idx = Math.min(cc - 1, Math.max(0, Math.floor((l.left - r.left + 4) / (r.width / cc))));
+      return H - ((cc - 1 - idx) * r.height + (r.bottom - l.bottom));
+    };
+    const psCache = new Map();
+    const frontPs = (n, r) => { if (!(r < 1)) return parasOf(n); const k = n._i + ":" + r; if (!psCache.has(k)) psCache.set(k, summarize(parasOf(n).join("\n\n"), r)); return psCache.get(k); };
+    const art = (n, photo, cap, r) => `<article class="gz-art" data-i="${n._i}" data-g="${n.grp}">
         <h4><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a></h4>
         ${n.img && photo ? `<div class="gz-ph"><img data-ns="${esc(n.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}
-        ${n.ex ? `<p>${cap ? dropcap(n.ex) : esc(n.ex)}</p>` : ""}${srcLine(n)}</article>`;
+        ${frontPs(n, typeof r === "number" ? r : 1).map((x, j) => `<p>${j === 0 && cap ? dropcap(x) : esc(x)}</p>`).join("")}${srcLine(n)}</article>`;
     const sec = (g, arr) => { const S = SECS.find((x) => x[0] === g); return arr.length ? `<section class="gz-sec"><h3 class="gz-sh"><span>${S[1]}</span><small>${esc(S[2].split(" · ")[0])}</small></h3><div class="gz-flow">${arr.map((n, k) => art(n, k < 2, k === 0)).join("")}</div></section>` : ""; };
     if (day === today && !M) store.set("gz.seen", today);
 
@@ -4951,14 +5121,14 @@ function pickPhoto(it) {
       <div class="gz-top">
         ${lead ? `<article class="gz-lead" data-i="${lead._i}"><p class="gz-kick">${esc(NEWS_SRC[lead.src] || "")} · ${esc(fmtDate(lead.date || now))}</p><h2><a href="${esc(lead.link)}" target="_blank" rel="noopener">${esc(lead.title)}</a></h2>
           ${lead.img ? `<div class="gz-ph big"><img data-ns="${esc(lead.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}
-          <div class="gz-lead-tx${(lead.ex || "").length < 420 ? " short" : ""}"><p>${dropcap(lead.ex)}</p>${srcLine(lead)}</div></article>` : ""}
+          <div class="gz-lead-tx${parasOf(lead).join(" ").length < 420 ? " short" : ""}">${parasOf(lead).map((x, j) => `<p>${j === 0 ? dropcap(x) : esc(x)}</p>`).join("")}${srcLine(lead)}</div></article>` : ""}
         <aside class="gz-side">
-          ${second ? `<article class="gz-art gz-second" data-i="${second._i}"><h4><a href="${esc(second.link)}" target="_blank" rel="noopener">${esc(second.title)}</a></h4>${second.img ? `<div class="gz-ph"><img data-ns="${esc(second.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}<p>${esc(second.ex)}</p>${srcLine(second)}</article>` : ""}
+          ${second ? `<article class="gz-art gz-second" data-i="${second._i}"><h4><a href="${esc(second.link)}" target="_blank" rel="noopener">${esc(second.title)}</a></h4>${second.img ? `<div class="gz-ph"><img data-ns="${esc(second.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}${parasOf(second).map((x) => `<p>${esc(x)}</p>`).join("")}${srcLine(second)}</article>` : ""}
           <div class="gz-briefs" id="gzBriefs"><b>Shkurtimisht</b><ul></ul></div>
           ${M && M.kind !== "vatikan" && M.kind !== "shkolla" ? `<div class="gz-box gz-cal"><b>Kalendari i javës që vjen</b><ul>${[1, 2, 3, 4, 5, 6, 7].map((k) => { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + k); let f = {}; try { f = Fast.info(d) || {}; } catch (e) { /* */ } return `<li><span>${DIT[d.getDay()].replace("E ", "")} ${d.getDate()}</span>${esc(f.feast || "")}${f.level && f.level.cls !== "free" ? `<small>${esc(f.level.name)}</small>` : ""}</li>`; }).join("")}</ul></div>` : ""}
         </aside>
       </div>
-      <div class="gz-secs"${M ? ` style="grid-template-columns:repeat(${Math.max(1, Math.min(3, SECS.filter(([g]) => rest(by(g)).length).length))},1fr)"` : ""}>${M ? SECS.filter(([g]) => rest(by(g)).length).slice(0, 3).map(([g]) => sec(g, rest(by(g)))).join("") : sec("koash", rest(koash)) + sec("ugo", rest(ugo)) + (bota.length ? sec("bota", rest(bota)) : sec("ugos", rest(by("ugos"))))}</div>
+      <div class="gz-secs"${M ? ` style="grid-template-columns:repeat(${Math.max(1, Math.min(3, SECS.filter(([g]) => rest(by(g)).length).length))},1fr)"` : ""}>${M ? SECS.filter(([g]) => rest(by(g)).length).slice(0, 3).map(([g]) => sec(g, rest(by(g)))).join("") : sec("koash", rest(koash)) + sec("patr", rest(by("patr"))) + sec("ugo", rest(ugo)) + (bota.length ? sec("bota", rest(bota)) : sec("ugos", rest(by("ugos"))))}</div>
       <footer class="gz-foot"><span>Fjala e Shenjtë · Nr. ${doy}</span><span>${M ? M.ed || "botim javor" : "botim i përditshëm"}</span><span>Faqe 1</span></footer>`;
     pages.innerHTML = ""; pages.appendChild(sheet);
     gzHyphenate(sheet);
@@ -4986,12 +5156,37 @@ function pickPhoto(it) {
         const w = scs.map((sc) => Math.max(1, $(".gz-flow", sc).children.length));
         const avg = w.reduce((a, b) => a + b, 0) / w.length;
         secs.style.gridTemplateColumns = w.map((x) => Math.max(0.6, Math.min(1.6, x / avg)).toFixed(2) + "fr").join(" ");
-      }
+      } else if (scs.length === 1) secs.style.gridTemplateColumns = "1fr";   // një seksion i vetëm zë gjithë gjerësinë
+      // numri i kolonave sipas gjerësisë së seksionit (rreth 260px për kolonë)
+      scs.forEach((sc) => { const f = $(".gz-flow", sc); if (f) f.style.columnCount = Math.max(1, Math.min(5, Math.round(sc.clientWidth / 260))); });
       const shown = new Set($$("[data-i]", sheet).map((e) => +e.dataset.i));
       scs.forEach((sc) => {
         const f = $(".gz-flow", sc);
-        const need = () => f.offsetTop - sc.offsetTop + f.offsetHeight;
-        for (let k = 0; k < 60 && need() > avail && f.children.length > 1; k++) { shown.delete(+f.lastElementChild.dataset.i); f.lastElementChild.remove(); }   // vazhdojnë në faqet e brendshme
+        f.classList.add("fill"); f.style.height = Math.max(40, avail - (f.offsetTop - sc.offsetTop)) + "px";
+        const need = () => flowNeed(f, sc, avail);
+        // çdo shkrim i seksionit merr aq fjali (të plota, nga përmbledhja e vet) sa hyjnë: seksioni mbushet, pa «…», pa shënime
+        const LV = [1, 0.75, 0.55, 0.4, 0.28, 0.16, 0];
+        const st = [...f.children].map((a) => ({ a, n: items.find((x) => x._i === +a.dataset.i), lv: LV.length - 1, ph: !!$(".gz-ph", a), cap: !!$(".gz-dc", a) })).filter((x) => x.n);
+        const put = (x) => { const t = document.createElement("div"); t.innerHTML = art(x.n, x.ph, x.cap, LV[x.lv]); const el = t.firstElementChild; x.a.replaceWith(el); x.a = el; };
+        st.forEach(put);
+        // as në trajtën më të shkurtër nuk hyjnë? → hiqen fotot nga fundi, pastaj shkrimet e fundit kalojnë brenda
+        for (let k = st.length - 1; k >= 0 && need() > avail; k--) if (st[k].ph) { st[k].ph = false; put(st[k]); }
+        while (st.length > 1 && need() > avail) { const x = st.pop(); shown.delete(x.n._i); x.a.remove(); }
+        // shkrime të tjera të grupit (që përndryshe do të shkonin brenda), në trajtën më të shkurtër
+        const g0 = st[0] ? st[0].n.grp : null;
+        if (g0 && need() < avail - 60) {
+          for (const n of items.filter((x) => x.grp === g0 && !shown.has(x._i))) {
+            const x = { a: document.createElement("article"), n, lv: LV.length - 1, ph: false, cap: false };
+            f.appendChild(x.a); put(x);
+            if (need() > avail) { x.a.remove(); break; }
+            shown.add(n._i); st.push(x);
+          }
+        }
+        // zgjerohen me radhë, fjali pas fjalie, derisa seksioni të mbushet
+        for (let open = true, g = 0; open && g < 60; g++) {
+          open = false;
+          for (const x of st) { if (x.done || x.lv === 0) continue; x.lv--; put(x); if (need() > avail) { x.lv++; put(x); x.done = true; } else open = true; }
+        }
         const gap = () => avail - need();
         if (gap() > 40) {
           // a) foto te shkrimet që kanë foto
@@ -5004,7 +5199,7 @@ function pickPhoto(it) {
             if (need() > avail) { ph.remove(); break; }
           }
           // b) një kolonë e vetme në vend të dy
-          if (gap() > 60 && f.children.length) { f.style.columnCount = 1; if (need() > avail) f.style.columnCount = ""; }
+          if (gap() > 60 && f.children.length) { const cc = f.style.columnCount; f.style.columnCount = 1; if (need() > avail) f.style.columnCount = cc; }
           // c) shkrime të tjera nga i njëjti grup (që përndryshe do të shkonin brenda)
           const g = f.closest(".gz-sec") && f.querySelector("[data-g]") ? f.querySelector("[data-g]").dataset.g : null;
           if (g && gap() > 60) {
@@ -5023,7 +5218,7 @@ function pickPhoto(it) {
             f.appendChild(box);
             const ul = $("ul", box);
             for (const n of items.filter((x) => !shown.has(x._i))) {
-              const li = document.createElement("li"); li.innerHTML = `<a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a>${n.ex ? `<span>${esc(shortText(n.ex, 150))}</span>` : ""}`;
+              const li = document.createElement("li"); li.innerHTML = `<a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a>${n.ex && summarize(n.ex, 0)[0] && summarize(n.ex, 0)[0].length < 220 ? `<span>${esc(summarize(n.ex, 0)[0])}</span>` : ""}`;
               ul.appendChild(li);
               if (need() > avail) { li.remove(); break; }
             }
@@ -5034,9 +5229,10 @@ function pickPhoto(it) {
     }
 
     // ---------- Faqet e brendshme: gjithë materiali që mbetet, pa kufi ----------
-    const placed = new Set($$("[data-i]", sheet).map((e) => +e.dataset.i));
-    const left = SECS.flatMap(([g]) => items.filter((n) => n.grp === g && !placed.has(n._i)))
-      .concat(items.filter((n) => !placed.has(n._i) && !SECS.some((S) => S[0] === n.grp)));
+    // në faqen 1 një shkrim quhet «i vendosur» vetëm kur ka hyrjen e tij (jo kur del vetëm si titull te «Shkurtimisht»)
+    const placed = new Set($$(".gz-lead[data-i], .gz-art[data-i]", sheet).map((e) => +e.dataset.i));
+    const ordered = SECS.flatMap(([g]) => items.filter((n) => n.grp === g)).concat(items.filter((n) => !SECS.some((S) => S[0] === n.grp)));
+    const left = ordered.filter((n) => !placed.has(n._i));
     const secPages = {};
     SECS.forEach(([g]) => { if (items.some((n) => n.grp === g && placed.has(n._i))) secPages[g] = [1]; });
     const mkInner = (no) => {
@@ -5047,20 +5243,31 @@ function pickPhoto(it) {
     // radha e materialit: titujt e seksioneve (h) dhe shkrimet (a)
     let queue = [], lastG = null, perG = {};
     const hEntry = (g, cont) => { const S = SECS.find((x) => x[0] === g) || [g, "Të tjera", ""]; return { t: "h", g, html: `<h3 class="gz-sh" data-g="${g}"><span>${S[1]}${cont ? " <em>(vijon)</em>" : ""}</span><small>${esc(S[2])}</small></h3>` }; };
+    const pEntries = (n, from) => {
+      const ps = parasOf(n).slice(from), extra = (Array.isArray(n.imgs) ? n.imgs : []).filter((u) => u && u !== n.img && /^https?:/.test(u)).slice(0, 4);
+      const out = [];
+      ps.forEach((x, j) => {
+        out.push({ t: "p", g: n.grp, n, html: `<div class="gz-cp" data-i="${n._i}" data-g="${n.grp}"><p>${esc(x)}</p>${j === ps.length - 1 ? srcLine(n) : ""}</div>` });
+        // fotot e tjera të shkrimit, mes paragrafëve
+        const at = Math.floor((j + 1) / 2) - 1;
+        if ((j + 1) % 2 === 0 && extra[at] && j < ps.length - 1) out.push({ t: "p", g: n.grp, n, html: `<div class="gz-ph gz-ph-in" data-i="${n._i}" data-g="${n.grp}"><img data-ns="${esc(extra[at])}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` });
+      });
+      return out;
+    };
     left.forEach((n) => {
       if (n.grp !== lastG) { queue.push(hEntry(n.grp, !!secPages[n.grp])); lastG = n.grp; perG[n.grp] = 0; }
-      queue.push({ t: "a", g: n.grp, n, k: perG[n.grp]++ });
+      queue.push({ t: "a", g: n.grp, n, k: perG[n.grp]++ }); queue.push(...pEntries(n, 0));
     });
 
     // shkrimi kryesor i faqes: foto e madhe në krye, sipër të gjitha kolonave (majtas / djathtas me radhë)
     const feature = (n, flip) => `<article class="gz-feat${flip ? " flip" : ""}" data-i="${n._i}" data-g="${n.grp}">
         <div class="gz-ph"><img data-ns="${esc(n.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>
-        <div class="gz-feat-tx"><p class="gz-kick">${esc((SECS.find((x) => x[0] === n.grp) || [, ""])[1])} · ${esc(NEWS_SRC[n.src] || n.src)}</p><h2><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a></h2>${n.ex ? `<p>${dropcap(n.ex)}</p>` : ""}${srcLine(n)}</div></article>`;
-    const render = (e) => e.t === "a" ? art(e.n, e.n.img && e.k % 3 === 1, e.k === 0) : e.html;
+        <div class="gz-feat-tx"><p class="gz-kick">${esc((SECS.find((x) => x[0] === n.grp) || [, ""])[1])} · ${esc(NEWS_SRC[n.src] || n.src)}</p><h2><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a></h2></div></article>`;
+    const render = (e) => e.t === "a" ? `<article class="gz-art gz-hd" data-i="${e.n._i}" data-g="${e.n.grp}"><h4><a href="${esc(e.n.link)}" target="_blank" rel="noopener">${esc(e.n.title)}</a></h4>${e.n.img && !e.noPh ? `<div class="gz-ph"><img data-ns="${esc(e.n.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}</article>` : e.html;
     // kur nuk mbetet asnjë shkrim për faqet e brendshme, kolofoni shkon në faqen e parë (pa faqe bosh)
     if (queue.length === 1 && queue[0].t === "c") { const sd = $(".gz-side", sheet) || $(".gz-secs .gz-sec:last-child .gz-flow", sheet); if (sd) { sd.insertAdjacentHTML("beforeend", queue[0].html); queue = []; } }
     let no = 1;
-    for (let guard = 0; queue.length && guard < 24; guard++) {
+    for (let guard = 0; queue.length && guard < 80; guard++) {
       no++;
       const sh = mkInner(no), body = $(".gz-body", sh);
       // faqosja sipas materialit: studimet në 4 kolona me shkronja më të mëdha, lajmet në 5
@@ -5068,15 +5275,45 @@ function pickPhoto(it) {
       const essay = firstA && firstA.g === "studime";
       body.classList.toggle("essay", !!essay);
       // shkrimi kryesor: i pari me foto ndër 4 të parët e faqes
-      const fi = queue.slice(0, 5).findIndex((e) => e.t === "a" && e.n.img);
+      const fi0 = queue.findIndex((e) => e.t !== "h");
+      const fi = fi0 >= 0 && queue[fi0].t === "a" && queue[fi0].n.img ? fi0 : -1;
       let featHtml = "";
       if (fi >= 0 && queue.length > 4) { featHtml = feature(queue[fi].n, no % 2 === 1); var featE = queue.splice(fi, 1)[0]; } else featE = null;
       body.innerHTML = featHtml + queue.map(render).join("");
       gzHyphenate(body);
       const W = body.clientWidth;
       const kids = [...body.children].filter((e) => !e.classList.contains("gz-feat"));
-      let cut = kids.findIndex((e) => e.offsetLeft >= W - 2 || e.offsetTop + e.offsetHeight > body.clientHeight + 2 && e.offsetLeft + e.offsetWidth > W - 2);
+      // jashtë faqes = pjesa e fundit e elementit bie në kolonën pas kufirit të djathtë
+      const bR = body.getBoundingClientRect();
+      const outR = (e) => { const rs = [...e.getClientRects()]; return rs.length ? rs[rs.length - 1].left >= bR.right - 2 : e.offsetLeft >= W - 2; };
+      let cut = kids.findIndex(outR);
+      // titulli i shkrimit me foto nuk hyn? → titulli mbetet këtu, fotoja shkon pas paragrafit të parë (asnjë zonë bosh)
+      if (cut >= 0 && kids[cut].classList.contains("gz-hd") && $(".gz-ph", kids[cut]) && queue[cut] && queue[cut].t === "a") {
+        const ph = $(".gz-ph", kids[cut]), img = $("img", ph).dataset.ns, qe = queue[cut];
+        ph.remove();
+        if (!outR(kids[cut])) {
+          qe.noPh = true;
+          const at = queue.findIndex((e, k) => k > cut && e.t === "p" && e.n === qe.n);
+          if (at > 0) queue.splice(at + 1, 0, { t: "p", g: qe.g, n: qe.n, html: `<div class="gz-ph gz-ph-in" data-i="${qe.n._i}" data-g="${qe.g}"><img data-ns="${esc(img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` });
+          cut = kids.findIndex(outR);
+        } else kids[cut].appendChild(ph);
+      }
+      // paragrafi që kalon kufirin ndahet: pjesa që hyn mbetet këtu (pa asnjë mm bosh), pjesa tjetër vijon në faqen pasardhëse
+      if (cut >= 0 && kids[cut].classList.contains("gz-cp") && queue[cut] && queue[cut].t === "p" && $("p", kids[cut]) && [...kids[cut].getClientRects()][0].left < bR.right - 2) {
+        const el = kids[cut], pe = $("p", el), words = pe.textContent.split(" "), src = $(".gz-src", el);
+        if (src) src.remove();
+        let lo = 0, hi = words.length;
+        while (lo < hi) { const mid = (lo + hi + 1) >> 1; pe.textContent = words.slice(0, mid).join(" "); if (outR(el)) hi = mid - 1; else lo = mid; }
+        if (lo >= 4 && lo < words.length) {
+          pe.textContent = words.slice(0, lo).join(" ");
+          const qe = queue[cut];
+          queue.splice(cut + 1, 0, { t: "p", g: qe.g, n: qe.n, html: `<div class="gz-cp" data-i="${qe.n._i}" data-g="${qe.g}"><p>${esc(words.slice(lo).join(" "))}</p>${src ? src.outerHTML : ""}</div>` });
+          cut++;
+        } else { pe.textContent = words.join(" "); if (src) el.appendChild(src); }
+      }
       if (cut > 0 && kids[cut - 1].tagName === "H3") cut--;                 // titulli i seksionit nuk mbetet vetëm në fund
+      if (cut > 0 && kids[cut - 1].classList.contains("gz-vijon")) cut--;   // as titulli «vijon»
+      if (cut > 0 && kids[cut - 1].classList.contains("gz-hd")) cut--;      // as titulli i shkrimit pa asnjë paragraf
       const stay = cut < 0 ? kids.length : Math.max(1, cut);
       kids.slice(stay).forEach((e) => e.remove());
       [featE, ...queue.slice(0, stay)].forEach((e) => { if (e && e.g) (secPages[e.g] = secPages[e.g] || []).includes(no) || secPages[e.g].push(no); });
@@ -5134,17 +5371,17 @@ function pickPhoto(it) {
         const H = sx.clientHeight;
         $$(".gz-sec", sx).forEach((sc) => {
           const f = $(".gz-flow", sc); if (!f) return;
-          const need = () => f.offsetTop - sc.offsetTop + f.offsetHeight;
+          const need = () => flowNeed(f, sc, H);
           let k = 0;
           while (need() > H + 1 && k++ < 40) {                    // e prerë poshtë → hiqet pjesa e fundit
             const more = $(".gz-more ul", f);
             if (more && more.children.length) { more.lastElementChild.remove(); if (!more.children.length) more.parentElement.remove(); }
             else if (f.children.length > 1) f.lastElementChild.remove();
-            else {                                                  // një shkrim i vetëm i gjatë → shkurtohet teksti te fundi i fjalisë
-              const pp = [...f.querySelectorAll("p")].filter((e) => !e.classList.contains("gz-src")).pop();
-              if (!pp || pp.textContent.length < 80) break;
-              const t = pp.textContent.replace(/\s*…$/, ""), cutAt = t.lastIndexOf(" ", t.length - 40);
-              pp.textContent = t.slice(0, cutAt).replace(/[,;:\s]+$/, "") + " …";
+            else {                                                  // një shkrim i vetëm i gjatë → hiqet fjalia e fundit (vetëm fjali të plota)
+              const ps = [...f.querySelectorAll("p")].filter((e) => !e.classList.contains("gz-src"));
+              const pp = ps.pop(); if (!pp || (!ps.length && pp.textContent.length < 80)) break;
+              const sn = pp.textContent.match(/[^.!?…]+(?:[.!?…]+["»”'’)]*|$)/g) || [];
+              if (sn.length > 1) pp.textContent = sn.slice(0, -1).join("").trim(); else pp.remove();
             }
             issues.push("prerje-seksioni");
           }
@@ -5190,8 +5427,8 @@ function pickPhoto(it) {
           const ovr = () => [...b.children].some((e) => { const q = [...e.getClientRects()].pop(); return q && q.left >= br.right - 2; });
           // a) shkrime që nuk janë shfaqur ende në gazetë
           for (const n of items.filter((x) => !shownNow.has(x._i))) {
-            b.insertAdjacentHTML("beforeend", art(n, !!n.img, false));
-            if (ovr()) { b.lastElementChild.remove(); if (n.img) { b.insertAdjacentHTML("beforeend", art(n, false, false)); if (ovr()) b.lastElementChild.remove(); else { shownNow.add(n._i); issues.push("shkrime-shtesë"); } } break; }
+            b.insertAdjacentHTML("beforeend", art(n, !!n.img, false, "solo"));
+            if (ovr()) { b.lastElementChild.remove(); if (n.img) { b.insertAdjacentHTML("beforeend", art(n, false, false, "solo")); if (ovr()) b.lastElementChild.remove(); else { shownNow.add(n._i); issues.push("shkrime-shtesë"); } } break; }
             shownNow.add(n._i); issues.push("shkrime-shtesë");
           }
           // b) foto te shkrimet që kanë foto por s'e shfaqin
@@ -5279,27 +5516,38 @@ function pickPhoto(it) {
       let seed = doy * 7919 + ti * 31; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
       const pool = Q.filter((q) => T[2].test(q.t)).map((q) => [rnd(), q]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
       const used = new Set(), pick = [];
-      pool.forEach((q) => { if (pick.length < 8 && !used.has(q.a)) { used.add(q.a); pick.push(q); } });
-      pool.forEach((q) => { if (pick.length < 8 && !pick.includes(q)) pick.push(q); });
+      pool.forEach((q) => { if (!used.has(q.a)) { used.add(q.a); pick.push(q); } });   // fillimisht një thënie për çdo autor
+      pool.forEach((q) => { if (!pick.includes(q)) pick.push(q); });
+      // thënie të tjera të Etërve (jashtë temës) vetëm për të mbushur fundin e faqes së fundit
+      const other = Q.filter((q) => !T[2].test(q.t)).map((q) => [rnd(), q]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
       // nuk hapet faqe e re: thëniet mbushin hapësirat bosh të faqeve që ekzistojnë (kolonat e fundit të çdo faqeje)
+      // thëniet mbushin hapësirën që mbetet: provohen me radhë dhe ajo që nuk hyn lë vendin për një më të shkurtër
       if (pick.length >= 2) themeFill = () => {
-        let k = 0;
-        for (const body of $$(".gz-body", pages)) {
-          if (k >= pick.length) break;
+        const taken = new Set(), bodies = $$(".gz-body", pages);
+        let first = true;
+        const fillBox = (body, list, kick, intro) => {
           const over = () => body.scrollWidth > body.clientWidth + 2 || body.scrollHeight > body.clientHeight + 2;
-          if (over() || $(".gz-th-box", body)) continue;
+          if (over()) return 0;
           const box = document.createElement("section"); box.className = "gz-th-box";
-          box.innerHTML = `<p class="gz-kick">Etërit flasin · ${esc(T[1])}</p>${k === 0 ? `<p class="gz-th-in">${esc(T[4])}${rel ? ` <span>Lidhur me: «${esc(gzTitle(rel._full || rel.title))}»</span>` : (T[0] === "kreshma" && fast ? ` <span>${esc(fast)}</span>` : "")}</p>` : ""}`;
+          box.innerHTML = `<p class="gz-kick">${kick}</p>${intro || ""}`;
           body.appendChild(box);
-          let put = 0;
-          while (k < pick.length) {
-            const q = pick[k];
+          if (over()) { box.remove(); return 0; }
+          let put = 0, miss = 0;
+          for (const q of list) {
+            if (taken.has(q) || miss > 30) continue;
             box.insertAdjacentHTML("beforeend", `<blockquote class="gz-th-q"><p>${esc(q.t)}</p><cite>${esc(q.a)}${q.c ? `<small>${esc(q.c)}</small>` : ""}</cite></blockquote>`);
-            if (over()) { box.lastElementChild.remove(); break; }
-            put++; k++;
+            if (over()) { box.lastElementChild.remove(); miss++; continue; }
+            taken.add(q); put++; miss = 0;
           }
           if (!put) box.remove();
-        }
+          return put;
+        };
+        bodies.forEach((body, bi) => {
+          if ($(".gz-th-box", body)) return;
+          const n = fillBox(body, pick, `Etërit flasin · ${esc(T[1])}`, first ? `<p class="gz-th-in">${esc(T[4])}${rel ? ` <span>Lidhur me: «${esc(gzTitle(rel._full || rel.title))}»</span>` : (T[0] === "kreshma" && fast ? ` <span>${esc(fast)}</span>` : "")}</p>` : "");
+          if (n) first = false;
+          if (bi === bodies.length - 1) fillBox(body, other, "Etërit flasin", "");   // faqja e fundit mbushet deri në fund
+        });
       };
     } catch (e) { /* tema është shtesë: gazeta del edhe pa të */ }
     // roja e fotove: kutia e fotos nuk lejohet të jetë më e lartë se vetë fotoja (përndryshe pritën njerëzit / peshkopët);
@@ -5471,7 +5719,7 @@ function pickPhoto(it) {
     ["amerik", "Kisha Orthodhokse në Amerikë", "Amerikë", ["oca", "goa"], /Amerik|America/i],
   ];
   async function kishatDoc() {
-    const [lb, mt] = await Promise.all([liveJson("lajme_bota"), liveJson("mitropolite")]);
+    const [lb, mt] = await Promise.all([liveJson("lajme_bota").then(normNews), liveJson("mitropolite")]);
     const groups = KISHAT.map(([id, name]) => ({ id, name, items: [] })), by = Object.fromEntries(groups.map((g) => [g.id, g]));
     const seen = new Set();
     const put = (n) => {
@@ -6568,9 +6816,9 @@ function pickPhoto(it) {
       act: ["#/kungimi", "cross", "Ditari i Kungimit"] },
     { n: "Falënderim", e: "✨", kw: /falëndero|mirënjoh|gëzim|lumtur|faleminderit|bekim/i,
       ps: [[102, 2], [117, 1], [33, 2], [102, 5], [91, 2]], gs: ["ati", "pane", "drita"], fq: /falënder|Lavdi Perëndisë|mirënjohj|gëzim/i,
-      step: "Ndiz një qiri falënderimi dhe shkruaj te “Lavdi për të gjitha” tri gjëra për të cilat je mirënjohës sot.",
+      step: "Ndiz një qiri falënderimi dhe thuaji Zotit tri gjëra për të cilat je mirënjohës sot.",
       pr: "Lavdi Ty, o Perëndi, për të gjitha! Për çdo të mirë që di dhe që nuk di, për jetën, për të dashurit e mi. Amin.",
-      act: ["#/lavdi", "heart", "Lavdi për të gjitha"] },
+      act: ["#/lutja", "candle", "Ndiz një qiri"] },
     { n: "Vendim i vështirë", e: "🧭", kw: /vendim|zgjedh|s'?di çfarë|cilën rrugë|udhëkryq|ndryshim|punë e re|martes/i,
       ps: [[36, 5], [142, 11], [118, 105], [22, 3], [42, 3]], gs: ["udha", "lypni", "drita"], fq: /vullnet|urtësi|këshill|bindj|udh/i,
       step: "Mos vendos me nxitim. Lutu tri ditë me radhë për këtë çështje, kërko këshillën e atit tënd shpirtëror dhe zgjidh atë që të jep paqe në ndërgjegje.",
@@ -6778,8 +7026,8 @@ function pickPhoto(it) {
       </section>
       ${tit ? (() => {
         // vetëm butonat e shërbesave në qendër; teksti i secilës hapet kur shtyp butonin
-        const bl = tit.blocks.filter((b) => b.t !== "saints"), hs = bl.map((b, i) => [b, i]).filter(([b]) => b.t === "h");
-        const secs = hs.map(([b, i], k) => { const end = k + 1 < hs.length ? hs[k + 1][1] : bl.length; const m = TP_SVC.find(([rx]) => rx.test(b.x)); return { i, ic: m ? m[1] : "✦", t: m ? m[2] : b.x.replace(/^Në\s+/i, ""), html: blocksHtml("tipikoja", bl.slice(i + 1, end), { priest: true }) }; });
+        const bl = tpDayBlocks(data.tipikoja, mo, ti), hs = bl.map((b, i) => [b, i]).filter(([b]) => b.t === "h");
+        const secs = hs.map(([b, i], k) => { const end = k + 1 < hs.length ? hs[k + 1][1] : bl.length; const m = TP_SVC.find(([rx]) => rx.test(b.x)); return { i, ic: m ? m[1] : "✦", t: m ? m[2] + (/· sonte/.test(b.x) ? " · sonte" : "") : b.x.replace(/^Në\s+/i, ""), html: blocksHtml("tipikoja", bl.slice(i + 1, end), { priest: true }) }; });
         if (!secs.length) secs.push({ i: 0, ic: "✦", t: "Tipikoja", html: blocksHtml("tipikoja", bl, { priest: true }) });
         return `<section class="kal-tip tp-reader"><h3>${icon("candle")} Tipikoja e ditës</h3>
           <nav class="tp-flow tp-c" aria-label="Shërbesat e ditës">${secs.map((x, k) => `<button data-sec="${k}" aria-expanded="false" style="--k:${k}"><span>${x.ic}</span><b>${esc(x.t)}</b></button>`).join('<i class="tp-dot"></i>')}</nav>
@@ -7496,7 +7744,7 @@ function pickPhoto(it) {
       <h2 class="hub-h">Lutja</h2>
       <div class="feat-tiles hub">
         ${tile("rope-t2", "#/komboskini", `<svg class="pt-ico"><use href="#i-cross"/></svg>`, "Komboskini", "Lutja e Jisuit · me zë", i++)}
-        ${tile("candle-t", "#/lutja", flameHtml(false), "Qiriri & Temjanica", candles().length ? candles().length + " qirinj ndezur" : "24 orë · zilet · temjani", i++)}
+        ${tile("candle-t", "#/lutja", flameHtml(false), "Qiriri", candles().length ? candles().length + " qirinj ndezur" : "24 orë për të gjallët dhe të fjeturit", i++)}
         ${tile("br-t", "#/frymemarrja", `<span class="ft-orb"></span>`, "Frymëmarrja e lutjes", "Lutja me ritmin e frymës", i++)}
         ${tile("rule-t", "#/kanuni", `<span class="ft-emo">🌅</span>`, "Kanuni im i lutjes", (() => { const r = ruleGet(), t = r.log[isoToday()] || {}; return t.m && t.e ? "Sot ✓ mëngjes e mbrëmje" : `Mëngjes ${r.tm} · mbrëmje ${r.te}`; })(), i++)}
         ${tile("kt-t", "#/kathizma", icon("lyre"), "Kathizma e ditës", (() => { const k = store.get("kath", { done: [] }); return `${k.done.length}/20 · Psaltiri në 20 ditë`; })(), i++)}
@@ -7505,7 +7753,6 @@ function pickPhoto(it) {
       </div>
       <h2 class="hub-h">Shtëpia e lutjes</h2>
       <div class="feat-tiles hub">
-        ${tile("kd-t", "#/kandili", `<span class="ft-emo">🪔</span>`, "Kandili i shtëpisë", (() => { const k = kandilState(); return k.on ? `Ndriçon · vaj ${Math.round(k.oil * 100)}%` : "Ndize para ikonës"; })(), i++)}
         ${tile("oz-t", "#/ora", `<span class="ft-emo">🕰</span>`, "Ora Bizantine", (() => { try { const l = store.get("ora.loc", { lat: 41.3275, lng: 19.8187 }), b = byzNow(Date.now(), l.lat, l.lng); return `${b.cur.ic} ${b.cur.n} · ora ${b.h} e ${b.isDay ? "ditës" : "natës"}`; } catch (e) { return "Koha sipas Kishës"; } })(), i++)}
       </div>
       <h2 class="hub-h">Pendimi dhe Kungimi</h2>
@@ -7524,9 +7771,7 @@ function pickPhoto(it) {
         ${tile("soul-t", "#/mjekesia", `<span class="ft-emo">🕊</span>`, "Mjekësia e Shpirtit", "Si ndihesh sot?", i++)}
         ${tile("draw-t", "#/fjala", `<span class="ft-card"><svg><use href="#i-cross"/></svg></span>`, "Fjala për ty", "3 fjalë në ditë", i++)}
         ${tile("ch-t", "#/sfida", `<b class="ft-days">${ch ? Object.keys(ch.done).length + "/40" : "40"}</b>`, "Sfida 40 ditëshe", "Një hap në ditë", i++)}
-        ${tile("gr-t", "#/lavdi", icon("heart"), "Lavdi për të gjitha", "3 falënderime në ditë", i++)}
         ${tile("sb-t", "#/superlibri", `<span class="ft-emo">📺</span>`, "Superlibri për fëmijë", "49 episode · 4 sezone", i++)}
-        ${tile("bq-t", "#/udhetimi", `<span class="ft-emo">📖</span>`, "Udhëtimi në Shkrim", (() => { const q = store.get("bq", null); return q ? `Niveli ${q.lvl}/1000 · ${"❤".repeat(Math.max(0, Math.min(5, q.lives)))}` : "Kuiz me 1000 nivele"; })(), i++)}
       </div></div>`;
     $("#profileChip")?.addEventListener("click", Profiles.open);
     enter(listPane);
@@ -8324,7 +8569,7 @@ function pickPhoto(it) {
       else if (view === "shkolla") { if (parts[1] === "gazeta") await viewShkollaGazeta(parts[2]); else await viewShkolla(); }
       else if (view === "ora") viewByzClock();
       else if (view === "kambanorja") viewBells();
-      else if (view === "kandili") viewKandil();
+      else if (view === "kandili") { location.replace("#/shpirti"); return; }
       else if (view === "ikona") await viewIcon(parts[1], parts[2]);
       else if (view === "numerimi") viewCountdown();
       else if (view === "sfida") viewChallenge();
@@ -8337,7 +8582,7 @@ function pickPhoto(it) {
       else if (view === "mjekesia") await viewSoul();
       else if (view === "lindja") viewEast();
       else if (view === "pagezimi") location.replace("#/biblioteka/pagezimi");
-      else if (view === "lavdi") viewGratitude();
+      else if (view === "lavdi") { location.replace("#/shpirti"); return; }
       else if (view === "emri") await viewNames();
       else if (view === "arkiv") await viewArkiv(parts[1], parts[2] ? decodeURIComponent(parts.slice(2).join("/")) : "");
       else if (view === "seksion") await viewSection(parts[1] === "ngj" ? "ngj" : "kisha", decodeURIComponent(parts.slice(2).join("/")));
@@ -8430,6 +8675,8 @@ function pickPhoto(it) {
       <h2 class="hub-h">E javës · e diel 12:00</h2>
       <div class="gzc-list">
         ${c("#/mitropolite", "gzc-m", "Mitropolitë", "Gazetat e Mitropolive", `Nr. ${mtNo(S)} · Korçë · Gjirokastër · Fier · Berat · Elbasan · Tiranë`, store.get("mt.seen", "") !== Si)}
+        ${c("#/mitropolite/radio", "gzc-m", "Radio Ngjallja", "Radio Ngjallja", `Nr. ${mtNo(S)} · lajmet dhe njoftimet e javës`, false)}
+        ${c("#/kishat/fanar", "gzc-k", "Fanari", "Patriarkana Ekumenike", `Nr. ${mtNo(S)} · Fanari · Kostandinopojë`, false)}
         ${c("#/kishat", "gzc-k", "Kishat", "Kishat Orthodhokse", `Nr. ${mtNo(S)} · Kostandinopojë · Aleksandri · Antioki · Jerusalem · Serbi · Rumani · Gjeorgji · Greqi · Qipro · Amerikë…`, store.get("ks.seen", "") !== Si)}
         ${c("#/vatikani", "gzc-v", "Vatikani", "Gazeta e Vatikanit", `Nr. ${mtNo(S)} · Vatican News në shqip`, store.get("vt.seen", "") !== Si)}
       </div>
@@ -8943,9 +9190,9 @@ function pickPhoto(it) {
       return priest ? (ps.find((x) => /Prift|Dhjak|Prelat/i.test(x)) || ps[0]) : (ps.find((x) => /Lexues/i.test(x)) || ps[ps.length - 1]);
     };
     const fixOr = (t) => t
-      .replace(/(P|p)relati ose (L|l)exuesi/g, (m, a, b) => (b === "L" || a === "P" ? "Lexuesi" : "lexuesi"))
-      .replace(/(D|d)hjaku ose prifti/g, (m, a) => (a === "D" ? "Dhjaku" : "dhjaku"))
-      .replace(/Prelati ose Prifti/g, "Prifti").replace(/prelati ose prifti/g, "prifti");
+      .replace(/\b(P|p)relati ose (L|l)exuesi\b/g, (m, a, b) => (b === "L" || a === "P" ? "Lexuesi" : "lexuesi"))
+      .replace(/\b(D|d)hjaku ose prifti\b/g, (m, a) => (a === "D" ? "Dhjaku" : "dhjaku"))
+      .replace(/\bPrelati ose Prifti\b/g, "Prifti").replace(/\bprelati ose prifti\b/g, "prifti");
     const parts = blocks.map((b, i) => {
       if (b.pr && !priest) return "";          // vetëm kur ka prift
       if (b.np && priest) return "";           // vetëm kur nuk ka prift
@@ -9052,9 +9299,27 @@ function pickPhoto(it) {
     [/liturgji/i, "✝", "Liturgjia"], [/ora e|orët|\bora\b/i, "🕰", "Orët"], [/pasdark|apodip/i, "🌙", "Pasdarka"],
     [/vigjilj|agrypn/i, "🕯", "Vigjilja"], [/paraklis|lutjesor/i, "🙏", "Paraklisi"], [/ujit|ajazm/i, "💧", "Ajazma"],
   ];
+  // Dita liturgjike nis me Mbrëmësoren: Mbrëmësorja që Tipikoja e shënon te data e nesërme mbahet sonte.
+  // Te dita e sotme: Mëngjesorja, Liturgjia dhe në fund Mbrëmësorja e sontme (nga data e nesërme, me shenjtorët e saj);
+  // Mbrëmësorja e shënuar te data e sotme u mbajt mbrëmë, ndaj del te dita e djeshme.
+  function tpDayBlocks(book, si, ii) {
+    const S = book.sections, it = S[si].items[ii], bl = (it.blocks || []).filter((b) => b.t !== "saints");
+    const eveAt = (arr) => { const f = arr.findIndex((b) => b.t === "h"); return f >= 0 && /^Në\s+Mbrëmësor/i.test(arr[f].x) && !/liturgji/i.test(arr[f].x) ? f : -1; };
+    const endOf = (arr, a) => { let e = a + 1; while (e < arr.length && arr[e].t !== "h") e++; return e; };
+    const prev = ii > 0 ? S[si].items[ii - 1] : si > 0 && S[si - 1] ? S[si - 1].items[S[si - 1].items.length - 1] : null;
+    const next = S[si].items[ii + 1] || (S[si + 1] && S[si + 1].items[0]) || null;
+    let out = bl;
+    const f0 = eveAt(bl);
+    if (f0 >= 0 && prev) out = bl.slice(0, f0).concat(bl.slice(endOf(bl, f0)));
+    if (next) {
+      const nb = next.blocks || [], nn = nb.filter((b) => b.t !== "saints"), f1 = eveAt(nn), sn = nb.find((b) => b.t === "saints");
+      if (f1 >= 0) out = out.concat([{ t: "h", x: `Në Mbrëmësore · sonte, për ${String(next.title).replace(/,.*$/, "")}` }], sn ? [{ t: "fast", x: sn.x }] : [], nn.slice(f1 + 1, endOf(nn, f1)));
+    }
+    return out;
+  }
   function tpFlow(heads) {
     const svc = [];
-    heads.forEach(([b, i]) => { const m = TP_SVC.find(([rx]) => rx.test(b.x)); if (m && !svc.some((x) => x[2] === m[2])) svc.push([i, m[1], m[2]]); });
+    heads.forEach(([b, i]) => { const m = TP_SVC.find(([rx]) => rx.test(b.x)); if (m && !svc.some((x) => x[2].startsWith(m[2]))) svc.push([i, m[1], m[2] + (/· sonte/.test(b.x) ? " · sonte" : "")]); });
     return svc.length ? `<nav class="tp-flow" aria-label="Shërbesat e ditës">${svc.map(([i, ic, t], k) => `<button data-jump="${i}" style="--k:${k}"><span>${ic}</span><b>${t}</b></button>`).join('<i class="tp-dot"></i>')}</nav>` : "";
   }
   function tpHero(si, it, heads, today) {
@@ -9067,7 +9332,7 @@ function pickPhoto(it) {
     const rest = (f.feast ? ss.join(" ") : ss.slice(1).join(" ")).trim();
     const tone = tb ? (tb.x.match(/Tingulli[^.]*/i) || [""])[0] : "";
     const svc = [];
-    heads.forEach(([b, i]) => { const m = TP_SVC.find(([rx]) => rx.test(b.x)); if (m && !svc.some((x) => x[2] === m[2])) svc.push([i, m[1], m[2]]); });
+    heads.forEach(([b, i]) => { const m = TP_SVC.find(([rx]) => rx.test(b.x)); if (m && !svc.some((x) => x[2].startsWith(m[2]))) svc.push([i, m[1], m[2] + (/· sonte/.test(b.x) ? " · sonte" : "")]); });
     return `<section class="tp-hero${f.great ? " great" : ""}${today ? " today" : ""}">
       <div class="tp-sheet"><span class="tp-mon">${esc(MUAJT[si])}</span><b class="tp-day">${day}</b><span class="tp-wd">${WD[d.getDay()]}</span></div>
       <div class="tp-info">
@@ -9097,7 +9362,8 @@ function pickPhoto(it) {
     if (!fromFeed) focusNext = null;
     const ref = niceRef(key, it.ref);
     if (it.blocks) {
-      const heads = it.blocks.map((b, i) => [b, i]).filter(([b]) => b.t === "h" && !/^Urata/.test(b.x));
+      const vb = key === "tipikoja" ? tpDayBlocks(book, si, ii) : it.blocks;
+      const heads = vb.map((b, i) => [b, i]).filter(([b]) => b.t === "h" && !/^Urata\b/.test(b.x));
       const today = key === "tipikoja" && (tipikonToday(book) || []).join() === `${si},${ii}`;
       mainPane.innerHTML = `
         <header class="page-head"><a class="back-btn" href="#/${key}" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">${esc(sec.title)}</h2>
@@ -9112,7 +9378,7 @@ function pickPhoto(it) {
           ${it.priest ? `<div class="seg priest-seg" role="radiogroup" aria-label="Kush e drejton">
               <button data-priest="1" aria-checked="${priestMode}">${icon("cross")}<span>Me prift</span></button>
               <button data-priest="0" aria-checked="${!priestMode}">${icon("book")}<span>Pa prift (lexuesi)</span></button></div>` : ""}
-          <div class="verses" lang="sq">${blocksHtml(key, key === "tipikoja" ? (it.blocks || []).filter((b) => b.t !== "saints" && !(b.t === "fast" && /^Tingulli[^.]*\.\s*[^.]*\.?$/i.test(b.x) && false)) : it.blocks, { priest: !it.priest || priestMode, scores: book.scores })}</div>
+          <div class="verses" lang="sq">${blocksHtml(key, vb, { priest: !it.priest || priestMode, scores: book.scores })}</div>
           <nav class="pager">
             ${ii > 0 ? `<a class="btn" href="#/${key}/${si}/${ii - 1}">${icon("back")} ${esc(sec.items[ii - 1].title.split(" · ")[0].slice(0, 18))}</a>` : "<span></span>"}
             ${ii < sec.items.length - 1 ? `<a class="btn" href="#/${key}/${si}/${ii + 1}">${esc(sec.items[ii + 1].title.split(" · ")[0].slice(0, 18))} <svg style="transform:scaleX(-1)"><use href="#i-back"/></svg></a>` : ""}
@@ -9139,7 +9405,7 @@ function pickPhoto(it) {
       }));
       $$(".verse", mainPane).forEach((el) => el.addEventListener("click", () => {
         const bi = +el.dataset.i;
-        VerseSheet.open({ kind: key, id: `${key}:${si}:${ii}:b${bi}`, text: shortText(it.blocks[bi].x.replace(/\n/g, " ")), ref: blockRef(it, bi), link: `#/${key}/${si}/${ii}` }, el);
+        VerseSheet.open({ kind: key, id: `${key}:${si}:${ii}:b${bi}`, text: shortText(vb[bi].x.replace(/\n/g, " ")), ref: blockRef(it, bi), link: `#/${key}/${si}/${ii}` }, el);
       }));
       if (highlight != null) {
         const el = $(`.verse[data-i="${highlight}"]`, mainPane);
