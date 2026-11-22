@@ -3521,3 +3521,9 @@ h1, h2, h3, h4 { text-wrap: balance; }
 :root[data-theme] :is(.pb, .icon-banner) :is(small, .ib-sub) { color: rgba(246, 241, 230, .8) !important; }
 .fp-k .fs-ic { width: 58px !important; height: 58px !important; }
 :root[data-theme] :is(.pb-kal, .pb-gz)::before { background: none !important; }
+/* shiriti i navigimit: pa vijë drite të shkëputur nën emër; efekti «hover» vetëm me mi (në telefon mbetej i ngecur te butoni i prekur) */
+.nav-btn[aria-current="page"] span::after, :root[data-palette] .nav-btn[aria-current="page"] span::after { content: none !important; display: none !important; }
+@media (hover: none) { .nav-btn:hover:not([aria-current="page"]) svg, :root[data-palette] .nav-btn:hover:not([aria-current="page"]) svg { background: none !important; } }
+:root[data-theme] .nav-btn svg { transition: transform .35s cubic-bezier(.3, 1.6, .5, 1), background .25s, box-shadow .25s; }
+:root[data-theme] .nav-btn[aria-current="page"] svg { transform: translateY(-2px); }
+:root[data-theme] .nav-btn:active svg { transform: translateY(2px) scale(.94); }
