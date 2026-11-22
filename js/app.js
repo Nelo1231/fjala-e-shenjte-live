@@ -1872,7 +1872,7 @@ function pickPhoto(it) {
     const x = L.find((i) => i.slug === slug && i.ok);
     if (!x) { setMode("list"); if (mainPane && !mainPane.textContent.trim()) mainPane.innerHTML = emptyMain(); return; }
     mainPane.innerHTML = `<header class="page-head art-head"><a class="back-btn art-back" href="${R}" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">Këndi i Lutjes</h2></header>
-      <article class="article klt" lang="sq">${x.html ? x.html.replace(/\son\w+="[^"]*"/g, "") : `<h1>${esc(x.t)}</h1>${String(x.text || "").split(/\n{1,}/).filter(Boolean).map((l) => `<p>${esc(l)}</p>`).join("")}`}
+      <article class="article klt" lang="sq">${x.html ? doxHtml(x.html.replace(/\son\w+="[^"]*"/g, "")) : `<h1>${esc(x.t)}</h1>${String(x.text || "").split(/\n{1,}/).filter(Boolean).map((l) => `<p>${esc(l)}</p>`).join("")}`}
         <p class="art-src art-cite">${icon("globe")}<span>Burimi: <a href="${SITE}kendi-i-lutjes/#${x.slug}" target="_blank" rel="noopener">${esc(KOASH_CITE)} · Këndi i Lutjes</a></span></p></article>`;
     mainPane.classList.add("art-open"); enter(mainPane); setMode("read"); mainPane.scrollTop = 0;
     // lidhjet brenda tekstit (#psalmi-142 …) lëvizin brenda shërbesës
@@ -9273,7 +9273,7 @@ function pickPhoto(it) {
       return box(sc.title + (count ? ` (${count})` : ""), "Nga Tetëtingullshi · " + TONE_FULL[tone], blocks, true, extra || "");
     };
     // vendet që Tipikoja ia jep Mujorit: titulli me fjalët e Tipikosë + fillimi i himnit që citon ajo (teksti është te Mujori)
-    const menH = (label, q, src = "Nga Mujori") => `<div class="tip-men"><span class="okto-src">${icon("book")} ${esc(src)}</span><p><b>${esc(label)}</b>${q ? ` · <i>“${esc(q)}…”</i>` : ""}</p></div>`;
+    const menH = (label, q, src = "Nga Mujori") => `<div class="tip-men"><span class="okto-src">${icon("book")} ${esc(src)}</span><p><b>${esc(doxFull(label))}</b>${q ? ` · <i>“${esc(doxFull(q))}…”</i>` : ""}</p></div>`;
     const noteH = () => "";   // shërbesa formohet sipas Tipikosë; vetë shënimet e saj lexohen te skeda «Tipikoja»
     const stH = (x, src) => `<div class="okto-st"><span class="okto-src">${icon("music")} ${esc(src)}</span><p class="okto-p">${versify(x)}</p></div>`;
     const hymnH = (h) => stH(h.x, `${h.title} · Tetëtingullshi · ${TONE_FULL[h.tone]}`);
@@ -9397,7 +9397,7 @@ function pickPhoto(it) {
         const rep = ndCl.split(/\bpsal(?:et|en)\b/i).slice(1).join(" ").trim();
         ndH = ["ndenjesoret1", "ndenjesoret2"].map((k) => okto(k, 0, true, subH("Tani…") + slotH(rep, "", "Ndenjësorja", "e"))).join("");
       } else ndH = okto("ndenjesoret1") + okto("ndenjesoret2") + okto("ndenjesoret3");
-      ins.push([(b) => b.t === "rubric" && /psalen ndenjësoret e tingullit/.test(b.x), noteH(ndCl) + ndH, "after"]);
+      ins.push([(b) => b.t === "rubric" && /psalen ndenjësoret e tingullit/.test(b.x), noteH(ndCl) + ndGroup(ndH), "after"]);
       ins.push([(b) => b.t === "rubric" && /lexon dëgjimin e tingullit/.test(b.x), okto("degjimi") + okto("shkallesat") + okto("paravargu"), "after"]);
       // shkurtorja dhe shtëpia (e tingullit dhe/ose e Mujorit), sinaksari i ditës, zbritësoret
       const kCl = tipSeg(tx, /SHKURTORJA/, /SINAKSARI/), kWho = tipWho(kCl);
@@ -9651,7 +9651,7 @@ function pickPhoto(it) {
       if (/Stihologjia/i.test(ndCl)) { const P = ndCl.split(/Stihologjia\s*(?:\([^)]*\)\s*)?(I{1,3})\b\s*[:,]?/i); for (let i = 1; i < P.length; i += 2) ndH += `<div class="tip-grp">${subH("Pas Stihologjisë " + P[i])}${tipH(P[i + 1], "Ndenjësorja")}</div>`; }
       else if (ndCl) ndH = tipH(ndCl, "Ndenjësoret");
       if (base.title === "Mëngjesorja e Përditshme") dayGroups(/^Në vazhdim psalen ndenjësoret e ditës/);
-      if (ndH) putAt((b) => b.t === "rubric" && /^Në vazhdim psalen ndenjësoret/.test(b.x), ndH);
+      if (ndH) putAt((b) => b.t === "rubric" && /^Në vazhdim psalen ndenjësoret/.test(b.x), ndGroup(ndH));
       // paravargu dhe Ungjilli mëngjesor
       const sk = tipSeg(tx, /SHKALLESAT/, /Le t/), pv = /Paravargu\s+(?:i\s+)?([^.]*)/i.exec(sk);
       if (pv) putAt((b) => b.t === "rubric" && /^Dhe psalet paravargu i të kremtes/.test(b.x), menH(`Paravargu ${/^(?:e|i|të)\s/.test(pv[1]) ? pv[1] : "i " + pv[1]}`.replace(/\s+$/, ""), ""));
@@ -9715,7 +9715,7 @@ function pickPhoto(it) {
     const rHtml = rd.map(([w, ic, r]) => `<details class="okto" open><summary>${icon(ic)} ${esc(w)} ${esc(r.desc || "")} <small>${esc(r.ref)}</small></summary>
       ${r.pre && r.pre.length ? `<div class="prokimen">${r.pre.map((l) => `<p>${esc(l)}</p>`).join("")}</div>` : ""}
       ${r.item ? r.item.v.map((v) => `<p class="okto-p">${esc(v)}</p>`).join("") : `<p class="okto-miss">Teksti i këtij leximi lexohet në kishë sipas referencës së mësipërme.</p>`}</details>`).join("");
-    return `${rHtml}${x ? `<div class="article klt lit-full">${x.html.replace(/\son\w+="[^"]*"/g, "")}
+    return `${rHtml}${x ? `<div class="article klt lit-full">${doxHtml(x.html.replace(/\son\w+="[^"]*"/g, ""))}
       <p class="art-src art-cite">${icon("globe")}<span>Burimi: <a href="${SITE}kendi-i-lutjes/#${x.slug}" target="_blank" rel="noopener">${esc(KOASH_CITE)} · Këndi i Lutjes</a></span></p></div>` : ""}`;
   }
 
@@ -10967,13 +10967,40 @@ function pickPhoto(it) {
     }
     return esc(t);
   }
+  // «Lavdi…» dhe «Tani…» kudo në formën e plotë (edhe brenda udhëzimeve: «“Lavdi…” e shenjtorit» → «“Lavdi Atit…” e shenjtorit»)
+  const DOX_LT = "Lavdi Atit e Birit edhe Shpirtit të Shenjtë, tani e përherë e në jetë të jetëve. Amin.";
+  function doxFull(t) {
+    return String(t == null ? "" : t)
+      .replace(/([“"«])\s*Lavdi\s*(?:\.\.\.|…)\s*[”"»]?\s*,?\s*(?:dhe\s*)?[“"«]?\s*Tani\s*(?:\.\.\.|…)\s*([”"»])/g, (m, a, b) => a + DOX_LT + b)
+      .replace(/\bLavdi\s*(?:\.\.\.|…)\s*,?\s*(?:dhe\s*)?Tani\s*(?:\.\.\.|…)/g, DOX_LT)
+      .replace(/([“"«])\s*Lavdi\s*(?:\.\.\.|…)\s*([”"»])/g, (m, a, b) => a + "Lavdi Atit e Birit edhe Shpirtit të Shenjtë" + b)
+      .replace(/\bLavdi\s*(?:\.\.\.|…)/g, "Lavdi Atit e Birit edhe Shpirtit të Shenjtë")
+      .replace(/([“"«])\s*Tani\s*(?:\.\.\.|…)\s*([”"»])/g, (m, a, b) => a + "Tani e përherë e në jetë të jetëve. Amin." + b)
+      .replace(/\bTani\s*(?:\.\.\.|…)/g, "Tani e përherë e në jetë të jetëve. Amin.");
+  }
+  function doxHtml(h) {   // vetëm teksti, jo atributet e HTML-së
+    return String(h || "").replace(/>([^<]+)</g, (m, t) => ">" + doxFull(t) + "<");
+  }
   // «Lavdi…» / «Tani…» / «Lavdi… Tani…» para himneve: dhoksologjia e plotë, në qendër (jo shenja të shkurtuara)
   const DOX_L = "Lavdi Atit e Birit edhe Shpirtit të Shenjtë.", DOX_T = "Tani e përherë e në jetë të jetëve. Amin.";
   function oktoSub(x) {
     const t = String(x || "").trim(), m = t.match(/^[“"«]?(Lavdi)?(?:\.\.\.|…)?[”"»]?[,;]?\s*(?:dhe\s*)?[“"«]?(Tani)?(?:\.\.\.|…)?[”"»]?\.?$/);
-    if (t && m && (m[1] || m[2]) && /(\.\.\.|…)/.test(t))
+    if (t && m && (m[1] || m[2]) && (/(\.\.\.|…)/.test(t) || /^(Lavdi|Tani|Lavdi,? (dhe )?Tani)$/.test(t)))
       return (m[1] ? `<p class="okto-dox">${DOX_L}</p>` : "") + (m[2] ? `<p class="okto-dox">${DOX_T}</p>` : "");
     return `<p class="okto-sub">${esc(x)}</p>`;
+  }
+  // Ndenjësoret: një grup i vetëm me një titull («Ndenjësoret» + burimi një herë); «Pas Stihologjisë…» nëntitull i vogël
+  function ndGroup(html) {
+    if (!html) return html;
+    let src = "";
+    const body = html.replace(/<summary>[\s\S]*?<\/summary>/g, (m) => {
+      const sm = m.match(/<small>([^<]*)<\/small>/);
+      if (sm && !src) src = sm[1];
+      const t = m.replace(/<small>[\s\S]*?<\/small>/, "").replace(/<svg[\s\S]*?<\/svg>/, "").replace(/<\/?summary>/g, "")
+        .replace(/,\s*Ndenjësoret\b/i, "").replace(/\s*\(\d+\)\s*$/, "").trim();
+      return `<summary class="okto-s2">${t}</summary>`;
+    });
+    return `<section class="okto-grp"><h4 class="okto-gh">${icon("music")} Ndenjësoret${src ? ` <small>${src}</small>` : ""}</h4>${body}</section>`;
   }
   // Shërbesat lexohen të pastra: pa shënimet (rubrikat), vargjet e psalmeve një nga një
   const SVC_CLEAN = new Set(["sherbesa", "pasdarka", "akathisti", "kungimi"]);
@@ -10991,7 +11018,7 @@ function pickPhoto(it) {
       const ps = w.split("/").map((x) => x.trim());
       return priest ? (ps.find((x) => /Prift|Dhjak|Prelat/i.test(x)) || ps[0]) : (ps.find((x) => /Lexues/i.test(x)) || ps[ps.length - 1]);
     };
-    const fixOr = (t) => t
+    const fixOr = (t) => doxFull(t)
       .replace(/\b(P|p)relati ose (L|l)exuesi\b/g, (m, a, b) => (b === "L" || a === "P" ? "Lexuesi" : "lexuesi"))
       .replace(/\b(D|d)hjaku ose prifti\b/g, (m, a) => (a === "D" ? "Dhjaku" : "dhjaku"))
       .replace(/\bPrelati ose Prifti\b/g, "Prifti").replace(/\bprelati ose prifti\b/g, "prifti");
@@ -10999,14 +11026,16 @@ function pickPhoto(it) {
       if (b.pr && !priest) return "";          // vetëm kur ka prift
       if (b.np && priest) return "";           // vetëm kur nuk ka prift
       if (!priest && b.t === "rubric" && /prift|dhjak|prelat/i.test(b.x)) return "";   // pa prift: pa shënimet për klerikët
-      if (b.t === "rubric" || b.t === "p") b = Object.assign({}, b, { x: fixOr(b.x) });
+      if (b.x && b.t !== "h" && b.t !== "html") b = Object.assign({}, b, { x: fixOr(b.x) });
       if (b.t === "role") b = Object.assign({}, b, { who: pickWho(b.who) });
       const at = `data-i="${i}" tabindex="0" role="button"`;
       if (b.t === "h") inPsalm = /^(Psalmi|Gjashtë Psalmet|Dhoksologjia)/i.test(b.x);
       else if (b.t === "rubric" && !clean && !/^Dhe përsëri/.test(b.x)) inPsalm = false;
       // «“Lavdi...” dhe “Tani...”» = mbetje e shënimit të prerë: hiqet (dhoksologjia e plotë del vetëm aty ku e vendos Tipikoja)
-      if ((b.t === "p" || b.t === "role") && /^[“"«]?Lavdi(\.\.\.|…)[”"»]?,?\s*(dhe\s*)?[“"«]?Tani(\.\.\.|…)[”"»]?\.?$/.test(b.x.trim())) return "";
+      if ((b.t === "p" || b.t === "role") && /^[“"«]?Lavdi(\.\.\.|…)[”"»]?,?\s*(dhe\s*)?[“"«]?Tani(\.\.\.|…)[”"»]?\.?$/.test(String(blocks[i].x || "").trim())) return "";
       if (clean && (b.t === "rubric" || cutNote(b, i) || (b.t === "h" && /^Kori\b/.test(b.x)))) return "";
+      if (b.t === "p" && /^(Bekimtoret|Ndenjësoret|Përlëshoret|Hyjlindësoret|Lavdërimet|Shkallësat|Vargëzimet|Stihirat)( [A-ZËÇ][a-zëç]+)?$/.test(b.x.trim()))
+        return `<h3 class="blk-h" id="b${i}">${esc(b.x.trim())}</h3>`;
       // dhoksologjia e vogël («Lavdi Atit…», «Tani e përherë…») gjithmonë në qendër
       if (b.t === "p" && b.x.length < 140 && /^(Lavdi Atit|Tani e përherë)/.test(b.x.trim()))
         return /^Lavdi Atit.*,\s*tani e përherë/i.test(b.x) && !/Mëshiro|Beko/.test(b.x)
@@ -11014,7 +11043,8 @@ function pickPhoto(it) {
           : `<p class="verse svc-dox" ${at}>${esc(b.x)}</p>`;
       switch (b.t) {
         case "chant": return `<div class="blk-chant">${b.tone ? `<p class="chant-tone">${esc(b.tone)}</p>` : ""}<p class="verse" ${at}>${esc(b.x).replace(/\*/g, '<span class="star">*</span>')}</p>${scoreBtn(b)}</div>`;
-        case "h": return `<h3 class="blk-h" id="b${i}">${esc(b.x)}</h3>${scoreBtn(b)}`;
+        // përlëshorja ngjallësore e tingullit është një (psalet dy herë): titulli në njëjës
+        case "h": return `<h3 class="blk-h" id="b${i}">${esc(b.x.replace(/^Përlëshoret e Ngjalljes$/, "Përlëshorja e Ngjalljes").replace(/\bTërt\.(?=\s)/g, "Tërth."))}</h3>${scoreBtn(b)}`;
         case "rubric": return `<p class="blk-rubric">${esc(b.x)}</p>`;
         case "fast": return `<p class="blk-fast">${esc(b.x)}</p>`;
         case "saints": return `<p class="blk-saints">${esc(b.x)}</p>`;
@@ -11328,7 +11358,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.28";
+  const APP_VERSION = "3.2.29";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
