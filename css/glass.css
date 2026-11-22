@@ -2898,3 +2898,9 @@ p.okto-dox, .okto p.okto-dox, .verses p.okto-dox { text-align: center !important
 .okto-gh small { font: 400 11.5px/1.3 var(--font); color: var(--ink-2); letter-spacing: 0; }
 .okto-grp .okto { margin: 4px 0 8px; }
 .okto-grp .okto summary.okto-s2, .okto-grp .tip-grp > .okto-sub:first-child { font: 600 12px/1.3 var(--font-cap); letter-spacing: .04em; color: var(--ink-2); font-style: normal; padding: 8px 0 4px; }
+/* Këndi i Lutjes: inicialet e KOASh. «p.dc» = paragraf i zakonshëm me shkronjën e parë të madhe (jo gjithë paragrafi);
+   «.ini» pas rolit («Dhjaku: Beko…») mbetet brenda fjalës, nuk ndahet në fillim të rreshtit */
+.klt p.dc { float: none; font: inherit; color: inherit; margin: 0 0 .7em; }
+.klt p.dc::first-letter { float: left; font: 700 2.9em/.85 "Playfair Display", Georgia, serif; color: #a01c1c; margin: .05em .1em 0 0; }
+.klt .ini { float: none; font: inherit; font-weight: 700; color: #a01c1c; margin: 0; }
+:root[data-theme="dark"] .klt p.dc::first-letter, :root[data-theme="dark"] .klt .ini { color: #e7a1a1; }
