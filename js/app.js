@@ -9262,7 +9262,7 @@ function pickPhoto(it) {
     const look = (inc) => { const w = nrmH(inc || "").split(" ").filter(Boolean); if (w.length < 2) return null; const k = w.slice(0, 4).join(" "); return k.length < 8 ? null : pool.find((h) => h.n.startsWith(k)) || null; };
     const shown = new Set();
     const box = (title, src, blocks, open = true, extra = "") => `<details class="okto"${open ? " open" : ""}><summary>${icon("music")} ${esc(title)} <small>${esc(src)}</small></summary>
-      ${blocks.map((b) => (b.t === "sub" ? `<p class="okto-sub">${esc(b.x)}</p>` : `<p class="okto-p">${versify(b.x)}</p>`)).join("")}${extra}</details>`;
+      ${blocks.map((b) => (b.t === "sub" ? oktoSub(b.x) : `<p class="okto-p">${versify(b.x)}</p>`)).join("")}${extra}</details>`;
     const okto = (k, count, cutTani, extra) => {
       const sc = T.sections.find((x) => x.k === k);
       if (!sc) return "";
@@ -9277,7 +9277,7 @@ function pickPhoto(it) {
     const noteH = () => "";   // shërbesa formohet sipas Tipikosë; vetë shënimet e saj lexohen te skeda «Tipikoja»
     const stH = (x, src) => `<div class="okto-st"><span class="okto-src">${icon("music")} ${esc(src)}</span><p class="okto-p">${versify(x)}</p></div>`;
     const hymnH = (h) => stH(h.x, `${h.title} · Tetëtingullshi · ${TONE_FULL[h.tone]}`);
-    const subH = (x) => `<p class="okto-sub">${esc(x)}</p>`;
+    const subH = (x) => oktoSub(x);
     // një vend “Lavdi…” / “Tani…” sipas Tipikosë
     const slotH = (s, dflt, name, art, same) => {
       if (!s) return dflt || "";
@@ -9488,7 +9488,7 @@ function pickPhoto(it) {
       for (const sc of (P && P.sections) || []) { it = sc.items.find((x) => x.blocks.filter((b) => b.t === "ref").map((b) => num(b.x)).filter(Boolean).join("|") === want); if (it) break; }
     }
     if (it) return `<details class="okto prof" open><summary>${icon("scroll")} Leximet profetike <small>Nga Libri i Profecive</small></summary>
-      ${it.blocks.map((b) => (b.t === "h" ? `<p class="okto-sub">${esc(b.x)}</p>` : b.t === "ref" ? `<p class="prof-ref">${esc(b.x)}</p>` : b.x ? `<p class="okto-p">${esc(b.x)}</p>` : "")).join("")}</details>`;
+      ${it.blocks.map((b) => (b.t === "h" ? oktoSub(b.x) : b.t === "ref" ? `<p class="prof-ref">${esc(b.x)}</p>` : b.x ? `<p class="okto-p">${esc(b.x)}</p>` : "")).join("")}</details>`;
     if (!refs.length) return "";
     return `<div class="tip-men"><span class="okto-src">${icon("scroll")} Leximet profetike · sipas Tipikosë</span>${refs.map(([n, r]) => `<p><b>Leximi ${esc(n)}</b> · ${esc(r)}</p>`).join("")}</div>`;
   }
@@ -9521,7 +9521,7 @@ function pickPhoto(it) {
     const look = (inc) => { const w = nrmH(inc || "").split(" ").filter(Boolean); if (w.length < 2) return null; const k = w.slice(0, 4).join(" "); return k.length < 8 ? null : pool.find((h) => h.n.startsWith(k)) || null; };
     const menH = (label, q, src = "Nga Mujori") => `<div class="tip-men"><span class="okto-src">${icon("book")} ${esc(src)}</span><p>${label ? `<b>${esc(label)}</b>` : ""}${q ? `${label ? " · " : ""}<i>“${esc(q)}…”</i>` : ""}</p></div>`;
     const stH = (x, src) => `<div class="okto-st"><span class="okto-src">${icon("music")} ${esc(src)}</span><p class="okto-p">${versify(x)}</p></div>`;
-    const subH = (x) => `<p class="okto-sub">${esc(x)}</p>`;
+    const subH = (x) => oktoSub(x);
     const verseH = (n, v) => `<p class="verse para thv"><span class="vl"><b class="vlab">Varg ${n}:</b> ${esc(v)}</span></p>`;
     const capW = (t) => capFirst(t.replace(/[A-ZËÇ]{3,}/gu, (w) => (/^[IVX]+$/.test(w) ? w : w.charAt(0) + w.slice(1).toLowerCase())));
     // një pjesë e Tipikosë → himnet e cituara (kur janë në aplikacion) ose vendi i tyre me fjalët e Tipikosë
@@ -9749,7 +9749,7 @@ function pickPhoto(it) {
     const wdAcc = (d) => WD_FULL[d.getDay()].replace(/^e /, "të ").replace(/ë$/, "ën").replace(/l$/, "lën").replace(/e$/, "en");
     const shIdx = (title) => { for (let a = 0; a < sh.sections.length; a++) { const b = sh.sections[a].items.findIndex((x) => x.title === title); if (b >= 0) return `#/sherbesa/${a}/${b}`; } return "#/sherbesa"; };
     const hymnBox = (title, blocks, open) => `<details class="okto"${open ? " open" : ""}><summary>${icon("music")} ${esc(title)} <small>${esc(TONE_FULL[tone])}</small></summary>
-        ${blocks.map((b) => (b.t === "sub" ? `<p class="okto-sub">${esc(b.x)}</p>` : `<p class="okto-p">${versify(b.x)}</p>`)).join("")}</details>`;
+        ${blocks.map((b) => (b.t === "sub" ? oktoSub(b.x) : `<p class="okto-p">${versify(b.x)}</p>`)).join("")}</details>`;
     // gjej himnin sipas fillimit të cituar në Tipikojë
     const allP = [];
     T.sections.forEach((sc) => sc.blocks.forEach((b) => { if (b.t === "p") allP.push({ sc, b, n: nrmH(b.x) }); }));
@@ -10967,6 +10967,14 @@ function pickPhoto(it) {
     }
     return esc(t);
   }
+  // «Lavdi…» / «Tani…» / «Lavdi… Tani…» para himneve: dhoksologjia e plotë, në qendër (jo shenja të shkurtuara)
+  const DOX_L = "Lavdi Atit e Birit edhe Shpirtit të Shenjtë.", DOX_T = "Tani e përherë e në jetë të jetëve. Amin.";
+  function oktoSub(x) {
+    const t = String(x || "").trim(), m = t.match(/^[“"«]?(Lavdi)?(?:\.\.\.|…)?[”"»]?[,;]?\s*(?:dhe\s*)?[“"«]?(Tani)?(?:\.\.\.|…)?[”"»]?\.?$/);
+    if (t && m && (m[1] || m[2]) && /(\.\.\.|…)/.test(t))
+      return (m[1] ? `<p class="okto-dox">${DOX_L}</p>` : "") + (m[2] ? `<p class="okto-dox">${DOX_T}</p>` : "");
+    return `<p class="okto-sub">${esc(x)}</p>`;
+  }
   // Shërbesat lexohen të pastra: pa shënimet (rubrikat), vargjet e psalmeve një nga një
   const SVC_CLEAN = new Set(["sherbesa", "pasdarka", "akathisti", "kungimi"]);
   function blocksHtml(key, blocks, opts) {
@@ -10996,9 +11004,8 @@ function pickPhoto(it) {
       const at = `data-i="${i}" tabindex="0" role="button"`;
       if (b.t === "h") inPsalm = /^(Psalmi|Gjashtë Psalmet|Dhoksologjia)/i.test(b.x);
       else if (b.t === "rubric" && !clean && !/^Dhe përsëri/.test(b.x)) inPsalm = false;
-      // «“Lavdi...” dhe “Tani...”» (mbetje e shkurtuar): teksti i plotë, në qendër
-      if ((b.t === "p" || b.t === "role") && /^[“"«]?Lavdi(\.\.\.|…)[”"»]?,?\s*(dhe\s*)?[“"«]?Tani(\.\.\.|…)[”"»]?\.?$/.test(b.x.trim()))
-        return `<p class="verse svc-dox" ${at}>Lavdi Atit e Birit edhe Shpirtit të Shenjtë.</p><p class="verse svc-dox" ${at}>Tani e përherë e në jetë të jetëve. Amin.</p>`;
+      // «“Lavdi...” dhe “Tani...”» = mbetje e shënimit të prerë: hiqet (dhoksologjia e plotë del vetëm aty ku e vendos Tipikoja)
+      if ((b.t === "p" || b.t === "role") && /^[“"«]?Lavdi(\.\.\.|…)[”"»]?,?\s*(dhe\s*)?[“"«]?Tani(\.\.\.|…)[”"»]?\.?$/.test(b.x.trim())) return "";
       if (clean && (b.t === "rubric" || cutNote(b, i) || (b.t === "h" && /^Kori\b/.test(b.x)))) return "";
       // dhoksologjia e vogël («Lavdi Atit…», «Tani e përherë…») gjithmonë në qendër
       if (b.t === "p" && b.x.length < 140 && /^(Lavdi Atit|Tani e përherë)/.test(b.x.trim()))
@@ -11321,7 +11328,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.27";
+  const APP_VERSION = "3.2.28";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {

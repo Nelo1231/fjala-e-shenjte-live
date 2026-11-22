@@ -2888,3 +2888,5 @@ body > svg[width="0"] { width: 0 !important; height: 0 !important; overflow: hid
 /* Shërbesat: «Lavdi Atit…» dhe «Tani e përherë…» të plota, në qendër */
 .verse.svc-dox { text-align: center !important; text-indent: 0 !important; margin-left: auto; margin-right: auto; padding-left: 0 !important; }
 .verse.svc-dox + .verse.svc-dox { margin-top: 2px; }
+p.okto-dox, .okto p.okto-dox, .verses p.okto-dox { text-align: center !important; text-align-last: center !important; text-indent: 0 !important; margin: 10px 0 4px; }
+.okto-dox + .okto-dox { margin-top: 2px; }
