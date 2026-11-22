@@ -481,19 +481,19 @@ details.kath .list-item { padding-left: 16px; }
 .reel-rail { bottom: calc(var(--safe-b) + 84px) !important; gap: 18px !important; }
 .rail-btn svg { width: 26px !important; height: 26px !important; padding: 10px !important; }
 .rail-btn span { font-size: 11px; }
-.rail-btn:active svg { transform: scale(.88); transition: transform .12s; }
+.rail-btn:active svg { transform: scale(.88); transition: transform var(--d-pop) var(--spring); }
 @media (max-width: 380px) { .reel-body { padding-left: 54px !important; padding-right: 54px !important; } }
 
 /* Animacion hyrës për çdo faqe në Lexo / Kisha / Shënimet */
-.enter > * { animation: rise .45s cubic-bezier(.2, .8, .2, 1) both; }
+.enter > * { animation: rise .45s var(--ease-out) both; }
 .enter > *:nth-child(2) { animation-delay: .04s; } .enter > *:nth-child(3) { animation-delay: .08s; }
 .enter > *:nth-child(4) { animation-delay: .12s; } .enter > *:nth-child(n+5) { animation-delay: .16s; }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
-.tile, .card, .news-card, .note-card, .site-link { transition: transform .18s ease, box-shadow .18s ease; }
+.tile, .card, .news-card, .note-card, .site-link { transition: transform var(--d-pop) var(--spring), box-shadow .18s ease; }
 .tile:active, .news-card:active, .note-card:active, .site-link:active { transform: scale(.97); }
 .sheet .sheet-card { animation: sheetUp .32s cubic-bezier(.2, .9, .25, 1.05); }
 @keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } }
-.nav-btn svg { transition: transform .2s; }
+.nav-btn svg { transition: transform var(--d-pop) var(--spring); }
 .nav-btn[aria-current="page"] svg { transform: translateY(-2px) scale(1.08); }
 
 /* Leximi: pasazhet e plota të justifikuara */
@@ -515,7 +515,7 @@ details.kath .list-item { padding-left: 16px; }
 .share-label { font: 600 12px system-ui, sans-serif; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); margin: 14px 0 6px; }
 .share-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 6px; }
 .share-grid button { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 12px system-ui, sans-serif; color: var(--ink); padding: 4px 0; }
-.tgt { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: #fff; transition: transform .15s; }
+.tgt { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: #fff; transition: transform var(--d-pop) var(--spring); }
 .share-grid button:active .tgt { transform: scale(.9); }
 .tgt svg { width: 26px; height: 26px; }
 .tgt.ig { background: radial-gradient(circle at 30% 110%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285aeb 90%); }
@@ -594,7 +594,7 @@ details.kath .list-item { padding-left: 16px; }
 .rc-info { flex: 1; min-width: 0; }
 .rc-sub { margin: 2px 0 0; font-size: 14px; opacity: .8; }
 .rc-live { margin: 0 0 2px; font: 700 11px system-ui, sans-serif; letter-spacing: .12em; color: #ff8a80; display: flex; align-items: center; gap: 6px; }
-.rc-btn { width: 58px; height: 58px; border-radius: 50%; background: #f1cc72; color: #2a1a12; display: grid; place-items: center; flex: none; box-shadow: 0 6px 18px rgba(0,0,0,.35); transition: transform .15s; }
+.rc-btn { width: 58px; height: 58px; border-radius: 50%; background: #f1cc72; color: #2a1a12; display: grid; place-items: center; flex: none; box-shadow: 0 6px 18px rgba(0,0,0,.35); transition: transform var(--d-pop) var(--spring); }
 .rc-btn:active { transform: scale(.92); }
 .rc-btn svg { width: 26px; height: 26px; }
 .rc-wave { display: flex; align-items: flex-end; gap: 3px; height: 34px; width: 34px; flex: none; }
@@ -630,29 +630,29 @@ mark.hl { background-repeat: no-repeat; }
 /* ---------- v1.4: animacione më të rrjedhshme ---------- */
 /* "Squish": çdo buton shtypet butë dhe kthehet me sustë */
 button, .btn, .chip, .tile, .site-link, .news-card, .note-card, .rail-btn, .nav-btn, .tgt, .seg button, .list-item, .rc-btn, .profile-row {
-  transition: transform .28s cubic-bezier(.34, 1.56, .64, 1), background-color .2s, box-shadow .2s, opacity .2s;
+  transition: transform var(--d-pop) var(--spring), background-color .2s, box-shadow .2s, opacity .2s;
   -webkit-tap-highlight-color: transparent;
 }
 button:active, .btn:active, .chip:active, .tile:active, .site-link:active, .news-card:active, .note-card:active,
 .nav-btn:active, .seg button:active, .list-item:active, .profile-row:active { transform: scale(.92); transition-duration: .08s; }
 .rail-btn:active svg, .share-grid button:active .tgt, .rc-btn:active { transform: scale(.82); transition: transform .08s; }
-.rail-btn svg { transition: transform .32s cubic-bezier(.34, 1.56, .64, 1), color .2s; }
+.rail-btn svg { transition: transform var(--d-pop) var(--spring), color .2s; }
 
 /* Reels: kalim i butë kur rrëshqet */
-.reel .reel-body { transition: transform .7s cubic-bezier(.2, .8, .2, 1), opacity .7s ease; }
+.reel .reel-body { transition: transform .7s var(--ease-out), opacity .7s ease; }
 .reel:not(.active) .reel-body { transform: scale(.94) translateY(16px); opacity: .35; }
 .reel.active .reel-body { transform: none; opacity: 1; }
-.reel .reel-bg { transition: transform 1.2s cubic-bezier(.2, .8, .2, 1), filter 1s; }
+.reel .reel-bg { transition: transform 1.2s var(--ease-out), filter 1s; }
 .reel:not(.active) .reel-bg { transform: scale(1.12); filter: brightness(.7); }
-.reel .reel-cross { transition: opacity .8s .05s, transform .9s cubic-bezier(.34, 1.56, .64, 1) .05s !important; transform: translateY(10px) scale(.8); }
+.reel .reel-cross { transition: opacity .8s .05s, transform .9s var(--spring) .05s !important; transform: translateY(10px) scale(.8); }
 .reel.active .reel-cross { transform: none; }
-.reel .rail-btn { opacity: 0; transform: translateX(14px); transition: opacity .5s, transform .5s cubic-bezier(.34, 1.56, .64, 1); }
+.reel .rail-btn { opacity: 0; transform: translateX(14px); transition: opacity .5s, transform .5s var(--spring); }
 .reel.active .rail-btn { opacity: 1; transform: none; }
 .reel.active .rail-btn:nth-child(2) { transition-delay: .06s; } .reel.active .rail-btn:nth-child(3) { transition-delay: .12s; }
 .reel.active .rail-btn:active svg { transform: scale(.82); }
 
 /* Hapja e faqeve në Lexo: rrëshqitje e lehtë */
-.pane-main.enter > .reader, .pane-main.enter > .page-head { animation: slideIn .45s cubic-bezier(.2, .8, .2, 1) both; }
+.pane-main.enter > .reader, .pane-main.enter > .page-head { animation: slideIn .45s var(--ease-out) both; }
 @keyframes slideIn { from { opacity: 0; transform: translateX(18px); } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -716,7 +716,7 @@ button:active, .btn:active, .chip:active, .tile:active, .site-link:active, .news
 .rope-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .knot { fill: #3b2a1a; transition: fill .3s, r .3s; }
 .knot.done { fill: var(--accent); }
-.knot.pop { animation: knotPop .4s cubic-bezier(.34, 1.56, .64, 1); transform-box: fill-box; transform-origin: center; }
+.knot.pop { animation: knotPop .4s var(--spring); transform-box: fill-box; transform-origin: center; }
 @keyframes knotPop { 50% { transform: scale(1.8); } }
 .rope-count { display: flex; align-items: baseline; gap: 4px; font-family: var(--font-cap); color: var(--accent); }
 .rope-count b { font-size: 54px; font-weight: 500; } .rope-count small { font-size: 18px; color: var(--ink-2); }
@@ -762,7 +762,7 @@ button:active, .btn:active, .chip:active, .tile:active, .site-link:active, .news
 .score-btn svg { width: 16px; height: 16px; }
 .score-viewer {
   position: fixed; inset: 0; z-index: 90; background: #fffdf8; display: flex; flex-direction: column;
-  transform: translateY(100%); transition: transform .35s cubic-bezier(.2, .9, .25, 1);
+  transform: translateY(100%); transition: transform var(--d-pop) var(--spring);
 }
 .score-viewer.open { transform: none; }
 .score-viewer header { display: flex; align-items: center; gap: 8px; padding: calc(var(--safe-t) + 6px) 12px 8px; border-bottom: 1px solid #e8dcc4; color: #2a1a12; }
@@ -835,7 +835,7 @@ button:active, .btn:active, .chip:active, .tile:active, .site-link:active, .news
 .pane-main.art-open.enter > .article { animation: artIn .5s cubic-bezier(.2, .85, .25, 1) both; }
 @keyframes artIn { from { opacity: 0; transform: translateX(40px) scale(.98); } }
 .article { max-width: 42em; margin: 0 auto; }
-.art-hero { aspect-ratio: 16 / 9; border-radius: 18px; background: var(--bg-2) center/cover; box-shadow: var(--shadow); margin: 0 0 14px; animation: heroZoom 1.4s cubic-bezier(.2, .8, .2, 1) both; }
+.art-hero { aspect-ratio: 16 / 9; border-radius: 18px; background: var(--bg-2) center/cover; box-shadow: var(--shadow); margin: 0 0 14px; animation: heroZoom 1.4s var(--ease-out) both; }
 @keyframes heroZoom { from { transform: scale(1.06); opacity: 0; } }
 .art-title { font-family: var(--font); font-weight: 600; font-size: clamp(22px, 5.6vw, 30px); line-height: 1.25; margin: 6px 0 14px; }
 .art-body { font-size: var(--read-size); line-height: 1.65; text-align: justify; hyphens: manual; }
@@ -853,7 +853,7 @@ button:active, .btn:active, .chip:active, .tile:active, .site-link:active, .news
 @keyframes shimmer { to { background-position: -200% 0; } }
 .nav-btn.has-new { position: relative; }
 .nav-btn.has-new::after { content: ""; position: absolute; top: 8px; right: calc(50% - 16px); width: 9px; height: 9px; border-radius: 50%; background: #ff3b30; box-shadow: 0 0 0 2px var(--card); animation: livePulse 1.4s ease-in-out infinite; }
-.news-card { animation: rise .45s cubic-bezier(.2, .8, .2, 1) both; }
+.news-card { animation: rise .45s var(--ease-out) both; }
 
 /* ---------- Sot në Kishë ---------- */
 .today-card {
@@ -902,12 +902,12 @@ button:active, .btn:active, .chip:active, .tile:active, .site-link:active, .news
 .cal-head { display: flex; align-items: center; justify-content: space-between; }
 .cal-head h3 { margin: 0; font-size: 17px; letter-spacing: .02em; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
-.cal-grid.flip-l { animation: calIn .35s cubic-bezier(.2,.8,.2,1) both; --dx: 24px; }
-.cal-grid.flip-r { animation: calIn .35s cubic-bezier(.2,.8,.2,1) both; --dx: -24px; }
+.cal-grid.flip-l { animation: calIn .35s var(--ease-out) both; --dx: 24px; }
+.cal-grid.flip-r { animation: calIn .35s var(--ease-out) both; --dx: -24px; }
 @keyframes calIn { from { opacity: 0; transform: translateX(var(--dx)); } to { opacity: 1; transform: none; } }
 .cal-w { text-align: center; font-size: 11px; color: var(--ink-2); font-weight: 600; padding: 2px 0; }
 .cal-c { position: relative; aspect-ratio: 1; min-width: 0; min-height: 0; height: auto; border-radius: 10px; display: flex; align-items: center; justify-content: center;
-  font-size: 14px; color: var(--ink); text-decoration: none; background: var(--bg-2); transition: transform .15s; }
+  font-size: 14px; color: var(--ink); text-decoration: none; background: var(--bg-2); transition: transform var(--d-pop) var(--spring); }
 .cal-c:active { transform: scale(.9); }
 .cal-c.cal-e { background: none; }
 .cal-c b { font-weight: 600; }
@@ -958,7 +958,7 @@ button:active, .btn:active, .chip:active, .tile:active, .site-link:active, .news
 .update-sheet { align-items: center; padding: 16px; opacity: 0; transition: opacity .3s; z-index: 80; }
 .update-sheet.open { opacity: 1; }
 .update-card { text-align: center; max-width: 360px; width: 100%; border-radius: 26px; padding: 26px 22px 18px;
-  transform: scale(.9) translateY(14px); transition: transform .42s cubic-bezier(.2,.9,.25,1.15); }
+  transform: scale(.9) translateY(14px); transition: transform var(--d-pop) var(--spring); }
 .update-sheet.open .update-card { transform: none; }
 .upd-icon { width: 64px; height: 76px; margin: 0 auto 10px; color: var(--gold); filter: drop-shadow(0 0 12px color-mix(in srgb, var(--gold) 55%, transparent));
   animation: updGlow 2.6s ease-in-out infinite; }
@@ -995,7 +995,7 @@ button:active, .btn:active, .chip:active, .tile:active, .site-link:active, .news
 .streak-n { margin: 0; font-size: 15px; }
 .streak-n b { font-family: var(--font-cap); font-size: 28px; color: #f1cc72; margin-right: 4px; }
 .streak-bar { height: 6px; border-radius: 9px; background: rgba(255,255,255,.1); margin: 6px 0 4px; overflow: hidden; }
-.streak-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff8a2a, #f1cc72); transition: width .8s cubic-bezier(.2,.8,.2,1); }
+.streak-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff8a2a, #f1cc72); transition: width .8s var(--ease-out); }
 .streak-sub { margin: 0; font-size: 12px; opacity: .7; }
 .streak-dots { display: flex; gap: 4px; margin-top: 8px; }
 .streak-dots i { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); }
@@ -1012,7 +1012,7 @@ button:active, .btn:active, .chip:active, .tile:active, .site-link:active, .news
 /* pllakat e reja te Lexo */
 .feat-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 16px 14px; }
 .ftile { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 2px; min-height: 118px; padding: 14px; border-radius: 20px;
-  text-decoration: none; color: #fff6e3; transition: transform .2s; }
+  text-decoration: none; color: #fff6e3; transition: transform var(--d-pop) var(--spring); }
 .ftile:active { transform: scale(.96); }
 .ftile strong { font-family: var(--font-cap); font-weight: 500; letter-spacing: .04em; font-size: 15px; margin-top: auto; position: relative; z-index: 1; }
 .ftile > span:last-child { font-size: 12.5px; opacity: .8; position: relative; z-index: 1; }
@@ -1153,9 +1153,9 @@ html.paused *, html.paused *::before, html.paused *::after,
   animation: sheetFade .28s ease both; }
 @keyframes sheetFade { from { background: rgba(20, 8, 4, 0); -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); } }
 /* hyrja e faqeve: nga turbull në të qartë */
-.enter > * { animation: riseBlur .42s cubic-bezier(.2, .8, .2, 1) both; }
+.enter > * { animation: riseBlur .42s var(--ease-out) both; }
 @keyframes riseBlur { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
-.pane-main.enter > .reader, .pane-main.enter > .page-head { animation: slideBlur .42s cubic-bezier(.2, .8, .2, 1) both; }
+.pane-main.enter > .reader, .pane-main.enter > .page-head { animation: slideBlur .42s var(--ease-out) both; }
 @keyframes slideBlur { from { opacity: 0; transform: translateX(22px); filter: blur(5px); } to { opacity: 1; transform: none; filter: none; } }
 /* tekstet e gjata nuk dalin jashtë kartave */
 .card blockquote, .lbl, .sub, .news-body h3, .today-title, .fast-row, .cl-for, .name-why, .dc-text q { overflow-wrap: anywhere; }
@@ -1556,7 +1556,7 @@ html.has-qiri .rc-pool { left: 6%; right: 6%; }
 .sc-acts .btn { gap: 6px; }
 
 /* ---------- v2.0.5: Kalendari, Shpirti, lëvizja premium ---------- */
-.pane > .page-head { transition: transform .32s cubic-bezier(.2,.8,.2,1), box-shadow .3s, background-color .3s; will-change: transform; }
+.pane > .page-head { transition: transform var(--d-pop) var(--spring), box-shadow .3s, background-color .3s; will-change: transform; }
 .pane.hdr-hide > .page-head { transform: translateY(-105%); }
 .pane.scrolled > .page-head { box-shadow: 0 8px 24px rgba(0,0,0,.08); }
 .nav { -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); background: color-mix(in srgb, var(--bg) 72%, transparent) !important; }
@@ -1654,7 +1654,7 @@ html.has-qiri .rc-pool { left: 6%; right: 6%; }
 /* ---------- v2.1.5: koka si “dynamic bar” për të gjitha faqet ---------- */
 .pane > .page-head { position: sticky; top: 0; z-index: 6; background: transparent !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
   border-radius: 18px; box-shadow: none !important; margin-left: -6px; margin-right: -6px; padding: 0 6px;
-  transition: transform .38s cubic-bezier(.2,.9,.25,1.1), opacity .3s, background-color .3s, box-shadow .3s, top .3s; }
+  transition: transform var(--d-pop) var(--spring), opacity .3s, background-color .3s, box-shadow .3s, top .3s; }
 .pane.scrolled > .page-head { top: 8px; background: color-mix(in srgb, var(--card) 80%, transparent) !important;
   -webkit-backdrop-filter: blur(18px) saturate(1.5) !important; backdrop-filter: blur(18px) saturate(1.5) !important;
   box-shadow: 0 10px 28px rgba(30,15,5,.16), inset 0 0 0 1px color-mix(in srgb, var(--line) 70%, transparent) !important; }
@@ -1703,10 +1703,10 @@ body { line-height: 1.6; -webkit-font-smoothing: antialiased; text-rendering: op
 button, a, .btn, .chip, .tile, .ftile, .list-item, .ptile, .nav-btn, .medal, .cal-c, .seg-a, .seg button, .rail-btn, .today-read, .saint-chip, .news-card, .kal-banner, .scroll-roll, .urata-btn, .okto summary {
   -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .btn, .chip, .tile, .ftile, .list-item, .ptile, .nav-btn, .medal, .cal-c, .seg-a, .seg button, .rail-btn, .today-read, .saint-chip, .news-card, .kal-banner, .icon-btn, .back-btn, .urata-btn, .round-btn {
-  transition: transform .22s cubic-bezier(.34, 1.56, .64, 1), filter .2s ease, background-color .25s ease, box-shadow .25s ease, color .2s ease; }
+  transition: transform var(--d-pop) var(--spring), filter .2s ease, background-color .25s ease, box-shadow .25s ease, color .2s ease; }
 :is(.btn, .chip, .tile, .ftile, .list-item, .ptile, .nav-btn, .medal, .cal-c, .seg-a, .seg button, .rail-btn, .today-read, .saint-chip, .news-card, .kal-banner, .icon-btn, .back-btn, .urata-btn, .round-btn):active {
   transform: scale(.955); filter: brightness(.95); transition-duration: .08s; }
-.nav-btn[aria-current="page"] svg { animation: navPop .35s cubic-bezier(.34, 1.56, .64, 1); }
+.nav-btn[aria-current="page"] svg { animation: navPop .35s var(--spring); }
 @keyframes navPop { 40% { transform: scale(1.18) translateY(-2px); } }
 @media (hover: hover) { :is(.ftile, .tile, .news-card, .list-item):hover { filter: brightness(1.03); } }
 
@@ -1784,7 +1784,7 @@ html.eco .nav { background: var(--bg) !important; }
 .match-ov.burning .m2-head, .match-ov.touch .m2-head, .match-ov.out .m2-head { background: radial-gradient(circle at 40% 35%, #4a2214, #160806); }
 .match-ov.burning .m2-char, .match-ov.touch .m2-char { width: 26px; }
 .m2-flame { position: absolute; left: -13px; top: -50px; width: 26px; height: 54px; transform-origin: 50% 92%; opacity: 0; transform: scale(.15); pointer-events: none;
-  transition: opacity .25s, transform .35s cubic-bezier(.2,.9,.3,1.3); }
+  transition: opacity .25s, transform var(--d-pop) var(--spring); }
 .m2-flame i { position: absolute; inset: 0; border-radius: 50% 50% 46% 46% / 66% 66% 34% 34%;
   background: radial-gradient(58% 72% at 50% 80%, #fff 0%, #fff6c2 22%, #ffc24a 50%, rgba(255,110,10,.8) 72%, transparent 80%);
   filter: drop-shadow(0 0 14px rgba(255,170,50,.95)); animation: flicker 1s ease-in-out infinite alternate; }
@@ -1883,7 +1883,7 @@ html.eco .nav { background: var(--bg) !important; }
 .pfab > button { position: fixed; z-index: 32; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; padding: 0;
   color: var(--accent); background: color-mix(in srgb, var(--card) 86%, transparent); border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
   -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); box-shadow: 0 6px 18px rgba(30, 15, 5, .18);
-  opacity: 0; transform: scale(.7); pointer-events: none; transition: opacity .25s, transform .3s cubic-bezier(.2, .9, .25, 1.2); }
+  opacity: 0; transform: scale(.7); pointer-events: none; transition: opacity .25s, transform var(--d-pop) var(--spring); }
 .pfab > button svg { width: 19px; height: 19px; }
 .pf-find { left: var(--pf-l, 12px); top: calc(var(--safe-t) + 62px); }
 .pf-top { left: var(--pf-l, 12px); bottom: calc(var(--safe-b) + 78px); font: 700 20px system-ui, sans-serif; }

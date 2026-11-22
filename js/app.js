@@ -2172,7 +2172,7 @@ function pickPhoto(it) {
       $$(".ra-now").forEach((e) => e.classList.remove("ra-now"));
       const t = tracks[ti];
       if (!t) return;
-      const el = t.vsel ? $(t.vsel(c, v)) : t.sel ? $(t.sel) : null;
+      const el = (t.vsel && $(t.vsel(c, v))) || (t.sel && $(t.sel)) || null;
       if (!el) return;
       el.classList.add("ra-now");
       const r = el.getBoundingClientRect();
@@ -2277,6 +2277,63 @@ function pickPhoto(it) {
   })();
   window.ReadAloud = ReadAloud;
 
+  // Teksti i KOASh varg pas vargu (orthodoxalbania.org) për referencën e Tipikosë: ajo që shfaqet = ajo që dëgjohet
+  const Vargjet = (() => {
+    const EN = { MAT: "Matt.", MRK: "Mark", LUK: "Luke", JHN: "John", ACT: "Acts", ROM: "Rom.", "1CO": "1 Cor.", "2CO": "2 Cor.", GAL: "Gal.", EPH: "Eph.", PHP: "Phil.", COL: "Col.",
+      "1TH": "1 Thess.", "2TH": "2 Thess.", "1TI": "1 Tim.", "2TI": "2 Tim.", TIT: "Tit.", PHM: "Philem.", HEB: "Heb.", JAS: "Jas.", "1PE": "1 Pet.", "2PE": "2 Pet.", "1JN": "1 John", "2JN": "2 John", "3JN": "3 John", JUD: "Jude", REV: "Rev." };
+    const mem = new Map();
+    const nrm = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    // «Llk. 14:16-24, Mt. 22:14» → [{ code: "LUK", parts }, { code: "MAT", parts }]; referenca e Tipikosë ka përparësi
+    function segs(r, gospel) {
+      const code0 = r.book || (r.item && window.Lexime && Lexime.bookOfData(r.item.ref)) || "";
+      const out = [];
+      // gabim shkrimi në Tipikon: «11:910» = 11:9-10 (asnjë varg i Dhiatës së Re nuk kalon 80)
+      String(r.ref || "").replace(/[–—]/g, "-").replace(/(:\s*)(\d{1,2})(\d{1,2})(?!\d)/g, (m, p, x, y) => +y === +x + 1 && +(x + y) > 99 ? p + x + "-" + y : m).split(/[,;]\s*(?=(?:[1-3]\s?)?[A-ZÇË][a-zçë]{0,6}\.?\s*\d)/).forEach((piece, i) => {
+        const pr = i && window.Lexime ? Lexime.parseRef(piece, gospel) : null;
+        const code = (pr && pr.book) || code0, parts = ReadAloud.ranges(piece, code);
+        if (code && parts.length) out.push({ code, parts });
+      });
+      if (!out.length && r.item && code0) { const parts = ReadAloud.ranges(r.item.ref, code0); if (parts.length) out.push({ code: code0, parts }); }
+      return out;
+    }
+    const inP = (p, x) => (x.c > p.c || (x.c === p.c && x.v >= p.v)) && (x.c < p.c2 || (x.c === p.c2 && x.v <= p.v2));
+    async function part(code, p) {
+      const k = `vg:${code}:${p.c}:${p.v}-${p.c2}:${p.v2}`;
+      if (mem.has(k)) return mem.get(k);
+      const kept = store.get(k, null);
+      if (kept && kept.length) { mem.set(k, kept); return kept; }
+      const ref = `${EN[code]} ${p.c}:${p.v}-${p.c2 !== p.c ? p.c2 + ":" : ""}${p.v2}`;
+      const res = await fetch(`${SITE}wp-json/oa/v1/calendar-scripture?ep=${encodeURIComponent(ref)}&go=&lang=sq`, { credentials: "omit" });
+      if (!res.ok) throw new Error("vargjet " + res.status);
+      const j = await res.json(), m = String(j.epistle_html || "").match(/data-scripture='([^']+)'/);
+      if (!m) throw new Error("vargjet: pa tekst");
+      const ta = document.createElement("textarea");
+      ta.innerHTML = m[1];
+      const a = (JSON.parse(ta.value).verses || []).map((x) => ({ c: +x.chapter, v: +x.verse, t: String((x.text && x.text.sq) || "").trim() })).filter((x) => x.t && inP(p, x));
+      if (!a.length) throw new Error("vargjet: bosh");
+      mem.set(k, a);
+      store.set(k, a);
+      return a;
+    }
+    // [{ code, c, v, t }] për gjithë leximin, ose null kur nuk ka internet
+    async function get(sg) {
+      if (!sg.length || sg.some((x) => !EN[x.code])) return null;
+      try { return (await Promise.all(sg.map((x) => Promise.all(x.parts.map((p) => part(x.code, p))).then((a) => a.flat().map((y) => ({ code: x.code, ...y })))))).flat(); }
+      catch (e) { return null; }
+    }
+    // a përputhet teksti i Ungjillorit/Apostullit me vargjet? (fjalët e rëndësishme të përbashkëta, në të dy drejtimet)
+    const words = (t) => new Set(nrm(t).replace(/[^a-z\s]/g, " ").split(/\s+/).filter((w) => w.length > 3));
+    function same(itemText, verses) {
+      const A = words(itemText), B = words(verses.map((x) => x.t).join(" "));
+      if (!A.size || !B.size) return false;
+      let n = 0;
+      B.forEach((w) => { if (A.has(w)) n++; });
+      return n / B.size >= 0.6 && n / A.size >= 0.5;
+    }
+    return { segs, get, same };
+  })();
+  window.Vargjet = Vargjet;
+
   // leximet e ditës sipas Tipikosë → pjesët me zë
   async function listenTracks(which) {
     const lx = await tipikonReadings(new Date());
@@ -2289,11 +2346,12 @@ function pickPhoto(it) {
       const here = location.hash.startsWith("#/dita/" + w);
       if (list.length) {
         list.forEach((r, k) => {
-          const code = r.book || (r.item && window.Lexime && Lexime.bookOfData(r.item.ref)) || "";
-          const b = ReadAloud.audioId(code);
-          const own = r.item ? ReadAloud.ranges(r.item.ref, code) : [];
-          const parts = own.length ? own : ReadAloud.ranges(r.ref, code);
-          if (b && parts.length) out.push({ b, code, parts, label, sel: here ? `.lx-read[data-k="${k}"]` : "" });
+          // zëri ndjek referencën e Tipikosë (si teksti i shfaqur); libra të ndryshëm → pjesë më vete
+          Vargjet.segs(r, w === "ungjilli").forEach((sg) => {
+            const b = ReadAloud.audioId(sg.code);
+            if (b) out.push({ b, code: sg.code, parts: sg.parts, label, sel: here ? `.lx-read[data-k="${k}"]` : "",
+              vsel: here ? (c, v) => `.lx-read[data-k="${k}"] .verse[data-cv="${sg.code}:${c}:${v}"]` : null });
+          });
         });
       } else if (api && api.verses.length) {
         const code = window.Lexime ? Lexime.bookOfData(api.book) : "";
@@ -2477,13 +2535,39 @@ function pickPhoto(it) {
     try { const [tp, ap, ug] = await Promise.all([load("tipikoja"), load("apostulli"), load("ungjilli")]); return Lexime.forDate(d, tp, ap, ug); } catch (e) { return null; }
   }
   const capFirst = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+  // Kur teksti i gjetur nuk është ai i referencës së Tipikosë (ose mungon), vendoset teksti i KOASh varg pas vargu,
+  // që të përputhet me zërin; kur përputhet, mbetet teksti i Ungjillorit.
+  async function officialVerses(list, which, kind, head) {
+    const book = (code) => (BIBLE_BOOKS.find((b) => b[0] === code) || [])[1] || "";
+    for (const [k, r] of list.entries()) {
+      const vs = await Vargjet.get(Vargjet.segs(r, which === "ungjilli"));
+      if (head !== mainPane.firstElementChild) return;
+      const sec = $(`.lx-read[data-k="${k}"]`, mainPane);
+      if (!vs || !sec) continue;
+      if (r.item && Vargjet.same(r.item.v.join(" "), vs)) continue;
+      const box = $(".verses", sec) || $(".bible-note", sec), src = $(".lx-src", sec);
+      if (!box) continue;
+      if (src) src.hidden = true;
+      const multi = new Set(vs.map((x) => x.code)).size > 1;
+      const div = document.createElement("div");
+      div.className = "verses lx-off";
+      div.lang = "sq";
+      div.innerHTML = vs.map((x, i) => `${multi && (i === 0 || vs[i - 1].code !== x.code) ? `<p class="lx-book">${esc(book(x.code))}</p>` : ""}<p class="verse" data-o="${i}" data-cv="${x.code}:${x.c}:${x.v}" tabindex="0" role="button"><sup>${x.v}</sup>${esc(x.t)}</p>`).join("");
+      box.replaceWith(div);
+      $$(".verse[data-o]", div).forEach((el) => el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const x = vs[+el.dataset.o];
+        VerseSheet.open({ kind, id: `dita:${which}:${x.code}:${x.c}:${x.v}`, text: x.t, ref: `${book(x.code)} ${x.c}:${x.v}`, link: `#/dita/${which}` }, el);
+      }));
+    }
+  }
 
   async function viewDay(which) {
     const lx = which === "apostulli" || which === "ungjilli" ? await tipikonReadings(new Date()) : null;
     const list = lx ? (which === "apostulli" ? lx.apostle : lx.gospel) : [];
     const t = Today.data || (list.some((r) => r.item) ? null : await Today.load());
     setNav("lexo");
-    if (list.some((r) => r.item)) {
+    if (list.length && (list.some((r) => r.item) || navigator.onLine)) {
       const api = t ? (which === "apostulli" ? t.epistle : t.gospel) : null;
       const kind = which === "apostulli" ? "apostulli" : "ungjilli";
       const word = which === "apostulli" ? "Apostulli" : "Ungjilli";
@@ -2507,6 +2591,7 @@ function pickPhoto(it) {
       enter(mainPane);
       setMode("read");
       mainPane.scrollTop = 0;
+      officialVerses(list, which, kind, mainPane.firstElementChild);
       return;
     }
     if (!t) { mainPane.innerHTML = `<div class="empty">${icon("calendar")}<h3>Pa internet</h3><p>Leximet e ditës shfaqen kur ka internet.</p></div>`; setMode("read"); return; }
@@ -4472,192 +4557,6 @@ function pickPhoto(it) {
     render();
     mainPane.innerHTML = emptyMain();
     setMode("list");
-  }
-
-  // =====================================================================
-  //  KAMBANORJA — kambana të vërteta me litarë: tërhiq litarin me gisht;
-  //  tingulli ndërtohet nga pjesët e tingullit të kambanës (hum, prime, tierce, quint, nominal)
-  // =====================================================================
-  const BellAudio = (() => {
-    let ctx = null, out = null;
-    function init() {
-      if (ctx) { if (ctx.state === "suspended") ctx.resume(); return ctx; }
-      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
-      ctx = new AC();
-      const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
-      // jehona e kambanores: përgjigje impulsi e gjeneruar
-      const len = Math.floor(ctx.sampleRate * 4.2), pre = Math.floor(ctx.sampleRate * 0.03), ir = ctx.createBuffer(2, len, ctx.sampleRate);
-      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = pre; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8) * (i < pre * 4 ? 0.6 : 1); }
-      const conv = ctx.createConvolver(); conv.buffer = ir;
-      const wet = ctx.createGain(); wet.gain.value = 0.32; const dry = ctx.createGain(); dry.gain.value = 0.8;
-      out = ctx.createGain(); out.gain.value = 0.9;
-      out.connect(dry).connect(comp); out.connect(conv).connect(wet).connect(comp); comp.connect(ctx.destination);
-      return ctx;
-    }
-    // partialet e një kambane bronzi të derdhur (raporti me notën kryesore, amplituda, kohëzgjatja relative):
-    // hum 0.5 · prime 1 · tierce 1.19 (terca e vogël) · quint 1.5 · nominal 2 · superquint 2.5 · 2.67 · 3 · 4 · 5.3 · 6.4
-    const PARTIALS = [[0.5, 0.85, 1], [1, 0.7, 0.66], [1.19, 0.62, 0.55], [1.5, 0.22, 0.42], [2, 0.75, 0.38], [2.5, 0.2, 0.24],
-      [2.67, 0.24, 0.22], [3.01, 0.16, 0.16], [4.07, 0.12, 0.11], [5.33, 0.07, 0.07], [6.4, 0.04, 0.05]];
-    function strike(f, vol = 1, when = 0, pan = 0) {
-      const c = init(); if (!c) return;
-      const t0 = c.currentTime + 0.01 + when, dur = Math.max(2.6, Math.min(14, 1700 / f));
-      const bus = c.createGain(); bus.gain.value = 1;
-      let node = bus;
-      if (c.createStereoPanner) { const pn = c.createStereoPanner(); pn.pan.value = pan; bus.connect(pn); node = pn; }
-      node.connect(out);
-      const bright = Math.pow(vol, 1.4);
-      PARTIALS.forEach(([r, a, dr], i) => {
-        const fr = f * r * (1 + (Math.random() - 0.5) * 0.003);
-        // partialet e ulëta janë dyfishe (kambana s'është krejt simetrike) → rrahje e ngadaltë, si te kambanat e vërteta
-        [0, i < 5 ? 0.6 + Math.random() * 1.6 : 0].forEach((beat, k) => {
-          if (k && !beat) return;
-          const o = c.createOscillator(), g = c.createGain();
-          o.type = "sine"; o.frequency.setValueAtTime(fr * 1.004 + beat, t0); o.frequency.exponentialRampToValueAtTime(fr + beat, t0 + 0.08);
-          const amp = a * (i > 3 ? bright : vol) * (k ? 0.5 : 1) * 0.14;
-          g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, amp), t0 + 0.003 + i * 0.001);
-          if (i >= 4) g.gain.exponentialRampToValueAtTime(Math.max(0.0002, amp * 0.45), t0 + 0.25);   // “klang”-u i goditjes shuhet shpejt
-          g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur * dr);
-          o.connect(g).connect(bus); o.start(t0); o.stop(t0 + dur * dr + 0.05);
-        });
-      });
-      // goditja e gjuhës (metal mbi metal): zhurmë e shkurtër me filtër dhe tone të parregullta
-      const nb = c.createBuffer(1, Math.floor(c.sampleRate * 0.06), c.sampleRate), nd = nb.getChannelData(0);
-      for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nd.length, 5);
-      const ns = c.createBufferSource(), bp = c.createBiquadFilter(), ng = c.createGain();
-      ns.buffer = nb; bp.type = "bandpass"; bp.frequency.value = Math.min(9000, f * 6); bp.Q.value = 0.9; ng.gain.value = 0.3 * bright;
-      ns.connect(bp).connect(ng).connect(bus); ns.start(t0);
-      setTimeout(() => { try { bus.disconnect(); node.disconnect(); } catch (e) { /* */ } }, (when + dur + 0.5) * 1000);
-    }
-    return { strike, init };
-  })();
-  const BELLS = [
-    { n: "E madhja", f: 98, w: 104, x: 20 },
-    { n: "E mesmja", f: 147, w: 78, x: 41 },
-    { n: "E treta", f: 196, w: 62, x: 59 },
-    { n: "Zilja", f: 294, w: 46, x: 74 },
-    { n: "E vogla", f: 392, w: 36, x: 86 },
-  ];
-  // shkalla diatonike bizantine (intervalet 12-10-8-12-12-10-8 moria nga 72 → cent), nga Ni = Do4
-  const ZILET = [["Ni", 0], ["Pa", 200], ["Vu", 366.7], ["Ga", 500], ["Di", 700], ["Ke", 900], ["Zo", 1066.7], ["Ni'", 1200]].map(([n, c]) => ({ n, f: 261.63 * Math.pow(2, c / 1200) }));
-  function viewBells() {
-    const alive = () => location.hash.startsWith("#/kambanorja");
-    let playT = [], rec = null;
-    const saved = store.get("kambana.rec", null);
-    const bellPath = (w) => { const h = w * 0.95, t = w * 0.28; return `M${-t} ${-h * 0.92} Q0 ${-h * 1.04} ${t} ${-h * 0.92} C${w * 0.36} ${-h * 0.6} ${w * 0.38} ${-h * 0.2} ${w * 0.5} ${-h * 0.03} Q${w * 0.56} 0 ${w * 0.5} ${h * 0.04} L${-w * 0.5} ${h * 0.04} Q${-w * 0.56} 0 ${-w * 0.5} ${-h * 0.03} C${-w * 0.38} ${-h * 0.2} ${-w * 0.36} ${-h * 0.6} ${-t} ${-h * 0.92}Z`; };
-    listPane.innerHTML = `
-      <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>Kambanorja</h1></header>
-      <section class="kb-stage" id="kbStage">
-        <svg class="kb-tower" viewBox="0 0 100 70" preserveAspectRatio="none" aria-hidden="true">
-          <defs><linearGradient id="kbStone" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e9dcc4"/><stop offset="1" stop-color="#b9a585"/></linearGradient></defs>
-          <path d="M0 0 H100 V70 H92 V22 Q92 8 76 8 H24 Q8 8 8 22 V70 H0Z" fill="url(#kbStone)"/>
-          <path d="M8 22 Q8 8 24 8 H76 Q92 8 92 22" fill="none" stroke="#8a7456" stroke-width=".8"/>
-          <rect x="4" y="12" width="92" height="2.2" fill="#6b4a2a"/>
-        </svg>
-        <div class="kb-cross">☦</div>
-        ${BELLS.map((b, i) => `<div class="kb-bell" data-i="${i}" style="left:${b.x}%;--w:${b.w}px">
-          <svg viewBox="${-b.w * 0.6} ${-b.w} ${b.w * 1.2} ${b.w * 1.15}" width="${b.w * 1.2}" height="${b.w * 1.15}" class="kb-svg">
-            <defs><linearGradient id="kbBr${i}" x1="0" x2="1"><stop offset="0" stop-color="#4a2e10"/><stop offset=".3" stop-color="#c8913a"/><stop offset=".45" stop-color="#ffe2a0"/><stop offset=".62" stop-color="#b07a2a"/><stop offset="1" stop-color="#3a220a"/></linearGradient></defs>
-            <path d="${bellPath(b.w)}" fill="url(#kbBr${i})" stroke="#3a220a" stroke-width="1"/>
-            <path d="M${-b.w * 0.42} ${-b.w * 0.12} H${b.w * 0.42}" stroke="#7a5420" stroke-width="${Math.max(1, b.w / 40)}"/>
-            <path d="M${-b.w * 0.3} ${-b.w * 0.55} H${b.w * 0.3}" stroke="#ffe2a0" stroke-width=".8" opacity=".6"/>
-            <g class="kb-clap"><line x1="0" y1="${-b.w * 0.85}" x2="0" y2="${-b.w * 0.05}" stroke="#2a1a0a" stroke-width="${Math.max(1.5, b.w / 30)}"/><circle cx="0" cy="${-b.w * 0.05}" r="${b.w / 11}" fill="#2a1a0a"/></g>
-          </svg>
-          <i class="kb-wave"></i>
-          <div class="kb-rope"><span></span></div>
-          <small>${b.n}</small>
-        </div>`).join("")}
-        <p class="kb-hint">Tërhiq litarët poshtë, ose prek kambanat</p>
-      </section>
-      <h2 class="hub-h">Si u bihet kambanave</h2>
-      <div class="kb-pat">
-        <button class="kb-p glass" data-p="call"><span>🔔</span><b>Thirrja</b><small>Kambana e madhe, goditje të rralla e të matura: thërret në shërbesë</small></button>
-        <button class="kb-p glass" data-p="tre"><span>☦</span><b>Tri herë (festë)</b><small>Të gjitha kambanat, tri vargje me pushim në mes: Liturgjia e të Dielës dhe festat</small></button>
-        <button class="kb-p glass" data-p="two"><span>✨</span><b>Dy herë</b><small>Dy vargje me të gjitha kambanat: Mbrëmësorja dhe Utrenia</small></button>
-        <button class="kb-p glass" data-p="joy"><span>🎉</span><b>E gëzueshme</b><small>Kambana të shpejta, pa pushim: Pashkët, «Krishti u ngjall!»</small></button>
-        <button class="kb-p glass" data-p="per"><span>🕊</span><b>Një nga një</b><small>Çdo kambanë një herë, nga e vogla te e madhja, pastaj të gjitha bashkë</small></button>
-        <button class="kb-p glass" data-p="mourn"><span>🕯</span><b>E zisë</b><small>Një kambanë, ngadalë e me pushime të gjata: e Premtja e Madhe, varrimi</small></button>
-        <button class="kb-p glass" data-p="stop"><span>⏹</span><b>Ndalo</b><small>Hesht kambanat</small></button>
-      </div>
-      <h2 class="hub-h">Melodi me zile</h2>
-      <section class="kb-keys glass" id="kbKeys">
-        ${ZILET.map((z, k) => `<button class="kb-key" data-k="${k}" style="--h:${(k / 7 * 100).toFixed(0)}%"><i></i><b>${z.n}</b></button>`).join("")}
-        <button class="btn" id="kbScale">♪ Shkalla lart e poshtë</button>
-      </section>
-      <div class="kb-rec glass"><button class="btn" id="kbRec">● Regjistro ritmin tënd</button><button class="btn primary" id="kbPlay"${saved ? "" : " disabled"}>▶ Luaje</button><small id="kbRecT">${saved ? `${saved.length} goditje të ruajtura` : "Deri në 40 sekonda"}</small></div>`;
-    enter(listPane);
-    mainPane.innerHTML = emptyMain();
-    setMode("list");
-    const els = $$(".kb-bell", listPane);
-    // vendos kambanat sipas gjerësisë së ekranit, pa u mbivendosur
-    const layout = () => {
-      const st = $("#kbStage"); if (!st) return removeEventListener("resize", layout);
-      const W = st.clientWidth, sc = Math.min(1.3, (W * 0.9) / BELLS.reduce((a, b) => a + b.w * 1.2, 0));
-      const tot = BELLS.reduce((a, b) => a + b.w * 1.2 * sc, 0), gap = (W - tot) / (BELLS.length + 1);
-      let x = gap;
-      els.forEach((el, i) => { const w = BELLS[i].w * sc; el.style.setProperty("--w", w.toFixed(1) + "px"); el.style.left = (x + w * 0.6).toFixed(1) + "px"; x += w * 1.2 + gap; });
-    };
-    layout(); addEventListener("resize", layout, { passive: true });
-    function ring(i, vol = 1, fromUser) {
-      const b = BELLS[i], el = els[i]; if (!el || !alive()) return;
-      BellAudio.strike(b.f, vol);
-      el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
-      el.style.setProperty("--amp", (4 + vol * 8).toFixed(1) + "deg");
-      if (fromUser) { haptic(i < 2 ? 18 : 8); if (rec) rec.push([i, +(vol.toFixed(2)), Date.now() - rec.t0]); }
-    }
-    // litarët: tërhiqe poshtë; sa më shpejt, aq më fort bie kambana
-    els.forEach((el, i) => {
-      const rope = $(".kb-rope", el); let d = null;
-      rope.addEventListener("pointerdown", (e) => { BellAudio.init(); try { rope.setPointerCapture(e.pointerId); } catch (er) {} d = { y0: e.clientY, t0: performance.now(), dy: 0, struck: false }; rope.classList.add("pull"); });
-      rope.addEventListener("pointermove", (e) => {
-        if (!d) return; d.dy = Math.max(0, Math.min(70, e.clientY - d.y0)); rope.style.setProperty("--pull", d.dy + "px");
-        if (!d.struck && d.dy > 34) { d.struck = true; const v = Math.min(1, Math.max(0.35, d.dy / Math.max(40, performance.now() - d.t0) * 2.2)); ring(i, v, true); }
-      });
-      const up = () => { if (!d) return; if (!d.struck) ring(i, 0.5, true); d = null; rope.classList.remove("pull"); rope.style.setProperty("--pull", "0px"); };
-      rope.addEventListener("pointerup", up); rope.addEventListener("pointercancel", up);
-      $(".kb-svg", el).addEventListener("pointerdown", () => { BellAudio.init(); ring(i, 0.8, true); });
-    });
-    const stopAll = () => { playT.forEach(clearTimeout); playT = []; $$(".kb-p", listPane).forEach((b) => b.classList.remove("on")); };
-    const at = (ms, fn) => playT.push(setTimeout(() => { if (alive()) fn(); else stopAll(); }, ms));
-    const all = (v) => BELLS.forEach((_, i) => ring(i, v));
-    // ritmi i zileve të vogla mbi kambanën e madhe (si në kambanoret orthodhokse)
-    const series = (t, beats, v = 0.8) => {
-      for (let b = 0; b < beats; b++) {
-        const T = t + b * 520;
-        if (b % 4 === 0) at(T, () => ring(0, 1));
-        if (b % 2 === 1) at(T, () => ring(1, 0.8));
-        at(T, () => ring(b % 2 ? 4 : 3, v)); at(T + 260, () => ring(b % 4 === 2 ? 2 : 4, v * 0.85));
-      }
-      return t + beats * 520;
-    };
-    const PAT = {
-      call: () => { for (let k = 0; k < 12; k++) at(k * 2600, () => ring(0, 1)); return 12 * 2600; },
-      tre: () => { let t = 0; for (let k = 0; k < 3; k++) { at(t, () => ring(0, 1)); t = series(t + 1400, 16); at(t, () => all(0.9)); t += 4200; } return t; },
-      two: () => { let t = 0; for (let k = 0; k < 2; k++) { at(t, () => ring(0, 1)); t = series(t + 1400, 16); at(t, () => all(0.9)); t += 4200; } return t; },
-      joy: () => { let t = 0; for (let r = 0; r < 6; r++) { for (let b = 0; b < 8; b++) { const T = t + b * 300; at(T, () => ring(4 - (b % 3), 0.85)); if (b % 2 === 0) at(T + 150, () => ring(1 + (b % 4 === 0 ? 0 : 1), 0.8)); if (b === 0) at(T, () => ring(0, 1)); } t += 2400; } return t; },
-      per: () => { let t = 0; for (let r = 0; r < 3; r++) { for (let i = BELLS.length - 1; i >= 0; i--) { at(t, () => ring(i, 0.85)); t += 2400; } at(t, () => all(0.75)); t += 6000; } return t; },
-      mourn: () => { for (let k = 0; k < 10; k++) at(k * 6500, () => ring(1, 0.85)); return 10 * 6500; },
-    };
-    $$(".kb-p", listPane).forEach((btn) => btn.addEventListener("click", () => {
-      BellAudio.init(); stopAll(); haptic(10);
-      if (btn.dataset.p === "stop") return;
-      btn.classList.add("on"); const total = PAT[btn.dataset.p](); at(total + 200, () => btn.classList.remove("on"));
-    }));
-    // zilet: melodi (regjistrohen si 100 + nota)
-    const zil = (k, v = 0.8, fromUser) => {
-      const z = ZILET[k], key = $$(".kb-key", listPane)[k]; if (!z || !alive()) return;
-      BellAudio.strike(z.f, v, 0, (k / 7) * 1.2 - 0.6);
-      if (key) { key.classList.remove("hit"); void key.offsetWidth; key.classList.add("hit"); }
-      if (fromUser && rec) rec.push([100 + k, v, Date.now() - rec.t0]);
-    };
-    $$(".kb-key", listPane).forEach((b) => b.addEventListener("pointerdown", (e) => { e.preventDefault(); BellAudio.init(); zil(+b.dataset.k, 0.85, true); }));
-    $("#kbScale").onclick = () => { BellAudio.init(); stopAll(); [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1, 0].forEach((k, n) => at(n * 420, () => zil(k, 0.8))); };
-    $("#kbRec").onclick = () => {
-      BellAudio.init();
-      if (rec) { const r = rec; rec = null; $("#kbRec").textContent = "● Regjistro ritmin tënd"; $("#kbRec").classList.remove("rec"); if (r.length) { store.set("kambana.rec", r.slice()); $("#kbPlay").disabled = false; $("#kbRecT").textContent = `${r.length} goditje të ruajtura`; toast("Ritmi u ruajt"); } return; }
-      rec = []; rec.t0 = Date.now(); $("#kbRec").textContent = "■ Mbaro regjistrimin"; $("#kbRec").classList.add("rec"); $("#kbRecT").textContent = "Po regjistrohet… bjeri kambanave";
-      at(40000, () => rec && $("#kbRec").click());
-    };
-    $("#kbPlay").onclick = () => { const r = store.get("kambana.rec", null); if (!r) return; BellAudio.init(); stopAll(); r.forEach(([i, v, t]) => at(t, () => (i >= 100 ? zil(i - 100, v) : ring(i, v)))); haptic(8); };
   }
 
   // =====================================================================
@@ -10204,7 +10103,7 @@ function pickPhoto(it) {
       else if (view === "gazetat") viewGazetat();
       else if (view === "shkolla") { if (parts[1] === "gazeta") await viewShkollaGazeta(parts[2]); else await viewShkolla(); }
       else if (view === "ora") viewByzClock();
-      else if (view === "kambanorja") viewBells();
+      else if (view === "kambanorja") location.replace("#/shpirti");
       else if (view === "kandili") { location.replace("#/shpirti"); return; }
       else if (view === "ikona") await viewIcon(parts[1], parts[2]);
       else if (view === "numerimi") viewCountdown();
