@@ -2807,14 +2807,14 @@ section.ra-now { padding: 4px 6px; }
 
 /* Kisha › Mitropolitë: postimet e mitropolive si postimet tona, të ndara sipas mitropolisë */
 .mtf { margin: 6px 0 18px; }
-.mtf-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 16px 10px; scrollbar-width: none; scroll-snap-type: x proximity; }
+.mtf-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; scroll-snap-type: x proximity; }
 .mtf-chips::-webkit-scrollbar { display: none; }
 .mtf-chips button { flex: none; scroll-snap-align: start; display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: 600 13px/1 var(--font-ui, system-ui); cursor: pointer;
   transition: background-color .25s var(--ease-out), color .25s var(--ease-out), scale var(--d-pop) var(--spring); }
 .mtf-chips button small { font-weight: 500; opacity: .6; }
 .mtf-chips button[aria-selected="true"] { background: var(--accent, #8e2a2a); border-color: transparent; color: #fff6e3; }
 .mtf-chips button:active { scale: .95; transition-duration: var(--d-press); }
-.mtf-list { display: grid; gap: 14px; padding: 0 16px; }
+.mtf-list { display: grid; gap: 14px; padding: 0; }
 .mtf { container-type: inline-size; }
 .mtf-list { max-width: 1100px; margin-inline: auto; }
 @container (min-width: 620px) { .mtf-list { grid-template-columns: repeat(2, 1fr); } .mtf-more { grid-column: 1 / -1; } }
@@ -2829,3 +2829,48 @@ section.ra-now { padding: 4px 6px; }
 /* Biblioteka e Kishës (leximi + librat e shërbesave): kërkimi fsheh edhe rubrikat */
 .ks-cats [hidden], .ks-cats[hidden] { display: none !important; }
 .lib-h { margin: 18px 0 6px; }
+
+/* ---------- Kreu: fundi i reel-it dhe lëvizja e imazheve ----------
+   hija mbulon gjithmonë gjithë imazhin (pa rrip të ndritshëm poshtë); ikonat e fshehura SVG nuk e zgjasin faqen */
+.reel.photo .reel-shade { inset: -32px 0 !important; height: auto !important; }
+body > svg[width="0"] { width: 0 !important; height: 0 !important; overflow: hidden; position: absolute; }
+/* Ken Burns i gjallë: zmadhim + rrëshqitje e butë, tri drejtime që ndërrohen nga një imazh te tjetri.
+   Shkalla ≥ 1.08 mban gjithmonë skajet jashtë; lart nuk zhvendoset (fytyrat e ikonave mbeten në kornizë) */
+.reel.active .reel-bg { animation: kbLiveA 11s ease-in-out infinite alternate !important; }
+.reel:nth-child(3n+2).active .reel-bg { animation-name: kbLiveB !important; }
+.reel:nth-child(3n).active .reel-bg { animation-name: kbLiveC !important; }
+@keyframes kbLiveA { from { transform: scale(1.08) translate3d(0, 0, 0); } to { transform: scale(1.2) translate3d(-3%, -2.5%, 0); } }
+@keyframes kbLiveB { from { transform: scale(1.18) translate3d(-2.5%, -2%, 0); } to { transform: scale(1.08) translate3d(2.5%, 0, 0); } }
+@keyframes kbLiveC { from { transform: scale(1.1) translate3d(2.5%, -1%, 0); } to { transform: scale(1.22) translate3d(-1.5%, -3%, 0); } }
+@media (orientation: landscape) { .reel.active .reel-bg.icon { animation: kbLiveA 14s ease-in-out infinite alternate !important; } }
+@media (prefers-reduced-motion: reduce) { .reel.active .reel-bg { animation: none !important; } }
+
+/* Kisha › Mitropolitë: një kategori e vetme me buton; postimet dalin kur hapet */
+.mtf-open { display: flex; align-items: center; gap: 14px; width: 100%; margin: 0; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--line, rgba(201,162,74,.35));
+  background: var(--card, rgba(255,250,240,.8)); color: var(--ink); text-align: left; cursor: pointer; box-shadow: 0 6px 18px rgba(58,8,8,.06);
+  transition: scale var(--d-pop) var(--spring), box-shadow .25s ease; -webkit-tap-highlight-color: transparent; }
+.mtf-open:active { scale: .975; transition-duration: var(--d-press); }
+.mtf-ic svg { width: 40px; height: 40px; padding: 9px; box-sizing: border-box; border-radius: 50%; background: linear-gradient(135deg, #8a1c1c, #4a0c0c); color: #f8e3a8; box-shadow: 0 0 0 1.5px #c9a24a; display: block; }
+.mtf-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.mtf-tx b { font: 700 17px/1.2 var(--font-title, Georgia, serif); color: var(--accent, #8e2a2a); }
+.mtf-tx small { font-size: 12.5px; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mtf-th { display: flex; flex: none; }
+.mtf-th img { width: 34px; height: 34px; object-fit: cover; border-radius: 10px; border: 2px solid var(--card, #fff); margin-left: -12px; box-shadow: 0 2px 6px rgba(0,0,0,.18); }
+.mtf-th img:first-child { margin-left: 0; }
+.mtf-ch { font-style: normal; font-size: 22px; opacity: .55; transition: rotate var(--d-spring) var(--spring-soft); }
+.mtf.on .mtf-ch { rotate: 90deg; }
+.mtf-in { margin-top: 12px; }
+@container (max-width: 380px) { .mtf-th { display: none; } }
+
+/* Shërbesat: Gjashtëpsalmi dhe Psalmi nistor të palosur me «Shfaq» */
+.psg { margin: 14px 0; border-radius: 18px; border: 1px solid var(--line, rgba(201,162,74,.35)); background: var(--card, rgba(255,250,240,.8)); overflow: hidden; }
+.psg > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.psg > summary::-webkit-details-marker { display: none; }
+.psg-ic svg { width: 36px; height: 36px; padding: 8px; box-sizing: border-box; border-radius: 50%; background: linear-gradient(135deg, #8a1c1c, #4a0c0c); color: #f8e3a8; display: block; }
+.psg-t { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.psg-t b { font: 700 16px/1.2 var(--font-title, Georgia, serif); color: var(--accent, #8e2a2a); }
+.psg-t small { font-size: 12.5px; opacity: .7; }
+.psg-go { font: 600 13px/1 var(--font-ui, system-ui); padding: 8px 14px; border-radius: 999px; background: var(--accent, #8e2a2a); color: #fff6e3; }
+.psg[open] .psg-go { background: transparent; color: var(--accent, #8e2a2a); box-shadow: inset 0 0 0 1px currentColor; font-size: 0; }
+.psg[open] .psg-go::before { font-size: 13px; content: "Fshih"; }
+.psg-body { padding: 0 14px 10px; }

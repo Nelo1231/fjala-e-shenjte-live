@@ -1204,8 +1204,19 @@ function pickPhoto(it) {
       $(".mtf-list", box).innerHTML = L.slice(0, shown).map(card).join("") + (L.length > shown ? `<button type="button" class="btn mtf-more">Shiko më shumë (${L.length - shown})</button>` : "");
     };
     box.hidden = false;
-    draw();
+    const btn = $(".mtf-open", box), inner = $(".mtf-in", box);
+    const thumbs = byDate(list).filter((n) => n.img).slice(0, 3);
+    btn.innerHTML = `<span class="mtf-ic">${icon("church")}</span><span class="mtf-tx"><b>Mitropolitë</b><small>${list.length} postime · ${have.map((g) => esc(FB_SHORT[g])).join(" · ")}</small></span>
+      <span class="mtf-th">${thumbs.map((n) => `<img src="${esc(n.img)}" alt="" loading="lazy" decoding="async">`).join("")}</span><i class="mtf-ch">›</i>`;
+    let open = !!store.get("mtf.open", false);
+    const setOpen = (on) => {
+      open = on; store.set("mtf.open", on);
+      btn.setAttribute("aria-expanded", String(on)); inner.hidden = !on; box.classList.toggle("on", on);
+      if (on) { draw(); enter(inner); }
+    };
+    setOpen(open);
     box.onclick = (e) => {
+      if (e.target.closest(".mtf-open")) { haptic(8); setOpen(!open); return; }
       const c = e.target.closest("[data-mg]");
       if (c) { cur = c.dataset.mg; shown = 6; store.set("mtf.g", cur); haptic(6); draw(); return; }
       if (e.target.closest(".mtf-more")) { shown += 6; draw(); }
@@ -1227,7 +1238,7 @@ function pickPhoto(it) {
         ? `<a class="kl-card" id="klCard" href="#/kisha-lutjet">${icon("candle")}<span><b>Këndi i Lutjes</b><small>Shërbesat e Kishës · ${esc(KOASH_CITE)}</small></span><i>›</i></a>
           <div class="ks-cats">${SITE_GROUPS.map(([gt, ls], gi) => `<details class="ks-cat" data-g="${gi}"><summary>${icon(ls[0][2])}<span><b>${esc(gt)}</b><small>${ls.length} rubrika · ${esc(ls.slice(0, 3).map((l) => l[0]).join(" · "))}</small></span><i>›</i></summary><div class="site-links">${ls.map(([t, u, ic]) => `<button class="site-link" data-url="${SITE + u}">${icon(ic)}<span>${t}</span></button>`).join("")}</div></details>`).join("")}</div>`
         : `<div class="site-links">${NGJ_LINKS.map(([t, u, ic]) => `<button class="site-link" data-url="${u.startsWith("http") ? u : NGJ + u}">${icon(ic)}<span>${t}</span></button>`).join("")}</div>`}
-      ${src === "kisha" ? `<section class="mtf" id="mtFeed" hidden><h2 class="section-title">Mitropolitë</h2><div class="mtf-chips" role="tablist"></div><div class="mtf-list"></div></section>` : ""}
+      ${src === "kisha" ? `<section class="mtf" id="mtFeed" hidden><button type="button" class="mtf-open" aria-expanded="false"></button><div class="mtf-in" hidden><div class="mtf-chips" role="tablist"></div><div class="mtf-list"></div></div></section>` : ""}
       <h2 class="section-title">Lajmet e fundit</h2>
       <div id="newsList" class="news-list">${cached ? newsHtml(cached.items) : `<p class="muted">Po ngarkohen lajmet…</p>`}</div>`;
     enter(listPane);
@@ -6137,7 +6148,7 @@ function pickPhoto(it) {
     const SHORT = Object.assign({ korce: "Korçë", gjiro: "Gjirokastër", fier: "Fier", berat: "Berat", elbasan: "Elbasan", tirane: "Tiranë · Durrës", fanar: "Fanari" }, kishat ? Object.fromEntries(KISHAT.map((k) => [k[0], k[2]])) : {});
     const head = kishat ? "Kishat Orthodhokse" : fanar ? "Gazeta e Fanarit" : "Gazetat e Mitropolive", base = kishat ? "#/kishat" : fanar ? "#/fanari" : "#/mitropolite";
     const sq = (arr) => (arr || []).filter((n) => (n.lang || "sq") === "sq");
-    const all = (doc.groups || []).filter((g) => kishat || (fanar ? g.id === "fanar" : g.id !== "fanar")).map((g) => Object.assign({}, g, { items: sq(g.items) }))
+    const all = (doc.groups || []).filter((g) => kishat || (fanar ? g.id === "fanar" : g.id !== "fanar" && g.id !== "radio"))   // Radio Ngjallja nuk ka gazetë.map((g) => Object.assign({}, g, { items: sq(g.items) }))
       .sort((a, b) => (b.id === "tirane") - (a.id === "tirane"));      // Tirana gjithmonë e para
     const general = sq(doc.koash);
     const latest = mtSunday(new Date());
@@ -10374,7 +10385,6 @@ function pickPhoto(it) {
       <h2 class="hub-h">E javës · e diel 20:00</h2>
       <div class="gzc-list">
         ${c("#/mitropolite", "gzc-m", "Mitropolitë", "Gazetat e Mitropolive", `Nr. ${mtNo(S)} · Tiranë · Korçë · Gjirokastër · Fier · Berat · Elbasan`, store.get("mt.seen", "") !== Si)}
-        ${c("#/mitropolite/radio", "gzc-m", "Radio Ngjallja", "Radio Ngjallja", `Nr. ${mtNo(S)} · lajmet dhe njoftimet e javës`, false)}
         ${c("#/kishat/fanar", "gzc-k", "Fanari", "Patriarkana Ekumenike", `Nr. ${mtNo(S)} · Fanari · Kostandinopojë`, false)}
         ${c("#/kishat", "gzc-k", "Kishat", "Kishat Orthodhokse", `Nr. ${mtNo(S)} · Kostandinopojë · Aleksandri · Antioki · Jerusalem · Serbi · Rumani · Gjeorgji · Greqi · Qipro · Amerikë…`, store.get("ks.seen", "") !== Si)}
         ${c("#/vatikani", "gzc-v", "Vatikani", "Gazeta e Vatikanit", `Nr. ${mtNo(S)} · Vatican News në shqip`, store.get("vt.seen", "") !== Si)}
@@ -10870,8 +10880,13 @@ function pickPhoto(it) {
     }
     return esc(t);
   }
+  // Shërbesat lexohen të pastra: pa shënimet (rubrikat), vargjet e psalmeve një nga një
+  const SVC_CLEAN = new Set(["sherbesa", "pasdarka", "akathisti", "kungimi"]);
   function blocksHtml(key, blocks, opts) {
     let lastRef = "", inPsalm = false;
+    const clean = SVC_CLEAN.has(key);
+    // fjalia e shënimit e ndarë gabimisht në dy blloqe («…dhjaku temjanis Tryezën e» + «shenjtë rreth e qark…»)
+    const cutNote = (b, i) => b.t === "p" && !/[.!?:;»”"…)]\s*$/.test(b.x) && blocks[i + 1] && blocks[i + 1].t === "rubric" && /^[a-zëç]/.test(blocks[i + 1].x);
     const priest = !opts || opts.priest !== false;
     const scoreBtn = (b) => (b.score && opts && opts.scores && opts.scores[b.score]
       ? `<button class="score-btn" data-score="${b.score}">${icon("music")}<span>Partitura</span></button>` : "");
@@ -10893,7 +10908,8 @@ function pickPhoto(it) {
       if (b.t === "role") b = Object.assign({}, b, { who: pickWho(b.who) });
       const at = `data-i="${i}" tabindex="0" role="button"`;
       if (b.t === "h") inPsalm = /^(Psalmi|Gjashtë Psalmet|Dhoksologjia)/i.test(b.x);
-      else if (b.t === "rubric" && !/^Dhe përsëri/.test(b.x)) inPsalm = false;
+      else if (b.t === "rubric" && !clean && !/^Dhe përsëri/.test(b.x)) inPsalm = false;
+      if (clean && (b.t === "rubric" || cutNote(b, i) || (b.t === "h" && /^Kori\b/.test(b.x)))) return "";
       switch (b.t) {
         case "chant": return `<div class="blk-chant">${b.tone ? `<p class="chant-tone">${esc(b.tone)}</p>` : ""}<p class="verse" ${at}>${esc(b.x).replace(/\*/g, '<span class="star">*</span>')}</p>${scoreBtn(b)}</div>`;
         case "h": return `<h3 class="blk-h" id="b${i}">${esc(b.x)}</h3>${scoreBtn(b)}`;
@@ -10908,8 +10924,25 @@ function pickPhoto(it) {
     });
     // Uratat e priftit (Urata I, II…, Urata e Hyrjes): gjithmonë të fshehura, me butonin “Shfaq uratat”
     const isUrataH = (b) => key === "sherbesa" && b && b.t === "h" && /^Urata\b/.test(b.x);
+    const fold = {};
+    if (key === "sherbesa") {
+      const grp = (startRx, endRx, title, sub) => {
+        const a = blocks.findIndex((b) => b.t === "rubric" && startRx.test(b.x));
+        if (a < 0) return;
+        let e = a + 1;
+        while (e < blocks.length && !(blocks[e].t === "rubric" && endRx.test(blocks[e].x)) && !(blocks[e].t === "h" && /^Urata\b/.test(blocks[e].x))) e++;
+        if (e > a + 1) fold[a + 1] = { end: e, title, sub };
+      };
+      grp(/lexon Psalmin Nistor/i, /Psalmi nistor|Pas leximit të Psalmit nistor/i, "Psalmi Nistor", "Psalmi 103");
+      grp(/lexohen gjashtë psalmet/i, /gjashtë Psalmet|Pasi mbaron gjashtë/i, "Gjashtëpsalmi", "Psalmet 3 · 37 · 62 · 87 · 102 · 142");
+    }
     let out = "", k = 0;
     while (k < blocks.length) {
+      if (fold[k]) {
+        const f = fold[k];
+        out += `<details class="psg"><summary><span class="psg-ic">${icon("book")}</span><span class="psg-t"><b>${esc(f.title)}</b><small>${esc(f.sub)}</small></span><span class="psg-go">Shfaq</span></summary><div class="psg-body">${parts.slice(k, f.end).join("")}</div></details>`;
+        k = f.end; continue;
+      }
       if (!isUrataH(blocks[k])) { out += parts[k]; k++; continue; }
       let end = k, n = 0;
       while (end < blocks.length) {
@@ -11193,7 +11226,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.21";
+  const APP_VERSION = "3.2.22";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
