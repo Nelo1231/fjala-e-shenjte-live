@@ -7,6 +7,8 @@ Ikonat e ditës i merr workflow-i tjetër (ikonat.yml + cloud/ikonat.py).
 
 - Çdo hap ka vetë-riparimin e PC-së: po t'i prishë ose t'i pakësojë shumë të dhënat, kthehet versioni i mëparshëm.
 - Apify (Instagram-i i Shkollës) vetëm 4 herë në ditë, njëlloj si në PC; çelësi vjen nga sekreti APIFY_TOKEN.
+- Facebook-u i mitropolive dhe i Radio Ngjallja: çdo orë gjatë ditës, vetëm postimet pas kontrollit të fundit,
+  me kufirin e buxhetit mujor të Apify (merr_mitropolite._apify_budget).
 - Në fund shkruan cloud/gjendja_sinkronizimi.json: PC-ja e lexon dhe nuk i bën më vetë këta hapa.
 """
 import datetime, json, os, sys, traceback
@@ -20,6 +22,7 @@ import auto_sinkronizo as A   # noqa: E402  (ROOT i tij = rrënja e kësaj kopje
 A.LOG = os.path.join(os.environ.get("RUNNER_TEMP", "/tmp"), "sinkronizimi.log")   # log-u nuk ruhet në repo
 STATE = os.path.join(ROOT, "cloud", "gjendja_sinkronizimi.json")
 APIFY_HOURS = {4, 10, 16, 22}   # UTC, si ikonat
+FB_HOURS = set(range(4, 22))     # UTC (05/06–22/23 në Shqipëri): postimet e reja të Facebook-ut çdo orë, brenda buxhetit
 
 
 def mitro():
@@ -37,6 +40,8 @@ STEPS = [("Lajmet", A.fetch_news), ("Mitropolitë", mitro), ("Shkolla", A.fetch_
 def main():
     now = datetime.datetime.now(datetime.timezone.utc)
     apify = now.hour in APIFY_HOURS or os.environ.get("FS_APIFY") == "1"
+    if now.hour in FB_HOURS and os.environ.get("APIFY_TOKEN"):
+        os.environ["FS_FB_TOKEN"] = os.environ["APIFY_TOKEN"]   # vetëm për Facebook-un e mitropolive (paguhet vetëm postimi i ri)
     if not apify:
         os.environ["FS_PA_APIFY"] = "1"
         os.environ.pop("APIFY_TOKEN", None)

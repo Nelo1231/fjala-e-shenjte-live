@@ -8,12 +8,12 @@ Elbasan — Andoni; Apoloni dhe Fier — Nikolla. Kryepiskopata: Tiranë, Durrë
 Fanari (Patriarkana Ekumenike): shkrimet shqip të KOASH / UGO.al + Orthodox Times (anglisht, del
 vetëm kur është i përkthyer).
 
-Postimet publike të faqeve zyrtare në Facebook (Korçë, Gjirokastër, Fier, Elbasan, KOASh/Tiranë, Radio Ngjallja)
-merren përmes Apify kur është vendosur APIFY_TOKEN: vetëm të rejat, me tekstin e plotë dhe fotot.
+Postimet publike të faqeve zyrtare në Facebook (Korçë, Gjirokastër, Fier, Berat, Elbasan, KOASh/Tiranë, Radio Ngjallja)
+merren përmes Apify kur është vendosur APIFY_TOKEN: vetëm të rejat, me tekstin e plotë dhe fotot (edhe Berati).
 Ruhen titulli, teksti, data, lidhja, fotot WebP dhe burimi.
 
 Përdorimi:  py -X utf8 tools\merr_mitropolite.py   (e nis edhe auto_sinkronizo.py)"""
-import json, os, re, sys
+import json, os, re, sys, unicodedata
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import merr_lajmet as ml
@@ -25,12 +25,12 @@ PAGES = 3          # 300 shkrimet e fundit
 PER = 300          # shkrime për çdo mitropoli (arkiva e numrave javorë)
 
 GROUPS = [
+    ("tirane", "Kryepiskopata e Tiranës dhe Durrësit", r"\bTiran\w*|Durrës\w*|Kryepiskopat\w*"),
     ("korce", "Mitropolia e Shenjtë e Korçës", r"Korç\w*"),
     ("gjiro", "Mitropolia e Shenjtë e Gjirokastrës", r"Gjirokast\w*|Nathanail\w*"),
     ("fier", "Mitropolia e Shenjtë e Apolonisë dhe Fierit", r"\bFier\w*|Apoloni\w*|Apolloni\w*"),
     ("berat", "Mitropolia e Shenjtë e Beratit, Vlorës dhe Kaninës", r"\bBerat\w*|\bVlor\w*|Kanin\w*|\bAst(i|it|in)\b"),
     ("elbasan", "Mitropolia e Shenjtë e Elbasanit, Shpatit dhe Librazhdit", r"Elbasan\w*|\bShpat\w*|Librazhd\w*|\bAndon(i|it|in)\b"),
-    ("tirane", "Kryepiskopata e Tiranës dhe Durrësit", r"\bTiran\w*|Durrës\w*|Kryepiskopat\w*"),
     ("fanar", "Fanari · Patriarkana Ekumenike", r"Patriark\w* Ekumenik\w*|\bFanar\w*|Vartholome\w*|Kostandinopoj\w*|Konstandinopoj\w*"),
     ("radio", "Radio Ngjallja", r"Radio\s+Ngjallja"),
 ]
@@ -165,7 +165,7 @@ def main():
 
     byg = {g[0]: [] for g in GROUPS}
     seen = set()
-    titles = {re.sub(r"\W+", " ", str(i.get("title", "")).lower()).strip()[:60] for i in preds + items}
+    titles = {re.sub(r"\W+", " ", str(i.get("title", "")).lower()).strip()[:60] + "|" + str(i.get("date", ""))[:10] for i in preds + items}
     for it in preds + items + fb_items:
         link = str(it.get("link") or "").strip()
         key = link or str(it.get("id") or it.get("title") or "").strip()
@@ -175,7 +175,7 @@ def main():
         if it.get("_fb"):
             g = it.get("target_group") or classify(it.get("title", ""), it.get("text", ""))
             tkey = re.sub(r"\W+", " ", it.get("title", "").lower()).strip()[:60]
-            if tkey and tkey in titles:
+            if tkey and tkey + "|" + str(it.get("date", ""))[:10] in titles:
                 continue
         elif it.get("src") == "ot":
             g = "fanar"
@@ -189,7 +189,7 @@ def main():
         if not g or g not in byg:
             continue
         seen.add(key)
-        fields = ("title", "ex", "date", "link", "img", "imgs", "src", "grp", "lang", "tr", "text", "cat", "source", "id")
+        fields = ("title", "ex", "date", "link", "img", "imgs", "src", "grp", "lang", "tr", "text", "cat", "source", "id", "video")
         byg[g].append({k: it.get(k, "") for k in fields if it.get(k, "") != "" or k in ("title", "link")})
 
     # Ruaj postimet e mëparshme nëse një burim bie përkohësisht.
@@ -201,6 +201,7 @@ def main():
     except Exception:
         old_groups, old_koash = {}, []
 
+    _fb_dedupe(old_groups, byg)
     groups = []
     for gid, name, _rx in GROUPS:
         old_items = old_groups.get(gid, {}).get("items", [])
@@ -226,7 +227,10 @@ def main():
             koash.append(item)
     koash.sort(key=lambda x: x.get("date") or "", reverse=True)
 
-    doc = {"koash": koash[:500], "updated": ml.iso_now(), "groups": groups}
+    prev = previous if isinstance(locals().get("previous"), dict) else {}
+    doc = {"koash": koash[:500], "updated": ml.iso_now(), "groups": groups,
+           "fb_at": FB_AT or str(prev.get("fb_at") or ""),
+           "fb_seen": sorted(set(prev.get("fb_seen") or []) | _FB_DROPPED)[-600:]}
     ml.scrub_hidden(doc)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
@@ -243,12 +247,13 @@ def main():
     )
 
 
-# Faqet zyrtare në Facebook: secila shkon te gazeta e vet (të verifikuara me Apify më 22 nëntor 2026).
-# Berati nuk ka ende faqe të verifikuar; Tirana = faqja zyrtare e KOASh (Kryepiskopata).
+# Faqet zyrtare në Facebook: secila shkon te gazeta e vet (lidhjet e mitropolive i dha autori më 22 nëntor 2026;
+# Tirana = faqja zyrtare e KOASh, Kryepiskopata).
 FB_PAGES = [
     ("korce", "Mitropolia e Korçës · Facebook", "https://www.facebook.com/profile.php?id=100067613483874", ("100067613483874", "mitropolia-e-shenjt")),
     ("gjiro", "Mitropolia e Gjirokastrës · Facebook", "https://www.facebook.com/profile.php?id=61586890914979", ("61586890914979", "gjirokastr")),
     ("fier", "Mitropolia e Fierit · Facebook", "https://www.facebook.com/MitropoliaFier", ("mitropoliafier",)),
+    ("berat", "Mitropolia e Beratit · Facebook", "https://www.facebook.com/mitropoliaberatit", ("mitropoliaberatit",)),
     ("elbasan", "Mitropolia e Elbasanit · Facebook", "https://www.facebook.com/mitropolia.elbasan", ("mitropolia.elbasan",)),
     ("tirane", "KOASh · Facebook", "https://www.facebook.com/koash1991/", ("koash1991",)),
     ("radio", "Radio Ngjallja · Facebook", "https://www.facebook.com/RadioNgjallja/", ("radiongjallja",)),
@@ -258,19 +263,96 @@ FB_PHOTOS = 10      # fotot për postim
 FB_FIRST = 6        # postimet e para për faqe kur s'ka asgjë më parë
 
 
+def _fb_key(it):
+    t = re.sub(r"\W+", " ", str(it.get("title", "")).lower()).strip()
+    if len(t) < 18:      # tituj shumë të shkurtër: përfshi edhe fillimin e tekstit
+        t += " " + re.sub(r"\W+", " ", str(it.get("text", "")).lower()).strip()[:80]
+    return t[:36] + "|" + str(it.get("date", ""))[:10]
+
+
+_FB_DROPPED = set()
+
+
+def _fb_dedupe(old_groups, byg):
+    """I njëjti postim i ndarë nga dy faqe (p.sh. predikimi te KOASh dhe te Radio Ngjallja) mbetet vetëm një herë:
+    mbahet ai më i plotë (tekst + foto); kur tjetri është video, videoja bashkohet te ky («video»)."""
+    pool = []
+    for gid in byg:
+        for it in byg[gid] + [x for x in old_groups.get(gid, {}).get("items", []) if isinstance(x, dict)]:
+            if "facebook.com" in str(it.get("link") or ""):
+                pool.append((gid, it))
+    by = {}
+    for gid, it in pool:
+        by.setdefault(_fb_key(it), []).append((gid, it))
+    drop = set()
+    for key, arr in by.items():
+        links = {it.get("link") for _, it in arr}
+        if len(links) < 2:
+            continue
+        score = lambda x: len(x[1].get("text") or "") + 300 * len(x[1].get("imgs") or [])
+        keep_g, keep = max(arr, key=score)
+        for gid, it in arr:
+            if it.get("link") == keep.get("link"):
+                continue
+            if ("/videos/" in str(it.get("link")) or it.get("cat") == "video") and not keep.get("video"):
+                keep["video"] = it["link"]
+            drop.add(it.get("link"))
+    if drop:
+        _FB_DROPPED.update(drop)
+        for gid in byg:
+            byg[gid] = [x for x in byg[gid] if x.get("link") not in drop]
+        for g in old_groups.values():
+            g["items"] = [x for x in g.get("items", []) if not (isinstance(x, dict) and x.get("link") in drop)]
+
+
 def _fb_known():
-    """postimet e Facebook-ut që janë ruajtur më parë (lidhjet dhe data e më të riut)"""
+    """postimet e Facebook-ut që janë ruajtur më parë: lidhjet dhe data e më të riut për çdo mitropoli"""
     try:
         doc = json.load(open(OUT, encoding="utf-8"))
     except Exception:
-        return set(), ""
-    links, newest = set(), ""
+        return set(), {}, ""
+    links, newest = set(doc.get("fb_seen") or []), {}
     for g in doc.get("groups", []):
         for it in g.get("items", []):
             if "facebook.com" in str(it.get("link") or ""):
                 links.add(it["link"])
-                newest = max(newest, str(it.get("date") or ""))
-    return links, newest
+                newest[g.get("id")] = max(newest.get(g.get("id"), ""), str(it.get("date") or ""))
+    return links, newest, str(doc.get("fb_at") or "")
+
+
+FB_BUDGET = 4.6     # USD në muaj për gjithë Apify-n (kufiri i llogarisë 5 USD; 0.4 rezervë)
+FB_AT = ""          # koha (UTC) e kontrollit të suksesshëm të Facebook-ut, ruhet te mitropolite.json
+
+
+def _tirane(dt_utc):
+    """ora e Shqipërisë (Europe/Tirane), edhe kur sinkronizimi punon në GitHub me orën UTC"""
+    import datetime
+    try:
+        from zoneinfo import ZoneInfo
+        return dt_utc.astimezone(ZoneInfo("Europe/Tirane")).replace(tzinfo=None)
+    except Exception:
+        y = dt_utc.year
+        def last_sun(m):
+            return max(datetime.datetime(y, m, d, 1, tzinfo=datetime.timezone.utc) for d in range(25, 32) if datetime.date(y, m, d).weekday() == 6)
+        off = 2 if last_sun(3) <= dt_utc < last_sun(10) else 1
+        return (dt_utc + datetime.timedelta(hours=off)).replace(tzinfo=None)
+
+
+def _apify_budget(token):
+    """Sa lejohet të shpenzohet sot që muaji të mos kalojë FB_BUDGET: (lejohet?, shënim)"""
+    import datetime
+    import urllib.request
+    req = urllib.request.Request("https://api.apify.com/v2/users/me/usage/monthly", headers={"Authorization": "Bearer " + token})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        d = json.loads(r.read().decode("utf-8"))["data"]
+    used = float(d.get("totalUsageCreditsUsdAfterVolumeDiscount") or 0)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    days = d.get("dailyServiceUsages") or []
+    today = sum(float(x.get("totalUsageCreditsUsd") or 0) for x in days if str(x.get("date", ""))[:10] == now.strftime("%Y-%m-%d"))
+    end = datetime.date.fromisoformat(str(d["usageCycle"]["endAt"])[:10])
+    left = max(1, (end - now.date()).days + 1)
+    per_day = max(0.0, FB_BUDGET - (used - today)) / left
+    return today + 0.02 < per_day, f"{used:.2f}$ këtë muaj · sot {today:.3f}$ nga {per_day:.3f}$ të lejuara"
 
 
 def _fb_apify_fetch_mitropolite():
@@ -282,14 +364,24 @@ def _fb_apify_fetch_mitropolite():
     import time
     import urllib.request
 
-    token = os.environ.get("APIFY_TOKEN", "").strip()
-    if not token or os.environ.get("FS_PA_APIFY"):
+    global FB_AT
+    token = os.environ.get("FS_FB_TOKEN", "").strip() or ("" if os.environ.get("FS_PA_APIFY") else os.environ.get("APIFY_TOKEN", "").strip())
+    if not token:
         print("Facebook: pa Apify këtë herë; pjesa tjetër e sinkronizimit vazhdon.")
         return []
+    try:
+        ok, note = _apify_budget(token)
+    except Exception as exc:
+        ok, note = False, f"buxheti nuk u lexua ({exc.__class__.__name__})"
+    if not ok:
+        print(f"Facebook: pritet kontrolli i radhës që të mos kalohet buxheti i Apify ({note}); asnjë postim nuk humbet.")
+        return []
+    print(f"Facebook: Apify ({note})")
 
     img_dir = os.path.join(ROOT, "img", "mitropolite")
     os.makedirs(img_dir, exist_ok=True)
-    known, newest = _fb_known()
+    known, newest, fb_at = _fb_known()
+    started = datetime.datetime.now(datetime.timezone.utc)
 
     def save_webp(raw_bytes, dst_path):
         from PIL import Image, ImageOps
@@ -304,20 +396,32 @@ def _fb_apify_fetch_mitropolite():
             quality -= 8
         os.replace(tmp, dst_path)
 
-    payload = {"startUrls": [{"url": u} for _, _, u, _ in FB_PAGES], "resultsLimit": 12 if newest else FB_FIRST, "captionText": False}
-    # vetëm të rejat: nga dita e postimit më të ri që kemi (një ditë mbrapa, për sigurinë)
-    if newest:
-        payload["onlyPostsNewerThan"] = (datetime.datetime.fromisoformat(newest[:19]) - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    # vetëm të rejat: çdo postim i botuar pas kontrollit të fundit (koha UTC deri në sekondë, 20 minuta mbrapa
+    # për sigurinë), që Apify të mos paguhet për postimet që i kemi; një faqe e re merr postimet e 7 ditëve të fundit.
+    old_pages = [x for x in FB_PAGES if newest.get(x[0])]
+    new_pages = [x for x in FB_PAGES if not newest.get(x[0])]
+    if fb_at:
+        since = datetime.datetime.fromisoformat(fb_at[:19]) - datetime.timedelta(minutes=20)
     else:
-        payload["onlyPostsNewerThan"] = "7 days"
-    request = urllib.request.Request(
-        "https://api.apify.com/v2/acts/apify~facebook-posts-scraper/run-sync-get-dataset-items?clean=true&format=json",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0", "Authorization": "Bearer " + token},
-        method="POST",
-    )
-    with urllib.request.urlopen(request, timeout=280) as response:
-        raw_items = json.loads(response.read().decode("utf-8"))
+        since = datetime.datetime.fromisoformat(min((newest[x[0]] for x in old_pages), default=started.strftime("%Y-%m-%dT%H:%M:%S"))[:19]) - datetime.timedelta(hours=2)
+    batches = []
+    if old_pages:
+        batches.append({"startUrls": [{"url": x[2]} for x in old_pages], "resultsLimit": 10, "captionText": False,
+                        "onlyPostsNewerThan": since.strftime("%Y-%m-%dT%H:%M:%S")})
+    if new_pages:
+        batches.append({"startUrls": [{"url": x[2]} for x in new_pages], "resultsLimit": FB_FIRST, "captionText": False, "onlyPostsNewerThan": "7 days"})
+    raw_items = []
+    for payload in batches:
+        request = urllib.request.Request(
+            "https://api.apify.com/v2/acts/apify~facebook-posts-scraper/run-sync-get-dataset-items?clean=true&format=json",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0", "Authorization": "Bearer " + token},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=280) as response:
+            got = json.loads(response.read().decode("utf-8"))
+        raw_items += got if isinstance(got, list) else []
+    FB_AT = started.strftime("%Y-%m-%dT%H:%M:%S")
 
     def page_of(item):
         meta = " ".join(str(item.get(k) or "") for k in ("inputUrl", "facebookUrl", "pageName", "url")).lower()
@@ -334,7 +438,8 @@ def _fb_apify_fetch_mitropolite():
         if not isinstance(item, dict) or item.get("error"):
             continue
         link = item.get("url") or item.get("topLevelUrl") or ""
-        raw_text = str(item.get("text") or item.get("message") or "").strip()
+        # shkronjat «zbukuruese» të Facebook-ut (𝕃𝕒𝕜𝕞𝕚𝕒, 𝐀𝐁𝐂…) kthehen në shkronja të zakonshme
+        raw_text = unicodedata.normalize("NFKC", str(item.get("text") or item.get("message") or "")).strip()
         if not link or link in seen or link in known:
             continue
         seen.add(link)
@@ -346,9 +451,9 @@ def _fb_apify_fetch_mitropolite():
         ts = item.get("timestamp")
         try:
             if isinstance(ts, (int, float)):
-                date_value = datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).astimezone().replace(tzinfo=None).isoformat(timespec="seconds")
+                date_value = _tirane(datetime.datetime.fromtimestamp(ts, datetime.timezone.utc)).isoformat(timespec="seconds")
             elif item.get("time"):
-                date_value = datetime.datetime.fromisoformat(str(item["time"]).replace("Z", "+00:00")).astimezone().replace(tzinfo=None).isoformat(timespec="seconds")
+                date_value = _tirane(datetime.datetime.fromisoformat(str(item["time"]).replace("Z", "+00:00"))).isoformat(timespec="seconds")
         except Exception:
             date_value = ""
         if not date_value:
@@ -380,7 +485,7 @@ def _fb_apify_fetch_mitropolite():
 
         lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
         title = lines[0][:160] if lines else label.split(" · ")[0]
-        body = "\n\n".join(lines[1:] if len(lines) > 1 and len(lines[0]) <= 160 else lines)
+        body = "\n\n".join(lines[1:]) if len(lines) > 1 and len(lines[0]) <= 160 else "" if lines and len(lines[0]) <= 160 else "\n\n".join(lines)
         is_video = any(isinstance(m, dict) and "video" in str(m.get("__typename", "")).lower() for m in item.get("media") or [])
         out.append({
             "id": "fb_m_" + post_id,
