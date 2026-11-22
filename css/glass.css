@@ -2903,4 +2903,6 @@ p.okto-dox, .okto p.okto-dox, .verses p.okto-dox { text-align: center !important
 .klt p.dc { float: none; font: inherit; color: inherit; margin: 0 0 .7em; }
 .klt p.dc::first-letter { float: left; font: 700 2.9em/.85 "Playfair Display", Georgia, serif; color: #a01c1c; margin: .05em .1em 0 0; }
 .klt .ini { float: none; font: inherit; font-weight: 700; color: #a01c1c; margin: 0; }
-:root[data-theme="dark"] .klt p.dc::first-letter, :root[data-theme="dark"] .klt .ini { color: #e7a1a1; }
+
+:root[data-theme="dark"] .klt p.dc { color: inherit; }
+:root[data-theme="dark"] .klt p.dc::first-letter, :root[data-theme="dark"] .klt .ini { color: #f0a094; }
