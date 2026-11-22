@@ -2654,3 +2654,24 @@ section.ra-now { padding: 4px 6px; }
 .tip-men p { margin: 2px 0 0; color: var(--ink-2); }
 .tip-men b { color: var(--ink); font-weight: 600; }
 .tip-grp { margin: 8px 0; }
+
+/* Ngjyrat: mostra të vogla në një vend (në vend të pllakave të mëdha) */
+.th-opts { display: block !important; }
+.th-mini { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 8px 4px; }
+.th-dot { display: grid; justify-items: center; gap: 4px; padding: 4px 0; background: none; border: 0; cursor: pointer; font: inherit; color: var(--ink); -webkit-tap-highlight-color: transparent; }
+.th-dot i { position: relative; width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .18); box-shadow: 0 1px 3px rgba(0, 0, 0, .18); transition: transform .15s, box-shadow .15s; }
+.th-dot u { position: absolute; right: 2px; bottom: 2px; width: 13px; height: 13px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .85); }
+.th-dot small { font-size: 10.5px; line-height: 1.15; text-align: center; color: var(--ink-2); max-width: 64px; }
+.th-dot[aria-checked="true"] i { box-shadow: 0 0 0 2px var(--bg, #fff), 0 0 0 4px var(--gold); transform: scale(1.06); }
+.th-dot[aria-checked="true"] small { color: var(--ink); font-weight: 600; }
+.th-dot:active i { transform: scale(.92); }
+.th-desc { margin: 10px 2px 0; font-size: 13px; color: var(--ink-2); text-align: center; }
+
+/* Lupa: më lart, që të mos zërë butonat poshtë; kutitë e kërkimit të faqeve fshihen (kërkohet nga lupa) */
+.pf-own-hide { display: none !important; }
+.pf-find { bottom: calc(var(--safe-b, 0px) + 136px) !important; }
+.pf-top { bottom: calc(var(--safe-b, 0px) + 188px) !important; }
+.pf-bar { bottom: calc(var(--safe-b, 0px) + 132px) !important; }
+.pf-chips { bottom: calc(var(--safe-b, 0px) + 184px) !important; }
+@media (min-width: 640px) { .pf-find { bottom: calc(var(--safe-b, 0px) + 84px) !important; } .pf-top { bottom: calc(var(--safe-b, 0px) + 136px) !important; } .pf-bar { bottom: calc(var(--safe-b, 0px) + 80px) !important; } .pf-chips { bottom: calc(var(--safe-b, 0px) + 132px) !important; } }
+.pane::after { content: ""; display: block; height: 96px; }

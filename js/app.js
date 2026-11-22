@@ -6388,6 +6388,7 @@ function pickPhoto(it) {
     ["names", "Ditët e emrit", "Për ty dhe për njerëzit e tu", "a"],
     ["candles", "Qirinjtë", "Kur shuhet një qiri që ke ndezur", "a"],
     ["kungimi", "Përgatitja për Kungim", "Kur ke caktuar ditën e Kungimit", "a"],
+    ["kgpyet", "A u kungove sot?", "Në mesditë, ditët me Liturgji · për ta shënuar në Ditar", "a"],
     ["live", "Shërbesat live", "Kur nis një transmetim i Radio Ngjallja", "aw"],
     ["kinema", "Kinemaja", "Premierat që ruan · në shfletues edhe filmat e episodet e reja", "aw"],
     ["gazeta", "Gazeta e ditës", "Çdo ditë në 20:00", "w"],
@@ -6427,7 +6428,7 @@ function pickPhoto(it) {
     enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
     $$("[data-th]", listPane).forEach((b) => b.addEventListener("click", () => {
       store.set("theme", b.dataset.th); applyTheme(true); haptic(12);
-      $$("[data-th]", listPane).forEach((x) => x.setAttribute("aria-checked", x === b));
+      themePick(listPane, b);
     }));
     $("#setUnb").addEventListener("change", (e) => { $("#setBapt").disabled = e.target.checked; });
     $("#setMe").addEventListener("submit", async (e) => {
@@ -9587,7 +9588,8 @@ function pickPhoto(it) {
          [3903, at(0, 12, 30), "Lavdi Perëndisë për të gjitha!", "Lexo Uratat e falënderimit pas Kungatës së Shenjtë."]].forEach(([id, t, title, text]) => { if (t > Date.now()) out.push({ id, at: t, title, text }); });
       }
       // Liturgjia Hyjnore dhe të kremtet e mëdha: në mbrëmje një ditë më parë (20:00) dhe në mëngjes (7:00)
-      if (notifOn("liturgy")) {
+      if (notifOn("liturgy") || notifOn("kgpyet")) {
+        const litOn = notifOn("liturgy");
         for (let k = 0; k < 15; k++) {
           const day = new Date(); day.setDate(day.getDate() + k);
           const f = Fast.info(day);
@@ -9602,13 +9604,13 @@ function pickPhoto(it) {
           const plan = store.get("kungimi.plan", "");
           const isPlan = plan === `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
           // 20:00 mbrëmjen para · 07:00 në mëngjes · 12:00 pas Liturgjisë: “A u kungove?”
-          if (eve > Date.now()) out.push({ id: 5000 + k * 2, at: eve.getTime(), route: isPlan ? "/kungata/0/0" : "/kungimi", title: `${big}Nesër ka Liturgji Hyjnore`,
+          if (litOn && eve > Date.now()) out.push({ id: 5000 + k * 2, at: eve.getTime(), route: isPlan ? "/kungata/0/0" : "/kungimi", title: `${big}Nesër ka Liturgji Hyjnore`,
             text: (what ? what + ". " : "") + (isPlan ? "Nesër kungohesh: sonte lexo Shërbesën para Kungimit dhe mos ha e mos pi asgjë pas mesnate." : unbaptized() || canonUntil() ? "Eja nesër në Liturgji: Krishti të pret në shtëpinë e Tij." : "Përgatitu sonte me lutje. Nëse je përgatitur me kreshmë dhe rrëfim, nesër kungohu.") });
           const morn = new Date(day); morn.setHours(7, 0, 0, 0);
-          if (morn > Date.now()) out.push({ id: 5001 + k * 2, at: morn.getTime(), route: "/kungimi", title: `${big}Sot ka Liturgji Hyjnore${userName() ? ", " + userName() : ""}`,
+          if (litOn && morn > Date.now()) out.push({ id: 5001 + k * 2, at: morn.getTime(), route: "/kungimi", title: `${big}Sot ka Liturgji Hyjnore${userName() ? ", " + userName() : ""}`,
             text: (what ? what + ". " : "") + (isPlan ? "Sot kungohesh: mos ha e mos pi asgjë para Kungimit. Zoti të bekoftë!" : "Eja në kishë: Krishti të pret në Liturgji 🙏") });
           const noon = new Date(day); noon.setHours(12, 0, 0, 0);
-          if (noon > Date.now() && !unbaptized() && !canonUntil()) out.push({ id: 5500 + k, at: noon.getTime(), route: "/kungimi/pyet", title: `☦ A u kungove sot${userName() ? ", " + userName() : ""}?`,
+          if (notifOn("kgpyet") && noon > Date.now() && !unbaptized() && !canonUntil()) out.push({ id: 5500 + k, at: noon.getTime(), route: "/kungimi/pyet", title: `☦ A u kungove sot${userName() ? ", " + userName() : ""}?`,
             text: "Prek këtu për ta shënuar dhe mos harro Uratat e falënderimit pas Kungatës së Shenjtë." });
         }
       }
@@ -9719,7 +9721,7 @@ function pickPhoto(it) {
       if (view === "libraria") { await viewLibraria(); return; }
       if (view === "kendi-lutjes") { await viewKendiLutjes(parts[1]); return; }
       if (view === "sherbesat") { viewGroupHub("sherbesat"); return; }
-      if (view === "art") { await viewArt(parts[1]); return; }
+      if (view === "art") { location.replace("#/lexo"); return; }   // «Shkrimi në Art» u hoq
       if (view === "lexo" || view === "sot") await viewLibrary();
       else if (view === "pelqyerat") { await viewLikes(); mineSeg("pelqyerat"); }
       else if (view === "shenime") { await viewNotes(); mineSeg("shenime"); }
@@ -10109,7 +10111,6 @@ function pickPhoto(it) {
       ${gazetaRowHtml()}
       <div id="todaySlot">${todayCardHtml(t)}</div>
       <a class="kn-cta" href="#/kinema"><span class="kn-cta-ic">${icon("film")}</span><span><b>Kinemaja</b><small id="knCtaSub">Filma · seri · dokumentarë orthodhoksë</small></span><i>›</i></a>
-      <a class="art-cta" href="#/art"><span class="art-cta-ic">${icon("image")}</span><span><b>Shkrimi në Art</b><small id="artCtaSub">Ungjilli i festave në veprat e artit</small></span><i>›</i></a>
       <h2 class="hub-h">Librat</h2>
       <div class="tiles">${tiles.map(([k, ic, t, s]) => `
         <a class="tile" href="#/${k}">${icon(ic)}<strong>${t}</strong><span>${s}</span></a>`).join("")}</div>
@@ -10122,16 +10123,6 @@ function pickPhoto(it) {
       const last = its.slice().sort((a, b) => String(b.dataShtimit || "").localeCompare(String(a.dataShtimit || "")))[0];
       el.textContent = `${its.length} tituj · i fundit: ${last.titulli}`;
     }).catch(() => {});
-    // butoni «Shkrimi në Art»: vepra e ditës (domain publik) në rreth; po s'pati vepër sot → ikona e ditës
-    Promise.all([load("vcs_art"), load("vcs_vepra").catch(() => null)]).then(async ([, V]) => {
-      const t = artToday(), el = $("#artCtaSub"), ic = $(".art-cta-ic");
-      if (el && t.length) el.textContent = "Sot: " + t.map((x) => x.t).slice(0, 2).join(" · ");
-      if (!ic) return;
-      const w = t.map((x) => ((V || {})[x.id] || [])[0]).find(Boolean);
-      if (w) { ic.style.backgroundImage = `url("${w.img}")`; ic.classList.add("has-img"); ic.title = `${w.a} · ${w.t}`; return; }
-      const L = await latestIconMonth().catch(() => null), f = L && (L.groups[L.days[0]] || [])[0];
-      if (f && ic.isConnected) { ic.dataset.ic = f.file; ic.classList.add("has-img"); hydrateIcons(ic.parentElement); }
-    });
     fillIconCard();
     if (!data.tipikoja) load("tipikoja").then(() => { const slot = $("#todaySlot"); const td = Today.data || store.get("today", null); if (slot && td) slot.innerHTML = todayCardHtml(td); });
     if (Persons.all().length && !data.tipikoja) load("tipikoja").then(() => { const ns = $("#nameSlot"); if (ns) { ns.innerHTML = nameDayBanner() + myNameDayHtml(); enter(ns); } });
@@ -10700,7 +10691,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.8";
+  const APP_VERSION = "3.2.10";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
@@ -10794,7 +10785,13 @@ function pickPhoto(it) {
   function themeList() { return [["auto", "Sipas telefonit", "Ndërrohet vetë ditë/natë", null, null, ["#f6efe2", "linear-gradient(90deg,#f6efe2,#362d25)", "#362d25"]], ["light", "Pergamenë", "E çelët, si letra e vjetër", 0, "#F6EFE2", ["#f6efe2", "#fffaf0", "#842320"]], ["fildish", "Fildish e ar", "E bardhë e ngrohtë me ar", 0, "#FBF8F1", ["#fbf8f1", "#ffffff", "#b08a35"]], ["qielli", "Qiell", "E çelët, blu e butë e Hyjlindëses", 0, "#EDF2F8", ["#edf2f8", "#f8fbfe", "#1f4f8a"]], ["ulliri", "Ulliri", "E çelët, jeshile ulliri", 0, "#F1F0E4", ["#f1f0e4", "#fbfaf1", "#5a6b26"]], ["trendafil", "Trëndafil", "E çelët, rozë e butë", 0, "#F8EEEE", ["#f8eeee", "#fff8f7", "#9a2b3c"]], ["dark", "Kafe", "E errët e ngrohtë", 1, "#362D25", ["#362d25", "#463b31", "#d9ba78"]], ["blu", "Blu bizantine", "E errët, blu e thellë me ar", 1, "#141C2E", ["#121a2b", "#1f2b45", "#dcb866"]], ["athos", "Mali i Shenjtë", "E errët, jeshile e thellë me ar", 1, "#0E1A15", ["#0e1a15", "#1a2e25", "#d6b55e"]], ["vjollce", "Kreshma", "E errët, vjollcë me ar", 1, "#17111F", ["#17111f", "#281d36", "#d9b866"]], ["bordo", "Bordo", "E errët, e kuqe vere me ar", 1, "#1E0E0D", ["#1e0e0d", "#341a18", "#dcb866"]], ["grafit", "Grafit", "E errët, gri me argjend", 1, "#17191C", ["#17191c", "#25292e", "#c9c4b8"]], ["oled", "OLED", "E zezë e plotë, kursen baterinë", 1, "#000000", ["#000000", "#0d0d0d", "#d8b56a"]]]; }
   const APP_THEMES = Object.fromEntries(themeList().map(([k, , , d, bar]) => [k, d === null ? null : { d, bar }]));
   // pllakat e zgjedhjes (Cilësimet dhe fleta e ngjyrave)
-  const themeOptsHtml = (cur) => themeList().map(([k, n, d, , , sw]) => `<button type="button" class="th-opt th-${k}" data-th="${k}" aria-checked="${cur === k}"><span class="th-sw">${sw.map((c) => `<i style="background:${c}"></i>`).join("")}</span><b>${n}</b><small>${d}</small></button>`).join("");
+  const themeOptsHtml = (cur) => {
+    const L = themeList(), now = L.find((x) => x[0] === cur) || L[0];
+    const dot = (k, sw) => (k === "auto" ? "linear-gradient(135deg,#f6efe2 50%,#362d25 50%)" : sw[0]);
+    return `<div class="th-mini">${L.map(([k, n, d, , , sw]) => `<button type="button" class="th-dot th-${k}" data-th="${k}" data-d="${esc(n + " · " + d)}" aria-checked="${cur === k}" aria-label="${esc(n)}" title="${esc(d)}"><i style="background:${dot(k, sw)}"><u style="background:${sw[2]}"></u></i><small>${n}</small></button>`).join("")}</div>
+      <p class="th-desc">${esc(now[1] + " · " + now[2])}</p>`;
+  };
+  const themePick = (scope, b) => { $$("[data-th]", scope).forEach((x) => x.setAttribute("aria-checked", x === b)); const dd = $(".th-desc", scope); if (dd) dd.textContent = b.dataset.d || ""; };
   const sysDark = () => { try { if (android && android.isDark) return !!android.isDark(); } catch (e) { /* */ } return !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches); };
   function applyTheme(anim) {
     const ch = store.get("theme", "auto"), t = APP_THEMES[ch] || null;
@@ -10892,8 +10889,8 @@ function pickPhoto(it) {
     el.addEventListener("click", (e) => { if (e.target === el) close(); });
     $$("[data-th]", el).forEach((b) => b.addEventListener("click", () => {
       store.set("theme", b.dataset.th); applyTheme(true); haptic(12);
-      $$("[data-th]", el).forEach((x) => x.setAttribute("aria-checked", x === b));
-      setTimeout(close, 380);
+      themePick(el, b);
+      setTimeout(close, 520);
     }));
   }
   document.addEventListener("click", (e) => { if (e.target.closest("[data-theme-btn]")) { haptic(8); themeSheet(); } });
@@ -11012,8 +11009,27 @@ function pickPhoto(it) {
     document.body.appendChild(box);
     const find = $(".pf-find", box), bar = $(".pf-bar", box), inp = $("input", bar), num = $(".pf-n", bar), top = $(".pf-top", box), chips = $(".pf-chips", box);
     // kërkimi i faqes (p.sh. Shkolla): { ph, chips() → html, onInput(q), onChip(btn), count() }
-    let prov = null;
+    let prov = null, proxy = null;
     const PH = inp.placeholder;
+    // çdo kutie kërkimi të faqes i zë vendin lupa: kutia fshihet, lupa i përcjell asaj atë që shkruan
+    const ownOf = (P) => P && P.querySelector('input[type="search"][data-pfown]');
+    const adopt = () => [listPane, mainPane].forEach((P) => P.querySelectorAll('input[type="search"]:not([data-pfown])').forEach((i) => {
+      if (i.closest(".pfab")) return;
+      i.dataset.pfown = "1";
+      const c = i.closest("form, label") || i.parentElement;
+      if (c && c !== P) c.classList.add("pf-own-hide");
+    }));
+    new MutationObserver(() => { clearTimeout(adopt.t); adopt.t = setTimeout(adopt, 60); }).observe(document.body, { childList: true, subtree: true });
+    const proxySend = (type) => {
+      if (!proxy) return;
+      proxy.value = inp.value;
+      if (type === "submit") {
+        const f = proxy.form;
+        if (f) { if (f.requestSubmit) f.requestSubmit(); else f.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); }
+        else proxy.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+        proxy.dispatchEvent(new Event("change", { bubbles: true }));
+      } else proxy.dispatchEvent(new Event("input", { bubbles: true }));
+    };
     const provPaint = () => { if (!prov) return; chips.innerHTML = prov.chips ? prov.chips() : ""; chips.hidden = !chips.innerHTML; num.textContent = prov.count ? prov.count() : ""; };
     chips.addEventListener("click", (e) => { const c = e.target.closest("button"); if (!c || !prov) return; haptic(6); quiet = Date.now() + 900; y0 = null; prov.onChip(c); provPaint(); });
     let pane = listPane, idle = 0;
@@ -11030,7 +11046,7 @@ function pickPhoto(it) {
     // kur lëviz faqen me shiritin hapur, shiriti fshihet (kërkimi/filtri mbetet; lupa e rihap)
     let quiet = 0, y0 = null;
     const collapse = () => { bar.hidden = true; chips.hidden = true; box.classList.remove("finding"); inp.blur();
-      find.classList.toggle("on", !!(inp.value.trim() || (prov && prov.count && prov.count()))); };
+      find.classList.toggle("on", !!(inp.value.trim() || (prov && prov.count && prov.count()) || (proxy && proxy.value.trim()))); };
     const onScroll = (P) => {
       if (!bar.hidden && Date.now() > quiet) {
         if (y0 == null) y0 = P.scrollTop;
@@ -11043,6 +11059,8 @@ function pickPhoto(it) {
     let hits = [], hi = -1, lastQ = "";
     const close = () => {
       if (prov && !bar.hidden) { prov.onInput(""); if (prov.reset) prov.reset(); }
+      if (proxy && proxy.value) { inp.value = ""; proxySend("input"); proxySend("submit"); }
+      proxy = null;
       chips.hidden = true; inp.placeholder = PH; find.classList.remove("on");
       bar.hidden = true; box.classList.remove("finding"); inp.value = ""; num.textContent = ""; hits = []; lastQ = ""; try { getSelection().removeAllRanges(); } catch (e) { /* */ } update(false); };
     find.onclick = () => {
@@ -11051,8 +11069,10 @@ function pickPhoto(it) {
         bar.hidden = false; box.classList.add("finding"); inp.placeholder = prov.ph || PH; provPaint(); inp.focus(); return;
       }
       const P = cur();
-      const own = [...P.querySelectorAll('input[type="search"]')].find((i) => visible(i) && !i.closest(".pfab"));
-      if (own) { P.scrollTo({ top: 0, behavior: "smooth" }); setTimeout(() => { own.focus(); own.scrollIntoView({ block: "center", behavior: "smooth" }); }, 250); return; }
+      adopt();
+      const own = ownOf(P) || ownOf(P === listPane ? mainPane : listPane);
+      if (own && !own.closest("[hidden]")) { proxy = own; inp.placeholder = own.placeholder || PH; inp.value = own.value || ""; num.textContent = ""; }
+      else { proxy = null; inp.placeholder = PH; }
       bar.hidden = false; box.classList.add("finding"); inp.focus();
     };
     const run = () => {
@@ -11076,14 +11096,15 @@ function pickPhoto(it) {
       P.scrollTo({ top: P.scrollTop + rc.top - pr.top - P.clientHeight / 3, behavior: "smooth" });
       num.textContent = `${hi + 1}/${hits.length}`;
     };
-    bar.onsubmit = (e) => { e.preventDefault(); if (prov && prov.hash === location.hash) { inp.blur(); return; } run(); };
+    bar.onsubmit = (e) => { e.preventDefault(); if (prov && prov.hash === location.hash) { inp.blur(); return; } if (proxy) { proxySend("submit"); inp.blur(); return; } run(); };
     let it = 0; inp.addEventListener("input", () => {
       if (prov && prov.hash === location.hash) { prov.onInput(inp.value); provPaint(); return; }
+      if (proxy) { proxySend("input"); return; }
       clearTimeout(it); it = setTimeout(() => { lastQ = "\u0000"; hi = -1; run(); }, 350); });
     inp.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
     $(".pf-x", bar).onclick = close;
     top.onclick = () => { const P = cur(); P.scrollTo({ top: 0, behavior: "smooth" }); haptic(6); };
-    addEventListener("hashchange", () => { close(); if (prov && prov.hash !== location.hash) prov = null; setTimeout(() => update(false), 400); });
+    addEventListener("hashchange", () => { proxy = null; close(); if (prov && prov.hash !== location.hash) prov = null; setTimeout(() => update(false), 400); });
     setTimeout(() => update(false), 800);
     const provide = (o) => { prov = o ? Object.assign({ hash: location.hash }, o) : null; };
     return { onScroll, provide };
