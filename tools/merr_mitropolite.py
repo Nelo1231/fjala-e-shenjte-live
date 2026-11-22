@@ -8,7 +8,8 @@ Elbasan — Andoni; Apoloni dhe Fier — Nikolla. Kryepiskopata: Tiranë, Durrë
 Fanari (Patriarkana Ekumenike): shkrimet shqip të KOASH / UGO.al + Orthodox Times (anglisht, del
 vetëm kur është i përkthyer).
 
-Postimet publike të faqeve të konfiguruara të Facebook-ut merren përmes Apify kur është vendosur APIFY_TOKEN.
+Postimet publike të faqeve zyrtare në Facebook (Korçë, Gjirokastër, Fier, Elbasan, KOASh/Tiranë, Radio Ngjallja)
+merren përmes Apify kur është vendosur APIFY_TOKEN: vetëm të rejat, me tekstin e plotë dhe fotot.
 Ruhen titulli, teksti, data, lidhja, fotot WebP dhe burimi.
 
 Përdorimi:  py -X utf8 tools\merr_mitropolite.py   (e nis edhe auto_sinkronizo.py)"""
@@ -149,7 +150,7 @@ def main():
         pass
 
     try:
-        ot = ml.from_rss({"url": "https://orthodoxtimes.com/category/ecumenical-patriarchate/feed/", "per": 15})
+        ot = ml.from_rss({"id": "ot", "name": "Orthodox Times", "url": "https://orthodoxtimes.com/category/ecumenical-patriarchate/feed/", "per": 15})
         ot = [dict(i, src="ot", grp="bota", lang="en", ex=i.get("summary", ""), _body="Fanar") for i in ot]
         items += ot
     except Exception:
@@ -164,6 +165,7 @@ def main():
 
     byg = {g[0]: [] for g in GROUPS}
     seen = set()
+    titles = {re.sub(r"\W+", " ", str(i.get("title", "")).lower()).strip()[:60] for i in preds + items}
     for it in preds + items + fb_items:
         link = str(it.get("link") or "").strip()
         key = link or str(it.get("id") or it.get("title") or "").strip()
@@ -172,6 +174,9 @@ def main():
 
         if it.get("_fb"):
             g = it.get("target_group") or classify(it.get("title", ""), it.get("text", ""))
+            tkey = re.sub(r"\W+", " ", it.get("title", "").lower()).strip()[:60]
+            if tkey and tkey in titles:
+                continue
         elif it.get("src") == "ot":
             g = "fanar"
         elif it.get("src") == "pred":
@@ -184,7 +189,7 @@ def main():
         if not g or g not in byg:
             continue
         seen.add(key)
-        fields = ("title", "ex", "date", "link", "img", "imgs", "src", "grp", "lang", "tr", "text", "cat", "source")
+        fields = ("title", "ex", "date", "link", "img", "imgs", "src", "grp", "lang", "tr", "text", "cat", "source", "id")
         byg[g].append({k: it.get(k, "") for k in fields if it.get(k, "") != "" or k in ("title", "link")})
 
     # Ruaj postimet e mëparshme nëse një burim bie përkohësisht.
@@ -238,8 +243,39 @@ def main():
     )
 
 
+# Faqet zyrtare në Facebook: secila shkon te gazeta e vet (të verifikuara me Apify më 22 nëntor 2026).
+# Berati nuk ka ende faqe të verifikuar; Tirana = faqja zyrtare e KOASh (Kryepiskopata).
+FB_PAGES = [
+    ("korce", "Mitropolia e Korçës · Facebook", "https://www.facebook.com/profile.php?id=100067613483874", ("100067613483874", "mitropolia-e-shenjt")),
+    ("gjiro", "Mitropolia e Gjirokastrës · Facebook", "https://www.facebook.com/profile.php?id=61586890914979", ("61586890914979", "gjirokastr")),
+    ("fier", "Mitropolia e Fierit · Facebook", "https://www.facebook.com/MitropoliaFier", ("mitropoliafier",)),
+    ("elbasan", "Mitropolia e Elbasanit · Facebook", "https://www.facebook.com/mitropolia.elbasan", ("mitropolia.elbasan",)),
+    ("tirane", "KOASh · Facebook", "https://www.facebook.com/koash1991/", ("koash1991",)),
+    ("radio", "Radio Ngjallja · Facebook", "https://www.facebook.com/RadioNgjallja/", ("radiongjallja",)),
+]
+LIVE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live/"
+FB_PHOTOS = 10      # fotot për postim
+FB_FIRST = 6        # postimet e para për faqe kur s'ka asgjë më parë
+
+
+def _fb_known():
+    """postimet e Facebook-ut që janë ruajtur më parë (lidhjet dhe data e më të riut)"""
+    try:
+        doc = json.load(open(OUT, encoding="utf-8"))
+    except Exception:
+        return set(), ""
+    links, newest = set(), ""
+    for g in doc.get("groups", []):
+        for it in g.get("items", []):
+            if "facebook.com" in str(it.get("link") or ""):
+                links.add(it["link"])
+                newest = max(newest, str(it.get("date") or ""))
+    return links, newest
+
+
 def _fb_apify_fetch_mitropolite():
-    """Merr postimet publike të faqeve të konfiguruara përmes Apify; token-i vjen nga APIFY_TOKEN."""
+    """Postimet publike të faqeve të mitropolive dhe të Radio Ngjallja përmes Apify (APIFY_TOKEN).
+    Merren vetëm postimet e reja (Apify paguhet për postim), me tekstin e plotë dhe fotot (WebP te img/mitropolite)."""
     import datetime
     import hashlib
     import io
@@ -247,20 +283,13 @@ def _fb_apify_fetch_mitropolite():
     import urllib.request
 
     token = os.environ.get("APIFY_TOKEN", "").strip()
-    if not token:
-        print("Facebook: APIFY_TOKEN nuk është vendosur; pjesa tjetër e sinkronizimit vazhdon.")
+    if not token or os.environ.get("FS_PA_APIFY"):
+        print("Facebook: pa Apify këtë herë; pjesa tjetër e sinkronizimit vazhdon.")
         return []
 
-    root_dir = ROOT
-    img_dir = os.path.join(root_dir, "img", "mitropolite")
+    img_dir = os.path.join(ROOT, "img", "mitropolite")
     os.makedirs(img_dir, exist_ok=True)
-    fb_pages = [
-        ("mitro_100067613483874", "Mitropolitë · Facebook", "https://www.facebook.com/profile.php?id=100067613483874", None),
-        ("mitro_fier", "Mitropolia e Fierit · Facebook", "https://www.facebook.com/MitropoliaFier", "fier"),
-        ("mitro_61586890914979", "Mitropolitë · Facebook", "https://www.facebook.com/profile.php?id=61586890914979", None),
-        ("mitro_elbasan", "Mitropolia e Elbasanit · Facebook", "https://www.facebook.com/mitropolia.elbasan", "elbasan"),
-        ("radio_ngjallja_fb", "Radio Ngjallja · Facebook", "https://www.facebook.com/RadioNgjallja/", "radio"),
-    ]
+    known, newest = _fb_known()
 
     def save_webp(raw_bytes, dst_path):
         from PIL import Image, ImageOps
@@ -275,87 +304,84 @@ def _fb_apify_fetch_mitropolite():
             quality -= 8
         os.replace(tmp, dst_path)
 
-    endpoint = "https://api.apify.com/v2/acts/apify~facebook-posts-scraper/run-sync-get-dataset-items?clean=true&format=json"
-    payload = json.dumps({"startUrls": [{"url": url} for _, _, url, _ in fb_pages], "resultsLimit": 12}).encode("utf-8")
+    payload = {"startUrls": [{"url": u} for _, _, u, _ in FB_PAGES], "resultsLimit": 12 if newest else FB_FIRST, "captionText": False}
+    # vetëm të rejat: nga dita e postimit më të ri që kemi (një ditë mbrapa, për sigurinë)
+    if newest:
+        payload["onlyPostsNewerThan"] = (datetime.datetime.fromisoformat(newest[:19]) - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    else:
+        payload["onlyPostsNewerThan"] = "7 days"
     request = urllib.request.Request(
-        endpoint,
-        data=payload,
+        "https://api.apify.com/v2/acts/apify~facebook-posts-scraper/run-sync-get-dataset-items?clean=true&format=json",
+        data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0", "Authorization": "Bearer " + token},
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=180) as response:
+    with urllib.request.urlopen(request, timeout=280) as response:
         raw_items = json.loads(response.read().decode("utf-8"))
+
+    def page_of(item):
+        meta = " ".join(str(item.get(k) or "") for k in ("inputUrl", "facebookUrl", "pageName", "url")).lower()
+        for gid, label, url, keys in FB_PAGES:
+            if str(item.get("inputUrl") or "").lower().rstrip("/") == url.lower().rstrip("/"):
+                return gid, label
+        for gid, label, url, keys in FB_PAGES:
+            if any(k in meta for k in keys):
+                return gid, label
+        return None, None
 
     out, seen = [], set()
     for item in raw_items if isinstance(raw_items, list) else []:
-        if not isinstance(item, dict):
+        if not isinstance(item, dict) or item.get("error"):
             continue
-        link = item.get("url") or item.get("topLevelUrl") or item.get("facebookUrl") or ""
+        link = item.get("url") or item.get("topLevelUrl") or ""
         raw_text = str(item.get("text") or item.get("message") or "").strip()
-        key = str(link or raw_text[:120]).lower()
-        if not key or key in seen:
+        if not link or link in seen or link in known:
             continue
-        seen.add(key)
+        seen.add(link)
+        gid, label = page_of(item)
+        if not gid:
+            continue
 
-        timestamp = item.get("time") or item.get("timestamp") or item.get("date")
         date_value = ""
+        ts = item.get("timestamp")
         try:
-            if isinstance(timestamp, (int, float)):
-                date_value = datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc).astimezone().replace(tzinfo=None).isoformat(timespec="seconds")
-            elif timestamp:
-                date_value = datetime.datetime.fromisoformat(str(timestamp).replace("Z", "+00:00")).astimezone().replace(tzinfo=None).isoformat(timespec="seconds")
+            if isinstance(ts, (int, float)):
+                date_value = datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).astimezone().replace(tzinfo=None).isoformat(timespec="seconds")
+            elif item.get("time"):
+                date_value = datetime.datetime.fromisoformat(str(item["time"]).replace("Z", "+00:00")).astimezone().replace(tzinfo=None).isoformat(timespec="seconds")
         except Exception:
-            date_value = str(timestamp or "")
+            date_value = ""
         if not date_value:
-            date_value = datetime.datetime.now().isoformat(timespec="seconds")
+            continue
 
-        page_meta = " ".join(str(item.get(k) or "") for k in ("pageUrl", "facebookUrl", "pageName", "pageId", "userName", "userUrl", "ownerUrl", "page" )).lower()
-        target_group, source_label = None, "Mitropolitë · Facebook"
-        for page_id, label, page_url, group_id in fb_pages:
-            numeric_id = page_id.rsplit("_", 1)[-1] if page_id.rsplit("_", 1)[-1].isdigit() else ""
-            page_slug = page_url.lower().split("facebook.com/")[-1].strip("/")
-            if ((numeric_id and numeric_id in page_meta)
-                    or page_id.lower() in page_meta
-                    or page_url.lower().rstrip("/") in page_meta
-                    or (page_slug and page_slug in page_meta)):
-                target_group, source_label = group_id, label
-                break
-        if "radio ngjallja" in page_meta or "radiongjallja" in page_meta:
-            target_group, source_label = "radio", "Radio Ngjallja · Facebook"
-        elif "mitropoliafier" in page_meta or "mitropolia e fierit" in page_meta or "apolonisë" in page_meta:
-            target_group, source_label = "fier", "Mitropolia e Fierit · Facebook"
-        elif "mitropolia.elbasan" in page_meta or "mitropolia e elbasanit" in page_meta:
-            target_group, source_label = "elbasan", "Mitropolia e Elbasanit · Facebook"
-
-        post_id = str(item.get("postId") or item.get("id") or hashlib.md5(key.encode("utf-8")).hexdigest()[:12])
+        post_id = re.sub(r"\W", "", str(item.get("postId") or hashlib.md5(link.encode("utf-8")).hexdigest()[:12]))[:40]
+        urls = []
+        for m in item.get("media") or []:
+            if not isinstance(m, dict):
+                continue
+            u = (m.get("photo_image") or {}).get("uri") or (m.get("image") or {}).get("uri") or (m.get("thumbnailImage") or {}).get("uri") or m.get("thumbnail")
+            if u and u not in urls:
+                urls.append(u)
         images = []
-        media = item.get("media") or item.get("attachments") or []
-        for index, media_item in enumerate(media[:10] if isinstance(media, list) else []):
-            if not isinstance(media_item, dict):
-                continue
-            image_url = (
-                (media_item.get("photo_image") or {}).get("uri")
-                or (media_item.get("image") or {}).get("uri")
-                or media_item.get("thumbnail")
-                or media_item.get("url")
-            )
-            if not image_url:
-                continue
+        for index, image_url in enumerate(urls[:FB_PHOTOS]):
             relative = f"img/mitropolite/fb_{post_id}_{index}.webp"
-            destination = os.path.join(root_dir, relative.replace("/", os.sep))
+            destination = os.path.join(ROOT, relative.replace("/", os.sep))
             try:
                 if not os.path.exists(destination):
-                    image_request = urllib.request.Request(image_url, headers={"User-Agent": "Mozilla/5.0"})
-                    with urllib.request.urlopen(image_request, timeout=35) as image_response:
+                    req = urllib.request.Request(image_url, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=35) as image_response:
                         save_webp(image_response.read(), destination)
                     time.sleep(0.2)
-                images.append(relative)
+                images.append(LIVE_BASE + relative)
             except Exception:
                 continue
+        if not raw_text and not images:
+            continue      # postime pa tekst e pa foto (ndarje të thjeshta) nuk shtohen
 
         lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
-        title = lines[0][:160] if lines else "Postim nga Facebook"
-        body = "\n".join(lines[1:]) if len(lines) > 1 else raw_text
+        title = lines[0][:160] if lines else label.split(" · ")[0]
+        body = "\n\n".join(lines[1:] if len(lines) > 1 and len(lines[0]) <= 160 else lines)
+        is_video = any(isinstance(m, dict) and "video" in str(m.get("__typename", "")).lower() for m in item.get("media") or [])
         out.append({
             "id": "fb_m_" + post_id,
             "title": title,
@@ -364,11 +390,12 @@ def _fb_apify_fetch_mitropolite():
             "link": link,
             "img": images[0] if images else "",
             "imgs": images,
-            "src": source_label,
-            "source": source_label,
+            "src": "fb",
+            "source": label,
+            "cat": "video" if is_video else "foto",
             "lang": "sq",
             "_fb": True,
-            "target_group": target_group,
+            "target_group": gid,
         })
     return out
 
@@ -384,7 +411,7 @@ def vatikan():
         old = json.load(open(VAT, encoding="utf-8")).get("items", [])
     except Exception:
         pass
-    new = ml.from_rss({"url": "https://www.vaticannews.va/sq.rss.xml", "per": 60})
+    new = ml.from_rss({"id": "vat", "name": "Vatican News", "url": "https://www.vaticannews.va/sq.rss.xml", "per": 60})
     seen, items = set(), []
     for i in new + old:
         if i["link"] in seen:

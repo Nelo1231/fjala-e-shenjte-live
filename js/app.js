@@ -1143,6 +1143,34 @@ function pickPhoto(it) {
         <button role="tab" data-src="lajme" aria-checked="${src === "lajme"}">Lajme Orthodhokse</button>
       </div>`;
   }
+  // postimet e Facebook-ut të ruajtura nga sinkronizimi (data/mitropolite.json → grupi i mitropolisë / «radio»)
+  const FB_BY = {
+    radio: { head: "Radio Ngjallja", name: "Radio Ngjallja", icon: "radio", of: "i Radio Ngjallja" },
+    korce: { head: "Mitropolia e Korçës", name: "Mitropolia e Shenjtë e Korçës", icon: "church", of: "i Mitropolisë" },
+    gjiro: { head: "Mitropolia e Gjirokastrës", name: "Mitropolia e Shenjtë e Gjirokastrës", icon: "church", of: "i Mitropolisë" },
+    fier: { head: "Mitropolia e Fierit", name: "Mitropolia e Shenjtë e Apolonisë dhe Fierit", icon: "church", of: "i Mitropolisë" },
+    elbasan: { head: "Mitropolia e Elbasanit", name: "Mitropolia e Shenjtë e Elbasanit", icon: "church", of: "i Mitropolisë" },
+    berat: { head: "Mitropolia e Beratit", name: "Mitropolia e Shenjtë e Beratit", icon: "church", of: "i Mitropolisë" },
+    tirane: { head: "Kryepiskopata", name: "Kisha Orthodhokse Autoqefale e Shqipërisë", icon: "church", of: "i KOASh" },
+  };
+  let fbPosts = null;
+  async function fbLoad() {
+    if (fbPosts) return fbPosts;
+    const d = await liveJson("mitropolite").catch(() => null);
+    fbPosts = [];
+    ((d && d.groups) || []).forEach((g) => (g.items || []).forEach((n) => {
+      if (/facebook\.com/.test(n.link || "")) fbPosts.push(Object.assign({}, n, { fb: true, g: g.id, id: n.id || n.link, cat: n.cat === "video" ? "Facebook · Video" : "Facebook", excerpt: n.text || n.ex || "", by: FB_BY[g.id] }));
+    }));
+    return fbPosts;
+  }
+  const radioFb = async () => (await fbLoad()).filter((n) => n.g === "radio");
+  async function viewFbPost(g, id) {
+    const p = (await fbLoad()).find((n) => n.g === g && n.id === id);
+    if (!p) { location.replace(g === "radio" ? "#/kisha" : "#/mitropolite/" + g); return; }
+    if (!$("#newsList", listPane)) { if (g === "radio") churchTab = "ngjallja"; await viewChurch(); }
+    mzOpenPost(p);
+  }
+
   async function viewChurch() {
     const src = churchTab;
     if (src === "lajme") return viewNews();
@@ -1156,6 +1184,13 @@ function pickPhoto(it) {
       <div id="newsList" class="news-list">${cached ? newsHtml(cached.items) : `<p class="muted">Po ngarkohen lajmet…</p>`}</div>`;
     enter(listPane);
     newsFold($("#newsList", listPane), ".news-card");
+    if (src !== "kisha") radioFb().then((fb) => {
+      const box = $("#newsList", listPane);
+      if (!fb.length || !box || churchTab !== src) return;
+      const had = store.get("news.ngj", null);
+      box.innerHTML = newsHtml([...((had && had.items) || []), ...fb]);
+      newsFold(box, ".news-card");
+    });
     if (src === "kisha") load("kendi_lutjes").then((K) => {
       const L = klItems(K), c = $("#klCard small", listPane); if (!c || !L.length) return;
       const n = klNew(L).size, ok = L.filter((x) => x.ok).length;
@@ -1207,10 +1242,13 @@ function pickPhoto(it) {
       const items = src === "kisha" ? await fetchNews() : await fetchNgjallja();
       if (!items.length) throw new Error("bosh");
       store.set(src === "kisha" ? "news" : "news.ngj", { at: Date.now(), items });
-      if ($("#newsList") && churchTab === src) { $("#newsList").innerHTML = newsHtml(items); newsFold($("#newsList"), ".news-card"); enter($("#newsList")); }
+      const shown = src === "kisha" ? items : [...items, ...(await radioFb())];
+      if ($("#newsList") && churchTab === src) { $("#newsList").innerHTML = newsHtml(shown); newsFold($("#newsList"), ".news-card"); enter($("#newsList")); }
     } catch (e) {
       const has = store.get(src === "kisha" ? "news" : "news.ngj", null);
-      if (!has && $("#newsList")) {
+      const fb = src === "kisha" ? [] : await radioFb();
+      if (!has && fb.length && $("#newsList")) { $("#newsList").innerHTML = newsHtml(fb); newsFold($("#newsList"), ".news-card"); }
+      else if (!has && $("#newsList")) {
         $("#newsList").innerHTML = src === "kisha" || android
           ? `<p class="muted">Lajmet shfaqen kur ka internet.</p>`
           : `<p class="muted">Lajmet e Radio Ngjallja shfaqen brenda aplikacionit në telefon. Këtu mund t'i lexosh në faqen e tyre.</p>`;
@@ -1250,7 +1288,7 @@ function pickPhoto(it) {
   const byDate = (l) => [...(l || [])].sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
   function newsHtml(items) {
     return byDate(items).map((n) => `
-      <a class="news-card" data-d="${esc(n.date || "")}" href="${n.id ? `#/lajm/kisha/${n.id}` : n.link.startsWith(NGJ) ? `#/lajm/ngj/${encodeURIComponent(n.link.slice(NGJ.length))}` : esc(n.link)}">
+      <a class="news-card${n.fb ? " fb-card" : ""}" data-d="${esc(n.date || "")}" href="${n.fb ? `#/postim/${n.g}/${encodeURIComponent(n.id)}` : n.id ? `#/lajm/kisha/${n.id}` : n.link.startsWith(NGJ) ? `#/lajm/ngj/${encodeURIComponent(n.link.slice(NGJ.length))}` : esc(n.link)}">
         ${n.img ? `<div class="news-img" style="background-image:url('${esc(n.img)}')">${n.cat ? `<span class="news-cat">${esc(n.cat)}</span>` : ""}</div>` : ""}
         <div class="news-body">${n.date ? `<p class="news-date">${fmtDate(n.date)}</p>` : ""}<h3>${esc(n.title)}</h3>${n.excerpt ? `<p class="news-ex">${esc(shortText(n.excerpt, 160))}</p>` : ""}</div>
       </a>`).join("");
@@ -6201,16 +6239,17 @@ function pickPhoto(it) {
     const imgs = [p.img, ...(p.imgs || [])].filter((u, k, a) => u && a.indexOf(u) === k);
     const src = p.kind === "r" ? "" : /instagram/i.test(p.src || p.link || "") ? "Instagram" : /facebook/i.test(p.src || p.link || "") ? "Facebook" : "";
     const paras = String(p.text || p.ex || "").split(/\n+/).map((l) => l.trim()).filter(Boolean);
-    mainPane.innerHTML = `<header class="page-head art-head"><button class="back-btn art-back" id="mzBack" aria-label="Kthehu">${icon("back")}</button><h2 style="font-size:15px">Shkolla e Muzikës</h2></header>
+    const by = p.by || { head: "Shkolla e Muzikës", name: "Shkolla e Muzikës Bizantine", logo: "img/shkolla/logo.webp", of: "e Shkollës" };
+    mainPane.innerHTML = `<header class="page-head art-head"><button class="back-btn art-back" id="mzBack" aria-label="Kthehu">${icon("back")}</button><h2 style="font-size:15px">${esc(by.head)}</h2></header>
       <article class="article mz-art" lang="sq">
-        <p class="mz-art-by"><img src="img/shkolla/logo.webp" alt=""><span><b>Shkolla e Muzikës Bizantine</b><small>${esc(fmtDate(p.date))}</small></span></p>
+        <p class="mz-art-by">${by.logo ? `<img src="${esc(by.logo)}" alt="">` : `<span class="mz-art-ic">${icon(by.icon || "news")}</span>`}<span><b>${esc(by.name)}</b><small>${esc(fmtDate(p.date))}</small></span></p>
         ${p.title ? `<h1>${esc(p.title)}</h1>` : ""}
         ${imgs.length ? `<div class="mzd" aria-label="Fotot e postimit">${imgs.map((u, k) => `<figure class="mzd-c" data-k="${k}"><img src="${esc(u)}" alt="" decoding="async" ${k > 2 ? 'loading="lazy"' : ""}><button class="mzd-full" data-k="${k}" aria-label="Ekran i plotë">⛶</button></figure>`).join("")}
           <p class="mzd-n"></p></div>` : ""}
         ${paras.map((l, i) => `<p${i === 0 ? ' class="ar-first"' : ""}>${esc(l)}</p>`).join("")}
         ${p.video ? `<p><button class="btn" data-out="${esc(p.link)}">▶ Shih videon e postimit</button></p>` : ""}
         ${p.kind === "r" ? `<p class="mz-play"><button class="btn primary" id="mzPlay">▶ Shiko emisionin</button></p>` : ""}
-        ${p.link && /^https?:/.test(p.link) ? `<p class="art-src art-cite">${icon("globe")}<span>Burimi: <a data-out="${esc(p.link)}">${p.kind === "r" ? "Radio Ngjallja · YouTube" : src ? `postimi i Shkollës në ${src}` : "postimi origjinal"} ↗</a></span></p>` : ""}
+        ${p.link && /^https?:/.test(p.link) ? `<p class="art-src art-cite">${icon("globe")}<span>Burimi: <a data-out="${esc(p.link)}">${p.kind === "r" ? "Radio Ngjallja · YouTube" : src ? `postimi ${by.of} në ${src}` : "postimi origjinal"} ↗</a></span></p>` : ""}
         ${next ? `<button class="btn primary mz-next" id="mzNext">Postimi tjetër ›</button>` : ""}
       </article>`;
     mainPane.classList.add("art-open"); enter(mainPane); setMode("read"); mainPane.scrollTop = 0;
@@ -10051,7 +10090,7 @@ function pickPhoto(it) {
       }
       app.dataset.view = "read";
       listPane.onclick = null; mainPane.onclick = null;
-      const navOf = { pelqyerat: "pelqyerat", shenime: "pelqyerat", kisha: "kisha", lajm: "kisha", seksion: "kisha", arkiv: "kisha", lajme: "kisha", gazeta: "lexo", mitropolite: "lexo", fanari: "lexo", vatikani: "lexo", gazetat: "lexo", shkolla: "kisha", shpirti: "shpirti", lutja: "shpirti", fjala: "shpirti", emri: "shpirti",
+      const navOf = { pelqyerat: "pelqyerat", shenime: "pelqyerat", kisha: "kisha", lajm: "kisha", postim: "kisha", seksion: "kisha", arkiv: "kisha", lajme: "kisha", gazeta: "lexo", mitropolite: "lexo", fanari: "lexo", vatikani: "lexo", gazetat: "lexo", shkolla: "kisha", shpirti: "shpirti", lutja: "shpirti", fjala: "shpirti", emri: "shpirti",
         diptiket: "shpirti", kuiz: "shpirti", komboskini: "shpirti", rrefimi: "shpirti", autori: "shpirti", kanuni: "shpirti", kathizma: "shpirti", shqyrtimi: "shpirti", frymemarrja: "shpirti", edjela: "shpirti", ikona: "shpirti", numerimi: "shpirti", sfida: "shpirti", kungimi: "shpirti", mjekesia: "shpirti", lindja: "shpirti", lavdi: "shpirti", kalendari: "shpirti", cilesimet: "shpirti", transmetime: "kisha", kinema: "lexo" };
     if (view === "kisha") document.querySelector('.nav-btn[data-go="kisha"]')?.classList.remove("has-new");
     if (view !== "lajm" && view !== "seksion") mainPane.classList.remove("art-open");
@@ -10124,6 +10163,7 @@ function pickPhoto(it) {
       else if (view === "emri") await viewNames();
       else if (view === "arkiv") await viewArkiv(parts[1], parts[2] ? decodeURIComponent(parts.slice(2).join("/")) : "");
       else if (view === "seksion") await viewSection(parts[1] === "ngj" ? "ngj" : "kisha", decodeURIComponent(parts.slice(2).join("/")));
+      else if (view === "postim") await viewFbPost(parts[1], decodeURIComponent(parts[2] || ""));
       else if (view === "lajm") await viewArticle(parts[1] === "kisha" ? "kisha" : parts[1] === "shenjt" ? "shenjt" : "ngj", parts[2]);
       else if (view === "psaltiri") await viewPsaltiri(parts[1]);
       else if (view === "eterit") await viewFathers();
@@ -11037,7 +11077,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.18";
+  const APP_VERSION = "3.2.19";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {

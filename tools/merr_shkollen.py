@@ -266,7 +266,8 @@ def main():
         import merr_ig_shkolla
         have = {x.get("link") for x in doc["posts"] if x.get("link")}
         ig_old = min((x.get("date", "") for x in doc["posts"] if "instagram" in (x.get("link") or "")), default="")
-        ig, _st = merr_ig_shkolla.fetch(have, ig_old)
+        fb_new = max((x.get("date", "") for x in doc["posts"] if "facebook.com" in (x.get("link") or "")), default="")
+        ig, _st = merr_ig_shkolla.fetch(have, ig_old, fb_new)
         doc["posts"] = ig + doc["posts"]
         rep.append(f"Instagram {len(ig)} postime të reja")
     except LookupError:

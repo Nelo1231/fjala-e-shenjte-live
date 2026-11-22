@@ -72,13 +72,15 @@ def _extract_imgs(it):
     return urls
 
 
-def fetch(known_links=(), oldest_known=""):
+def fetch(known_links=(), oldest_known="", newest=""):
     os.makedirs(IMG, exist_ok=True)
     limit = 20 if not known_links else 8
     url = f"https://api.apify.com/v2/acts/apify~facebook-posts-scraper/run-sync-get-dataset-items?token={APIFY_TOKEN}"
     payload = json.dumps({
         "startUrls": [{"url": FB_URL}],
-        "resultsLimit": limit
+        "resultsLimit": limit,
+        # Apify paguhet për postim: merren vetëm postimet pas të fundit që kemi
+        **({"onlyPostsNewerThan": newest[:10]} if newest else {}),
     }).encode("utf-8")
 
     req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
@@ -126,4 +128,3 @@ if __name__ == "__main__":
     print(len(ps), "postime nga Facebook")
     for x in ps[:5]:
         print(" ", x["date"][:10], x["title"][:70], len(x["imgs"]), "foto")
-

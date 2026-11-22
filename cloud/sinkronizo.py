@@ -23,13 +23,9 @@ APIFY_HOURS = {4, 10, 16, 22}   # UTC, si ikonat
 
 
 def mitro():
-    # njëlloj si në PC: mitropolitë pa Apify (Facebook-u i tyre nuk merret me kredite)
-    tok = os.environ.pop("APIFY_TOKEN", None)
-    try:
-        A.fetch_mitro()
-    finally:
-        if tok is not None:
-            os.environ["APIFY_TOKEN"] = tok
+    # mitropolitë + Facebook-u i mitropolive dhe i Radio Ngjallja: Apify vetëm në orët e tij (main() e heq token-in jashtë tyre),
+    # dhe vetëm për postimet e reja
+    A.fetch_mitro()
 
 
 STEPS = [("Lajmet", A.fetch_news), ("Mitropolitë", mitro), ("Shkolla", A.fetch_school), ("Transmetimet", A.fetch_live),
