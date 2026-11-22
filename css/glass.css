@@ -2906,3 +2906,157 @@ p.okto-dox, .okto p.okto-dox, .verses p.okto-dox { text-align: center !important
 
 :root[data-theme="dark"] .klt p.dc { color: inherit; }
 :root[data-theme="dark"] .klt p.dc::first-letter, :root[data-theme="dark"] .klt .ini { color: #f0a094; }
+
+
+/* =====================================================================
+   v3.2.33 — çdo kombinim ngjyrash ndihet qartë: butonat, kartat, titujt,
+   shiriti i poshtëm, çelësat dhe sfondi marrin ngjyrën «nënshkrim» të temës
+   (--sig) dhe një formë pak më ndryshe (rrumbullakimi --radius).
+   Pergamena dhe Kafja mbeten si më parë.
+   ===================================================================== */
+:root[data-theme="light"][data-palette="fildish"]   { --sig: #b08a35; --sig-2: #d9b45a; --sig-ink: #fffaf0; --head: #7d5a14; --tint: 10%; --radius: 18px; }
+:root[data-theme="light"][data-palette="qielli"]    { --sig: #2f6db5; --sig-2: #6f9fd8; --sig-ink: #ffffff; --head: #1f4f8a; --tint: 12%; --radius: 22px; }
+:root[data-theme="light"][data-palette="ulliri"]    { --sig: #6b7d2c; --sig-2: #9aab55; --sig-ink: #ffffff; --head: #4a5a1a; --tint: 12%; --radius: 13px; }
+:root[data-theme="light"][data-palette="trendafil"] { --sig: #b8465a; --sig-2: #df8a98; --sig-ink: #ffffff; --head: #8e2235; --tint: 11%; --radius: 24px; }
+:root[data-theme="dark"][data-palette="blu"]     { --sig: #3d6fc4; --sig-2: #8fb2ef; --sig-ink: #ffffff; --head: #e6c87a; --tint: 16%; --radius: 16px; }
+:root[data-theme="dark"][data-palette="athos"]   { --sig: #2f8a5e; --sig-2: #84cfa6; --sig-ink: #ffffff; --head: #dcbd66; --tint: 16%; --radius: 15px; }
+:root[data-theme="dark"][data-palette="vjollce"] { --sig: #8a4fc0; --sig-2: #c9a2f2; --sig-ink: #ffffff; --head: #e4c172; --tint: 17%; --radius: 20px; }
+:root[data-theme="dark"][data-palette="bordo"]   { --sig: #a82b35; --sig-2: #f09090; --sig-ink: #fff3e0; --head: #e8c47c; --tint: 17%; --radius: 14px; }
+:root[data-theme="dark"][data-palette="grafit"]  { --sig: #5f6b7c; --sig-2: #c3ccd8; --sig-ink: #ffffff; --head: #e2e5ea; --tint: 12%; --radius: 9px; }
+:root[data-theme="dark"][data-palette="oled"]    { --sig: #d8b56a; --sig-2: #f0d58f; --sig-ink: #140e04; --head: #e3c074; --tint: 8%; --radius: 14px; }
+
+:root[data-palette] { accent-color: var(--sig); }
+:root[data-palette] ::selection { background: color-mix(in srgb, var(--sig) 35%, transparent); }
+/* sfondi: një dritë e lehtë me ngjyrën e temës lart */
+:root[data-palette] body {
+  background: radial-gradient(130% 55% at 50% -8%, color-mix(in srgb, var(--sig) 22%, var(--bg)) 0%, var(--bg) 62%) fixed, var(--bg);
+}
+/* kartat dhe xhamat: ngjyra e temës në sfond dhe në kornizë */
+:root[data-palette] .btn:not(.primary), :root[data-palette] .chip, :root[data-palette] .seg, :root[data-palette] .glass,
+:root[data-palette] .list-item, :root[data-palette] .profile-chip, :root[data-palette] .card:not(.hero), :root[data-palette] .note-card,
+:root[data-palette] .news-card, :root[data-palette] .me-card {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--sig) var(--tint), var(--glass)) 0%, var(--glass-2) 70%, color-mix(in srgb, var(--sig) calc(var(--tint) / 2), var(--glass-2)) 100%);
+  border-color: color-mix(in srgb, var(--sig) 34%, var(--glass-brd));
+}
+:root[data-palette] .card, :root[data-palette] .set-sec, :root[data-palette] .glass { border-radius: var(--radius); }
+:root[data-palette] .set-sec { border-color: color-mix(in srgb, var(--sig) 32%, var(--line)); }
+:root[data-palette] .card:not(.hero) { box-shadow: inset 0 1px 0 var(--glass-hi), 0 10px 26px -12px color-mix(in srgb, var(--sig) 45%, transparent), var(--glass-sh); }
+:root[data-palette] .card.hero {
+  background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--sig) 88%, #fff) 0%, color-mix(in srgb, var(--sig) 62%, #000) 55%, color-mix(in srgb, var(--sig) 30%, #050303) 100%);
+  border-color: color-mix(in srgb, var(--sig) 60%, #000);
+}
+/* pllakat */
+:root[data-palette] .tile, :root[data-palette] .site-link {
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--sig) 24%, transparent) 0%, transparent 58%),
+    linear-gradient(165deg, color-mix(in srgb, var(--card) 94%, var(--sig-2)) 0%, var(--card) 60%, color-mix(in srgb, var(--card) 82%, var(--sig)) 100%) !important;
+  border-color: color-mix(in srgb, var(--sig) 42%, var(--line)) !important;
+  border-radius: calc(var(--radius) + 4px) !important;
+}
+:root[data-palette] .tile::before, :root[data-palette] .site-link::before { background: linear-gradient(90deg, transparent, var(--sig-2), transparent); opacity: .95; }
+:root[data-palette] .tile > svg, :root[data-palette] .site-link > svg {
+  color: var(--sig-ink) !important;
+  background: radial-gradient(circle at 32% 28%, var(--sig-2) 0%, var(--sig) 55%, color-mix(in srgb, var(--sig) 65%, #000) 100%);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sig-2) 80%, #fff), 0 0 0 4px color-mix(in srgb, var(--sig) 22%, transparent), 0 4px 10px -2px color-mix(in srgb, var(--sig) 55%, transparent);
+}
+:root[data-palette] .tile strong::after { color: var(--sig); }
+/* butonat */
+:root[data-palette] .btn, :root[data-palette] .chip { border-radius: calc(var(--radius) - 4px); }
+:root[data-palette] .chip { border-radius: 999px; }
+:root[data-palette] .btn.primary {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, .1) 100%),
+    linear-gradient(135deg, var(--sig-2) 0%, var(--sig) 52%, color-mix(in srgb, var(--sig) 70%, #000) 100%);
+  border-color: color-mix(in srgb, var(--sig-2) 70%, #fff);
+  color: var(--sig-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), 0 8px 20px -6px color-mix(in srgb, var(--sig) 60%, transparent);
+}
+:root[data-palette] .btn.primary svg { color: var(--sig-ink); }
+:root[data-palette] .btn:not(.primary) svg, :root[data-palette] .chip svg, :root[data-palette] .set-link svg { color: var(--sig); }
+:root[data-theme="dark"][data-palette] .btn:not(.primary) svg, :root[data-theme="dark"][data-palette] .chip svg, :root[data-theme="dark"][data-palette] .set-link svg { color: var(--sig-2); }
+:root[data-palette] .chip.on { color: var(--sig-ink); background: var(--sig); border-color: var(--sig); }
+:root[data-palette] .chip.on svg { color: var(--sig-ink); }
+:root[data-palette] .seg button[aria-checked="true"], :root[data-palette] .seg-a[aria-checked="true"] {
+  background: linear-gradient(135deg, var(--sig-2), var(--sig)); color: var(--sig-ink) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 4px 12px color-mix(in srgb, var(--sig) 40%, transparent);
+}
+:root[data-palette] .set-sw:checked { background: var(--sig); }
+:root[data-palette] .set-link { border-color: color-mix(in srgb, var(--sig) 30%, var(--line)); border-radius: calc(var(--radius) - 4px); }
+/* titujt dhe teksti */
+:root[data-palette] .page-head h1, :root[data-palette] .page-head h2, :root[data-palette] .set-h,
+:root[data-palette] .list-item .num { color: var(--head); }
+:root[data-palette] .page-head h1, :root[data-palette] .page-head h2 { text-shadow: 0 1px 14px color-mix(in srgb, var(--sig) 35%, transparent); }
+:root[data-palette] .set-h svg { color: var(--sig); }
+:root[data-theme="dark"][data-palette] .set-h svg { color: var(--sig-2); }
+:root[data-palette] .eyebrow { color: color-mix(in srgb, var(--sig) 55%, var(--gold)); }
+:root[data-theme="dark"][data-palette] .eyebrow { color: color-mix(in srgb, var(--sig-2) 55%, var(--gold-2, var(--gold))); }
+:root[data-palette] .card.hero .eyebrow { color: var(--gold-2, var(--gold)); }
+:root[data-palette] .list-item[aria-current="true"] { background: color-mix(in srgb, var(--sig) 18%, transparent); }
+:root[data-palette] .list-item:hover { background: color-mix(in srgb, var(--sig) 10%, transparent); }
+:root[data-palette] .page-head { border-bottom-color: color-mix(in srgb, var(--sig) 30%, var(--line)); }
+/* shiriti i poshtëm: skeda aktive me «pilulë» në ngjyrën e temës */
+:root[data-palette] .nav { border-top-color: color-mix(in srgb, var(--sig) 40%, var(--glass-brd)); }
+:root[data-palette] .nav-btn[aria-current="page"] { color: var(--head) !important; }
+:root[data-palette] .nav-btn[aria-current="page"] svg { color: var(--sig-ink);
+  background: radial-gradient(circle at 30% 25%, var(--sig-2) 0%, var(--sig) 60%, color-mix(in srgb, var(--sig) 70%, #000) 100%);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sig-2) 80%, #fff), 0 6px 14px -6px color-mix(in srgb, var(--sig) 70%, transparent); }
+:root[data-palette] .nav-btn[aria-current="page"] span::after { background: linear-gradient(90deg, transparent, var(--sig-2), transparent); }
+:root[data-palette] .nav-btn:hover svg { background: color-mix(in srgb, var(--sig) 16%, transparent); }
+
+/* =====================================================================
+   v3.2.33 — faqja Njoftimet
+   ===================================================================== */
+.nf-fix { border-color: color-mix(in srgb, #d9822b 50%, var(--line)) !important; background: color-mix(in srgb, #d9822b 10%, var(--card)) !important; }
+.nf-fix-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.nf-fix-row + .nf-fix-row { border-top: 1px solid var(--line); }
+.nf-fix-row > span { flex: 1; display: grid; gap: 3px; min-width: 0; }
+.nf-fix-row b { font-size: 15px; font-weight: 600; color: var(--ink); }
+.nf-fix-row small { font-size: 12.5px; color: var(--ink-2); line-height: 1.4; }
+.nf-fix-row .btn { flex: none; min-height: 40px; padding: 0 14px; font-size: 14.5px; }
+.nf-ok { padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #3f8f55 13%, transparent); color: var(--ink) !important; margin: 0 0 14px !important; }
+.set-all .btn { flex: 1; }
+.nf-test { width: 100%; margin-top: 14px; }
+button.set-link.nf-sys { width: 100%; font: inherit; font-size: 15px; background: none; cursor: pointer; text-align: left; margin-bottom: 20px; }
+
+.nf-only { display: block; margin-top: 3px; font-style: normal; font-size: 11.5px; letter-spacing: .02em; color: color-mix(in srgb, var(--gold) 80%, var(--ink-2)); }
+
+/* =====================================================================
+   v3.2.33 — pastrim estetik në gjithë aplikacionin: titujt në qendër,
+   tituj seksionesh me zbukurim të dyanshëm, rreshta të balancuar
+   ===================================================================== */
+h1, h2, h3, h4 { text-wrap: balance; }
+/* titulli i faqes në qendër; kur majtas ka vetëm «Kthehu», djathtas lihet e njëjta hapësirë që titulli të jetë vërtet në mes */
+.page-head h1, .page-head h2 { text-align: center; }
+.app:not(.flex-mode) .page-head > .back-btn:first-child + :is(h1, h2):last-child { padding-right: 52px; }
+/* titujt e seksioneve: në qendër, me vija të arta nga të dy anët */
+.hub-h { justify-content: center; text-align: center; }
+.hub-h::before { content: ""; flex: 1; height: 1px; background: linear-gradient(270deg, color-mix(in srgb, var(--gold) 70%, transparent), transparent); }
+.section-title { display: flex; align-items: center; gap: 12px; text-align: center; }
+.section-title::before, .section-title::after { content: ""; flex: 1; height: 1px; }
+.section-title::before { background: linear-gradient(270deg, color-mix(in srgb, var(--gold) 65%, transparent), transparent); }
+.section-title::after { background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 65%, transparent), transparent); }
+.set-h { justify-content: center; text-align: center; }
+.art-title, .reader .reading-title, .gz-title { text-align: center; }
+.persons-h, .sx-h, .blk-h { text-align: center; }
+/* paravargu (prokimeni): gjithmonë në qendër, titulli si rubrikë */
+.prokimen p { text-align: center !important; text-align-last: center; hyphens: none; }
+.prokimen p:first-child { font-family: var(--font-cap); letter-spacing: .06em; font-size: 14.5px; margin-bottom: 6px; }
+.prokimen p:first-child::before, .prokimen p:first-child::after { content: "☩"; color: var(--gold); font-size: .85em; margin: 0 .55em; opacity: .85; }
+
+/* karta «Sot në Kishë» merr ngjyrën e temës (jo më purpur në të gjitha temat) */
+:root[data-palette] .today-card, :root[data-theme="dark"][data-palette] .today-card {
+  background: radial-gradient(130% 100% at 0% 0%, color-mix(in srgb, var(--sig) 50%, #000) 0%, color-mix(in srgb, var(--sig) 20%, color-mix(in srgb, var(--bg) 45%, #000)) 55%, color-mix(in srgb, var(--sig) 8%, color-mix(in srgb, var(--bg) 30%, #000)) 100%) !important;
+  border-color: color-mix(in srgb, var(--sig-2) 45%, transparent) !important;
+}
+:root[data-palette] .today-card::after { background: radial-gradient(60% 50% at 90% 0%, color-mix(in srgb, var(--sig-2) 30%, transparent), transparent 70%); }
+:root[data-palette] .today-card .eyebrow, :root[data-palette] .today-svc svg, :root[data-palette] .today-card .lit-chip { color: color-mix(in srgb, var(--sig-2) 45%, var(--gold-2, var(--gold))); }
+:root[data-palette] .today-svc, :root[data-palette] .today-card .fast-card, :root[data-palette] .tc2 .today-read { border-color: color-mix(in srgb, var(--sig-2) 42%, transparent); }
+:root[data-palette] .today-card .lit-chip { background: color-mix(in srgb, var(--sig) 35%, transparent); }
+:root[data-palette] .today-card .lit-chip.great { background: var(--sig); color: var(--sig-ink); }
+:root[data-palette] .today-read { background: linear-gradient(160deg, color-mix(in srgb, var(--sig) 26%, rgba(0, 0, 0, .25)), rgba(0, 0, 0, .18)); }
+:root[data-palette] .today-read svg { color: var(--sig-2); }
+:root[data-palette] .tc2 .tc-date { border-color: color-mix(in srgb, var(--sig-2) 60%, transparent); background: color-mix(in srgb, var(--sig) 30%, rgba(0, 0, 0, .2)); }
+:root[data-palette] .tc2 .tc-icon { box-shadow: 0 0 0 2px var(--sig-2), 0 0 0 5px color-mix(in srgb, var(--sig) 30%, transparent), 0 8px 18px rgba(0, 0, 0, .4); }
+:root[data-palette] .tc2 .tc-quote { border-left-color: var(--sig-2); background: color-mix(in srgb, var(--sig) 22%, rgba(0, 0, 0, .22)); }
+:root[data-palette] .tc2 .tc-quote small { color: color-mix(in srgb, var(--sig-2) 50%, #e2bd62); }
+.lx-src { text-align: center !important; text-align-last: center; font-style: italic; }
