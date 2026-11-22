@@ -2874,3 +2874,13 @@ body > svg[width="0"] { width: 0 !important; height: 0 !important; overflow: hid
 .psg[open] .psg-go { background: transparent; color: var(--accent, #8e2a2a); box-shadow: inset 0 0 0 1px currentColor; font-size: 0; }
 .psg[open] .psg-go::before { font-size: 13px; content: "Fshih"; }
 .psg-body { padding: 0 14px 10px; }
+
+/* Burimi: një rresht i vetëm, shumë i vogël, në fund */
+.art-cite { justify-content: center; align-items: center; gap: 5px; margin: 22px 0 6px !important; padding: 0; background: none; border: 0; border-radius: 0;
+  font-size: 11px; line-height: 1.35; text-align: center; opacity: .6; }
+.art-cite svg { width: 11px; height: 11px; margin: 0; }
+.art-cite a { font-weight: 500; }
+.ar-src { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px; margin: 22px 0 0; padding: 8px 0 0; font-size: 11px; opacity: .6; text-align: center; }
+.ar-src p { margin: 0; font-style: normal; }
+.ar-src .ar-go { display: inline; padding: 0; background: none; box-shadow: none; border-radius: 0; font-family: inherit; font-size: 11px; font-weight: 500; line-height: 1.35; word-break: normal; }
+.gz-src, .gz-secs .gz-src, .gz-art p.gz-src, .gz-sheet p.gz-src, .gz-feat-tx > p.gz-src { font-size: 10.5px !important; line-height: 1.3 !important; opacity: .6; letter-spacing: 0; }

@@ -132,9 +132,220 @@ def sermons():
     return out
 
 
+# ---------------------------------------------------------------------------------------------
+# Radio Ngjallja (media.ngjallja.org): predikimet e Kryepiskopit dhe të mitropolitëve me tekstin e plotë
+# dhe të gjitha fotot; artikujt e fundit (me gjithë albumin) që postimet e Facebook-ut të marrin fotot e plota.
+# Merren vetëm artikujt e rinj (të njohurit ruhen në data/mitropolite.json).
+# ---------------------------------------------------------------------------------------------
+NGJ = "https://media.ngjallja.org/"
+NGJ_CATS = (("predikime-nga-kryepiskopi-joan", "tirane"), ("predikime-reflektime", None))
+# kush predikon → mitropolia (titulli peshon më shumë se fillimi/fundi i tekstit, ku shkruhet nënshkrimi)
+PREACH = [
+    ("tirane", r"Kryepiskop\w*|Kryepeshkop\w*|Fortlumturi\w*|\bJoan(i|it|in)?\b"),
+    ("korce", r"Mitropolit\w* (i|të) Korç\w*|\bKorç\w*|\bAnastasi(t|n)?\b(?! i ndjerë)"),
+    ("fier", r"\bFier\w*|Apol+oni\w*|\bNikoll(a|ës|ën)\b"),
+    ("gjiro", r"Gjirokast\w*|Nathanail\w*"),
+    ("berat", r"\bBerat\w*|\bVlor\w*|\bAst(i|it|in)\b"),
+    ("elbasan", r"Elbasan\w*|\bAndon(i|it|in)\b"),
+]
+NGJ_IMG = r"https://media\.ngjallja\.org/uploads/images/\d+/image_870x\w*?_[0-9a-f]+\.(?:webp|jpe?g|png)"
+
+
+def _ngj_get(url):
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Linux; Android 14) FjalaEShenjte"})
+    with urllib.request.urlopen(req, timeout=25) as r:
+        return r.read().decode("utf-8", "replace")
+
+
+def _ngj_utc(local):
+    """«2026-11-22 15:47:37» (ora e Tiranës) → ISO UTC"""
+    import datetime
+    try:
+        t = datetime.datetime.fromisoformat(str(local).strip()[:19])
+    except ValueError:
+        return ""
+    y = t.year
+    def last_sun(m):
+        return max(datetime.datetime(y, m, d, 2) for d in range(25, 32) if datetime.date(y, m, d).weekday() == 6)
+    off = 2 if last_sun(3) <= t < last_sun(10) else 1
+    return (t - datetime.timedelta(hours=off)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+
+def _ngj_list(path):
+    """lidhjet e artikujve të listës kryesore (pa shiritin anësor dhe menunë)"""
+    s = _ngj_get(NGJ + path)
+    a = s.find('class="page-title"')
+    b = s.find('class="pagination', a) if a >= 0 else -1
+    part = s[a:b] if a >= 0 and b > a else s
+    out = []
+    for u in re.findall(r'<a href="(https://media\.ngjallja\.org/[^"#?]+)"[^>]*>\s*<img', part):
+        if u not in out:
+            out.append(u)
+    return out
+
+
+def _ngj_home():
+    s = _ngj_get(NGJ)
+    out = []
+    for u in re.findall(r'<a href="(https://media\.ngjallja\.org/[^"#?/]{20,})"', s):
+        if u not in out and not re.search(r"/(search|kategori|tag|page|predikime-|lajme$)", u):
+            out.append(u)
+    return out[:40]
+
+
+def _ngj_article(url):
+    """titulli, data (UTC), teksti i plotë si paragrafë, të gjitha fotot e shkrimit"""
+    s = _ngj_get(url)
+    title = html_unescape(re.search(r'<meta property="og:title" content="([^"]*)"', s).group(1)) if re.search(r'<meta property="og:title" content="([^"]*)"', s) else ""
+    pub = re.search(r'<meta property="article:published_time" content="([^"]+)"', s)
+    a = s.find('class="post-image"')
+    i = s.find('class="post-text"')
+    if i < 0:
+        return None
+    j = s.find('post-tags', i)
+    j = j if j > i else s.find('class="post-share', i)
+    j = s.rfind("<", i, j) if j > i else j          # pa bishtin «<div class="»
+    body = s[i:j if j > i else i + 200000]
+    body = body[body.find(">") + 1:]
+    imgs = []
+    for u in re.findall(NGJ_IMG, s[(a if 0 <= a < i else i):(j if j > i else len(s))]):
+        if u not in imgs:
+            imgs.append(u)
+    paras = [unicodedata.normalize("NFKC", t).strip() for t in paras_of(body, 30000).split("\n\n")]
+    # nënshkrimi i redaksisë («Media Ngjallja, 22.11.2026», «Burimi: …») nuk hyn te teksti
+    while paras and len(paras[-1]) < 140 and re.match(r"(?i)^(media ngjallja|burimi|burim)\b", paras[-1]):
+        paras.pop()
+    paras = [re.sub(r"(?i)\s*(burimi:[^.]{0,90}?)?\s*media ngjallja,?\s*(?:\d{1,2}[./]\d{1,2}[./]\d{2,4}|(?:\d{1,2}\s+)?\w+\s+\d{4})\s*$", "", p).strip() for p in paras]
+    text = "\n\n".join(p for p in paras if p)
+    return {"title": unicodedata.normalize("NFKC", ml.text(title)).strip(), "date": _ngj_utc(pub.group(1)) if pub else "",
+            "link": url, "img": imgs[0] if imgs else "", "imgs": imgs[:40], "text": text}
+
+
+def html_unescape(t):
+    import html
+    return html.unescape(t or "")
+
+
+def _preacher(title, text, fixed=None):
+    if fixed:
+        return fixed
+    head = title + " " + text[:300] + " " + text[-500:]
+    if not re.search(r"(?i)predik|fjala e (fortlumturis|hirësis)", title + " " + text[-400:]):
+        return None
+    sc = {g: 3 * len(re.findall(rx, title, re.I)) + len(re.findall(rx, head, re.I)) for g, rx in PREACH}
+    best = max(sc, key=sc.get)
+    if sc[best] < 2 or sum(1 for v in sc.values() if v == sc[best]) > 1:
+        return None
+    return best
+
+
+def ngj_sermons(known):
+    """predikimet e reja nga media.ngjallja.org (Kryepiskopi dhe mitropolitët), me tekstin e plotë dhe fotot"""
+    out = []
+    for path, fixed in NGJ_CATS:
+        try:
+            links = _ngj_list(path)
+        except Exception as exc:
+            print("Radio Ngjallja", path, exc.__class__.__name__)
+            continue
+        for u in links[:16]:
+            if u in known:
+                continue
+            known.add(u)
+            try:
+                a = _ngj_article(u)
+            except Exception:
+                continue
+            if not a or len(a["text"]) < 800:
+                continue
+            g = _preacher(a["title"], a["text"], fixed)
+            if not g:
+                continue
+            out.append(dict(a, ex=ml.short(a["text"].split("\n\n")[0]), src="ngj", grp="koash", lang="sq", cat="predikim",
+                            source="Radio Ngjallja · media.ngjallja.org", _g=g))
+    return out
+
+
+def ngj_albums(cache):
+    """artikujt e fundit të Radio Ngjallja me gjithë fotot (për albumet e plota të postimeve në Facebook)"""
+    try:
+        links = _ngj_home()
+    except Exception:
+        return cache
+    for u in links:
+        if u in cache:
+            continue
+        try:
+            a = _ngj_article(u)
+        except Exception:
+            continue
+        if a and a["imgs"]:
+            cache[u] = {"t": a["title"], "d": a["date"], "i": a["imgs"], "x": a["text"][:300]}
+    return dict(sorted(cache.items(), key=lambda kv: kv[1].get("d", ""), reverse=True)[:150])
+
+
+def _words(t):
+    return {w for w in re.findall(r"\w{4,}", unicodedata.normalize("NFKC", str(t or "")).lower()) if not w.isdigit()}
+
+
+def fb_full_albums(groups, articles):
+    """Postimi i Facebook-ut sjell vetëm disa foto: nëse i njëjti event është shkruar te KOASh ose Radio Ngjallja
+    (e njëjta ditë, i njëjti titull), postimi merr gjithë albumin e shkrimit."""
+    import datetime
+    def day(d):
+        try:
+            return datetime.date.fromisoformat(str(d)[:10])
+        except ValueError:
+            return None
+    n = 0
+    for g in groups:
+        for it in g["items"]:
+            if "facebook.com" not in str(it.get("link") or ""):
+                continue
+            d0, fbw = day(it.get("date")), _words(str(it.get("title", "")) + " " + str(it.get("text", ""))[:500])
+            if not d0 or len(fbw) < 3:
+                continue
+            best, bs = None, 0.0
+            for a in articles:
+                d1 = day(a["d"])
+                if not d1 or abs((d1 - d0).days) > 1 or len(a["i"]) <= len(it.get("imgs") or []):
+                    continue
+                tw = _words(a["t"])
+                if len(tw) < 3:
+                    continue
+                s = len(tw & fbw) / len(tw)
+                if s > bs:
+                    best, bs = a, s
+            if best and bs >= 0.6:
+                have = list(it.get("imgs") or [])
+                it["imgs"] = list(dict.fromkeys(best["i"] + have))[:40]
+                it["img"] = it.get("img") or it["imgs"][0]
+                it["alb"] = best["u"]
+                n += 1
+    return n
+
+
 def main():
     items = koash_posts()
     preds = sermons()
+    try:
+        with open(OUT, encoding="utf-8") as f:
+            _prev = json.load(f)
+    except Exception:
+        _prev = {}
+    _known = {str(i.get("link") or "") for g in (_prev.get("groups") or []) for i in (g.get("items") or [])} | set(_prev.get("ngj_seen") or [])
+    try:
+        ngj = ngj_sermons(_known)
+        print(f"Radio Ngjallja: {len(ngj)} predikime të reja")
+    except Exception as exc:
+        ngj = []
+        print(f"Radio Ngjallja: gabim {exc.__class__.__name__}")
+    preds += ngj
+    try:
+        ngj_cache = ngj_albums(dict(_prev.get("ngj_art") or {}))
+    except Exception:
+        ngj_cache = dict(_prev.get("ngj_art") or {})
 
     # merr_lajmet ruan "summary" dhe "src_id"; ky modul përdor "ex" dhe burime të shkurtra.
     try:
@@ -181,6 +392,8 @@ def main():
             g = "fanar"
         elif it.get("src") == "pred":
             g = "tirane" if it.get("_kp") else (classify(it["title"], it.get("_body", "")) or "tirane")
+        elif it.get("src") == "ngj":
+            g = it.get("_g")
         else:
             if it.get("src") == "ugo" and not re.search(CHURCH, it.get("title", "") + " " + it.get("_body", ""), re.I):
                 continue
@@ -206,12 +419,22 @@ def main():
     for gid, name, _rx in GROUPS:
         old_items = old_groups.get(gid, {}).get("items", [])
         combined = byg[gid] + [x for x in old_items if isinstance(x, dict)]
-        deduped, local_seen = [], set()
+        deduped, local_seen, by_fp = [], set(), {}
         for item in combined:
             item_key = item.get("link") or item.get("id") or item.get("title")
             if not item_key or item_key in local_seen:
                 continue
             local_seen.add(item_key)
+            if item.get("cat") == "predikim" and len(item.get("text") or "") > 300:
+                fps = {re.sub(r"\W+", "", unicodedata.normalize("NFKC", p).lower())[:80] for p in item["text"].split("\n\n") if len(p) > 160}
+                hits = [by_fp[f] for f in fps if f in by_fp]
+                if len(hits) >= 2 or (hits and len(fps) < 3):
+                    o = hits[0]
+                    if len(item.get("imgs") or []) > len(o.get("imgs") or []):
+                        o["imgs"] = list(dict.fromkeys((o.get("imgs") or []) + item["imgs"]))[:40]
+                    continue
+                for f in fps:
+                    by_fp.setdefault(f, item)
             deduped.append(item)
         arr = sorted(deduped, key=lambda x: x.get("date") or "", reverse=True)
         groups.append({"id": gid, "name": name, "items": arr[:PER]})
@@ -228,9 +451,14 @@ def main():
     koash.sort(key=lambda x: x.get("date") or "", reverse=True)
 
     prev = previous if isinstance(locals().get("previous"), dict) else {}
+    arts = [{"u": u, "t": a.get("t", ""), "d": a.get("d", ""), "i": a.get("i") or []} for u, a in ngj_cache.items()]
+    arts += [{"u": i.get("link", ""), "t": i.get("title", ""), "d": i.get("date", ""), "i": i.get("imgs") or []} for i in items if i.get("src") == "koash"]
+    arts += [{"u": i.get("link", ""), "t": i.get("title", ""), "d": i.get("date", ""), "i": i.get("imgs") or []} for i in koash[:80]]
+    print(f"Albumet e plota: {fb_full_albums(groups, arts)} postime në Facebook")
     doc = {"koash": koash[:500], "updated": ml.iso_now(), "groups": groups,
            "fb_at": FB_AT or str(prev.get("fb_at") or ""),
-           "fb_seen": sorted(set(prev.get("fb_seen") or []) | _FB_DROPPED)[-600:]}
+           "fb_seen": sorted(set(prev.get("fb_seen") or []) | _FB_DROPPED)[-600:],
+           "ngj_seen": sorted(u for u in _known if u.startswith(NGJ))[-800:], "ngj_art": ngj_cache}
     ml.scrub_hidden(doc)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
