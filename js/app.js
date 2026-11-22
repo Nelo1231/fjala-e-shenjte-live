@@ -4971,6 +4971,7 @@ function pickPhoto(it) {
   // ---------- Albumi: fotot në ekran të plotë, si Ikona e ditës (prek → tjetra, rrëshqit poshtë → mbyll) ----------
   function photoViewer(list, start, label, cite) {
     if (!list || !list.length) return;
+    photoViewer.at = Date.now();
     let i = Math.max(0, Math.min(start || 0, list.length - 1));
     const el = document.createElement("div");
     el.className = "icv phv";
@@ -5020,6 +5021,25 @@ function pickPhoto(it) {
     addEventListener("keydown", esc_, true);
   }
 
+  // Fotot kudo si Ikona e ditës: prekja e një fotoje (jo brenda lidhjes/butonit) e hap në ekran të plotë,
+  // me gjithë fotot e atij shkrimi/postimi (prek → tjetra, rrëshqit poshtë → mbyll)
+  const PH_SKIP = "a, button, summary, label, input, nav, header, .icv, .page-head, .rail, .nav-btn, .mzd, .kn-card, .kn-hero, .tile, [data-x], [data-out], [role=tab]";
+  const phOk = (im) => {
+    const u = im.currentSrc || im.src || "";
+    if (!u || /\.svg(\?|$)|emoji|logo|avatar|favicon|\/icons?\//i.test(u) || im.classList.contains("sm-orn")) return false;
+    const r = im.getBoundingClientRect();
+    return r.width >= 110 && r.height >= 70;
+  };
+  document.addEventListener("click", (e) => {
+    const im = e.target.closest && e.target.closest("img");
+    if (!im || e.defaultPrevented || Date.now() - (photoViewer.at || 0) < 400 || im.closest(PH_SKIP) || !phOk(im)) return;
+    const box = im.closest("article, .ar-doc, .gz-sheet, .mz-art, .art-body, section, .pane-main, .pane-list") || document.body;
+    const ims = $$("img", box).filter((x) => !x.closest(PH_SKIP) && phOk(x));
+    const urls = [...new Set(ims.map((x) => x.currentSrc || x.src))];
+    const title = ((box.querySelector("h1, h2") || {}).textContent || "").trim();
+    e.preventDefault();
+    photoViewer(urls, Math.max(0, urls.indexOf(im.currentSrc || im.src)), title.length > 48 ? title.slice(0, 46) + "…" : title);
+  });
   // ---------- Lexuesi i brendshëm i shkrimeve ----------
   // Çdo shkrim nga burimet (KOASH, UGO, Orthodox Times, Vatican News…) hapet brenda aplikacionit si faqe libri:
   // titulli, fotoja, data, përmbledhja e botuesit; lidhja te faqja e burimit vetëm në fund.
@@ -6429,7 +6449,7 @@ function pickPhoto(it) {
           c.style.zIndex = 100 - Math.max(0, d);
           c.classList.toggle("far", d > 3);
         });
-        cnt.textContent = n > 1 ? `${Math.min(i + 1, n)} / ${n} · prek për foton tjetër` : "prek ⛶ për ekran të plotë";
+        cnt.textContent = n > 1 ? `${Math.min(i + 1, n)} / ${n} · prek për ekran të plotë · rrëshqit për tjetrën` : "prek ⛶ për ekran të plotë";
       };
       const step = (dir) => {
         if (dir < 0) { if (i > 0) { i--; lay(); } return; }
@@ -6447,11 +6467,11 @@ function pickPhoto(it) {
         if (x0 == null) return; const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
         if (e.target.closest(".mzd-full")) return;
         if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) step(dx < 0 ? 1 : -1);
-        else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) step(1);
+        else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) photoViewer(imgs, Math.min(i, imgs.length - 1), by.head, p.fb ? by.name + " · Facebook" : p.source || "");
         haptic(8);
       });
       $(".mz-art", mainPane).addEventListener("click", (e) => {
-        const f = e.target.closest(".mzd-full"); if (f) { e.stopPropagation(); photoViewer(imgs, +f.dataset.k, "Shkolla e Muzikës"); return; }
+        const f = e.target.closest(".mzd-full"); if (f) { e.stopPropagation(); photoViewer(imgs, +f.dataset.k, by.head, p.fb ? by.name + " · Facebook" : p.source || ""); return; }
         const ag = e.target.closest(".mzd-again"); if (ag) { ag.remove(); deck.classList.remove("done"); i = 0; lay(); return; }
       });
     }
@@ -11265,7 +11285,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.25";
+  const APP_VERSION = "3.2.26";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
