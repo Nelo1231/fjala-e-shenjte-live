@@ -10996,7 +10996,15 @@ function pickPhoto(it) {
       const at = `data-i="${i}" tabindex="0" role="button"`;
       if (b.t === "h") inPsalm = /^(Psalmi|Gjashtë Psalmet|Dhoksologjia)/i.test(b.x);
       else if (b.t === "rubric" && !clean && !/^Dhe përsëri/.test(b.x)) inPsalm = false;
+      // «“Lavdi...” dhe “Tani...”» (mbetje e shkurtuar): teksti i plotë, në qendër
+      if ((b.t === "p" || b.t === "role") && /^[“"«]?Lavdi(\.\.\.|…)[”"»]?,?\s*(dhe\s*)?[“"«]?Tani(\.\.\.|…)[”"»]?\.?$/.test(b.x.trim()))
+        return `<p class="verse svc-dox" ${at}>Lavdi Atit e Birit edhe Shpirtit të Shenjtë.</p><p class="verse svc-dox" ${at}>Tani e përherë e në jetë të jetëve. Amin.</p>`;
       if (clean && (b.t === "rubric" || cutNote(b, i) || (b.t === "h" && /^Kori\b/.test(b.x)))) return "";
+      // dhoksologjia e vogël («Lavdi Atit…», «Tani e përherë…») gjithmonë në qendër
+      if (b.t === "p" && b.x.length < 140 && /^(Lavdi Atit|Tani e përherë)/.test(b.x.trim()))
+        return /^Lavdi Atit.*,\s*tani e përherë/i.test(b.x) && !/Mëshiro|Beko/.test(b.x)
+          ? `<p class="verse svc-dox" ${at}>${esc(b.x.replace(/,\s*tani e përherë.*$/i, "."))}</p><p class="verse svc-dox" ${at}>${esc("Tani e përherë" + b.x.replace(/^.*?,\s*tani e përherë/i, ""))}</p>`
+          : `<p class="verse svc-dox" ${at}>${esc(b.x)}</p>`;
       switch (b.t) {
         case "chant": return `<div class="blk-chant">${b.tone ? `<p class="chant-tone">${esc(b.tone)}</p>` : ""}<p class="verse" ${at}>${esc(b.x).replace(/\*/g, '<span class="star">*</span>')}</p>${scoreBtn(b)}</div>`;
         case "h": return `<h3 class="blk-h" id="b${i}">${esc(b.x)}</h3>${scoreBtn(b)}`;
