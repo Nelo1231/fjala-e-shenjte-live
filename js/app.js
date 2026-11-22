@@ -5031,6 +5031,14 @@ function pickPhoto(it) {
     return r.width >= 110 && r.height >= 70;
   };
   document.addEventListener("click", (e) => {
+    const hero = e.target.closest && e.target.closest(".art-hero");
+    if (hero && !e.defaultPrevented && Date.now() - (photoViewer.at || 0) > 400) {
+      const u = getComputedStyle(hero).backgroundImage.replace(/^url\(["']?|["']?\)$/g, "");
+      const doc = hero.closest("article, .pane-main") || document.body;
+      const rest = $$("img", doc).filter((x) => !x.closest(PH_SKIP) && phOk(x)).map((x) => x.currentSrc || x.src);
+      const t = ((doc.querySelector("h1, h2.art-title, .art-title") || {}).textContent || "").trim();
+      if (u && u !== "none") { photoViewer([...new Set([u, ...rest])], 0, t.length > 48 ? t.slice(0, 46) + "…" : t); return; }
+    }
     const im = e.target.closest && e.target.closest("img");
     if (!im || e.defaultPrevented || Date.now() - (photoViewer.at || 0) < 400 || im.closest(PH_SKIP) || !phOk(im)) return;
     const box = im.closest("article, .ar-doc, .gz-sheet, .mz-art, .art-body, section, .pane-main, .pane-list") || document.body;
@@ -5136,9 +5144,29 @@ function pickPhoto(it) {
     n.nodeValue = m[1];
     n.after(span, rest);
   }
+  // e njëjta foto vetëm një herë: fotoja kryesore sipër (art-hero / ar-ph) nuk përsëritet brenda tekstit
+  // (krahasohet emri i skedarit pa madhësinë «-768x512», «-scaled» ose pyetjen «?…»)
+  const imgKey = (u) => String(u || "").replace(/^url\(["']?|["']?\)$/g, "").split(/[?#]/)[0].split("/").pop().replace(/-(\d+x\d+|scaled|e\d{10,})(?=\.\w+$)/g, "").replace(/^image_\d+x\d*_/, "").toLowerCase();
+  function heroOnce(root) {
+    const doc = root.closest && root.closest("article, .ar-doc, .pane-main");
+    if (!doc) return;
+    const keys = new Set();
+    $$(".art-hero, .ar-ph img, .news-hero, .gz-ph img", doc).forEach((h) => {
+      if (root.contains(h)) return;
+      keys.add(imgKey(h.tagName === "IMG" ? h.currentSrc || h.src || h.dataset.ns : getComputedStyle(h).backgroundImage));
+    });
+    keys.delete("");
+    if (!keys.size) return;
+    $$("img", root).forEach((im) => {
+      if (!keys.has(imgKey(im.getAttribute("src") || im.dataset.ns || im.src))) return;
+      const box = im.closest("figure, p, a") || im;
+      (root.contains(box) && box !== root && !box.textContent.trim() ? box : im).remove();
+    });
+  }
   function smartBody(root, plain) {
     if (!root) return;
     oneCite(root);
+    heroOnce(root);
     if (!plain) bodyAlbum(root);
     root.querySelectorAll("p.ar-first").forEach(dropCap);
     const ps = [...root.querySelectorAll(":scope > p, :scope > div > p")];
@@ -11285,7 +11313,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.26";
+  const APP_VERSION = "3.2.27";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
