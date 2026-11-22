@@ -17,10 +17,14 @@
     // Shpërfytyrimi → Shndërrimi (në çdo trajtë)
     [/♫/g, "–"], [/♪/g, ""],
     [/shpërfytyr/g, "shndërr"], [/Shpërfytyr/g, "Shndërr"], [/SHPËRFYTYR/g, "SHNDËRR"],
+    // «Perëndia është Zoti» (Mëngjesorja e kudo), jo «Perëndi është Zoti»
+    [new RegExp(`(?<!${L})Perëndi(?= është Zoti)`, "gu"), "Perëndia"], [new RegExp(`(?<!${L})PERËNDI(?= ËSHTË ZOTI)`, "gu"), "PERËNDIA"],
+    // gjithmonë «Orthodhoks…»: ortodokse, ortodoksë, Ortodoksia, Orthodokse … → orthodhokse, orthodhoksë, Orthodhoksia
+    [/(?<![\p{L}.\/-])([Oo])rth?odh?oks/gu, "$1rthodhoks"], [/(?<![\p{L}.\/-])ORTH?ODH?OKS/gu, "ORTHODHOKS"],
   ];
   const ortho = (s) => { let t = String(s == null ? "" : s); for (const [re, to] of ORTHO) t = t.replace(re, to); return t; };
   // zbatoje kudo: edhe te tekstet që vijnë si HTML (artikuj, sinaksar, harta, kërkim …)
-  const ORTHO_TEST = /♫|♪|Gjon|GJON|Jezu|JEZU|Jisus|JISUS|Pal|PAL|Jesu|JESU|fytyr|FYTYR/;
+  const ORTHO_TEST = /♫|♪|Gjon|GJON|Jezu|JEZU|Jisus|JISUS|Pal|PAL|Jesu|JESU|fytyr|FYTYR|[Oo]rtodh?oks|[Oo]rthodoks|ORTH?ODOKS|ORTODHOKS|Perëndi është Zoti|PERËNDI ËSHTË ZOTI/;
   // «.no-ortho»: emrat origjinalë (titulli origjinal i filmit, emri i burimit) mbeten siç janë
   const orthoNode = (n) => { const v = n.nodeValue; if (v && ORTHO_TEST.test(v) && !(n.parentNode && n.parentNode.closest && n.parentNode.closest(".no-ortho"))) { const w = ortho(v); if (w !== v) n.nodeValue = w; } };
   function orthoTree(root) {
@@ -11358,7 +11362,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.30";
+  const APP_VERSION = "3.2.31";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {

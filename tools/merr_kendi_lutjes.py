@@ -33,12 +33,27 @@ def main():
     if not sel:
         raise RuntimeError("përzgjedhësi i shërbesave nuk u gjet")
     opts = re.findall(r'<option value="([^"]+)"([^>]*)>(.*?)</option>', sel.group(1))
+    # faqja shton/hap shërbesat e reja shqip me JavaScript (lista «SQ=[[slug, titull], …]»): pa të, Mesnata dukej «së shpejti»
+    sq = re.search(r"SQ=(\[\[.*?\]\]);", page, re.S)
+    if sq:
+        try:
+            extra = json.loads(sq.group(1))
+        except ValueError:
+            extra = []
+        have = [o[0] for o in opts]
+        at = have.index("mesnata") + 1 if "mesnata" in have else len(opts)
+        for slug, title in extra:
+            if slug in have:
+                k = have.index(slug)
+                opts[k] = (slug, opts[k][1].replace('data-unavailable="1"', ""), title)
+            else:
+                opts.insert(at, (slug, "", title)); have.insert(at, slug); at += 1
     items = []
     for slug, attrs, label in opts:
         label = H.unescape(re.sub(r"<[^>]+>", "", label)).strip()
         name = re.sub(r"^[^\wÀ-ž]+", "", label).replace("︎", "").strip()          # pa shenjat ◐ ☀︎ ✦ …
         name = re.sub(r"\s*·\s*së shpejti$", "", name)
-        it = {"slug": slug, "t": name, "ok": "data-unavailable" not in attrs}
+        it = {"slug": slug, "t": name, "ok": True}
         if it["ok"]:
             try:
                 j = json.loads(get(B + "wp-json/oa-prayer/v1/service/" + slug))
