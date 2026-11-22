@@ -8888,6 +8888,11 @@ function pickPhoto(it) {
       B = cutRange(B, (b) => b.t === "rubric" && /^Gjatë të dielave të Triodit/.test(b.x), (b) => b.t === "rubric" && /^Pastaj Dhjaku thotë/.test(b.x));
     }
     B = keepTone(B, tone);
+    if (kind === "men") {
+      // të dielën Mëngjesorja mbaron me «Sot erdhi shpëtimi…» dhe nis Liturgjia: mbyllja që klerikët e thonë pa zë nuk shfaqet
+      const end = B.findIndex((b) => b.t === "rubric" && /^Gjatë kohës që psalet dhoksologjia e madhe, klerikët bëjnë mbylljen/.test(b.x));
+      if (end > 0) B = B.slice(0, end);
+    }
     const okP = (k) => { const sc = T.sections.find((x) => x.k === k); return sc ? sc.blocks.filter((b) => b.t === "p").map((b) => b.x) : []; };
     // Përlëshorja dhe Hyjlindësorja e tingullit: teksti fiks nga Tetëtingullshi (jo nga libri i shërbesës)
     {
@@ -8924,7 +8929,7 @@ function pickPhoto(it) {
     };
     // vendet që Tipikoja ia jep Mujorit: titulli me fjalët e Tipikosë + fillimi i himnit që citon ajo (teksti është te Mujori)
     const menH = (label, q, src = "Nga Mujori") => `<div class="tip-men"><span class="okto-src">${icon("book")} ${esc(src)}</span><p><b>${esc(label)}</b>${q ? ` · <i>“${esc(q)}…”</i>` : ""}</p></div>`;
-    const noteH = (s) => (s ? `<p class="tip-note"><b>Tipikoja:</b> ${esc(s)}</p>` : "");
+    const noteH = () => "";   // shërbesa formohet sipas Tipikosë; vetë shënimet e saj lexohen te skeda «Tipikoja»
     const stH = (x, src) => `<div class="okto-st"><span class="okto-src">${icon("music")} ${esc(src)}</span><p class="okto-p">${versify(x)}</p></div>`;
     const hymnH = (h) => stH(h.x, `${h.title} · Tetëtingullshi · ${TONE_FULL[h.tone]}`);
     const subH = (x) => `<p class="okto-sub">${esc(x)}</p>`;
@@ -8984,7 +8989,7 @@ function pickPhoto(it) {
       const a1 = B.findIndex((b, i) => i > a0 && /^Lavdi Atit e Birit edhe Shpirtit të Shenjtë\.$/.test(b.x.trim()));
       if (a0 >= 0 && a1 > a0) {
         const verses = B.slice(a0, a1).filter((b) => b.t === "p").flatMap((b) => b.x.split(/(?<=[.!?])\s+(?=[A-ZËÇ])/));
-        let html = thCl ? noteH(tipCut(thCl)) : `<p class="blk-rubric">Të dielën vargëzimet nisin nga vargu i dhjetë: 7 vargëzime ngjallësore dhe 3 të Mujorit.</p>`;
+        let html = "";
         verses.forEach((v, i) => {
           html += `<p class="verse para thv"><span class="vl"><b class="vlab">Varg ${verses.length - i}:</b> ${esc(v)}</span></p>`;
           html += i < slots.length ? stH(slots[i], `Tetëtingullshi · ${TONE_FULL[tone]}`) : menH(men[i - slots.length] || `Vargëzim i ${C.who}`, "");
@@ -9069,13 +9074,28 @@ function pickPhoto(it) {
       const mgCl = tipSeg(tx, /MADHËSHTIMET/, /“\s*I shenjtë është Zoti/), mg9 = /Zbritësorja IX\s*:?\s*(“[^”]+”)?/.exec(mgCl);
       if (mgCl) ins.push([(b) => b.t === "rubric" && /psal këngën e IX-të të zbritësoreve/.test(b.x), noteH(mgCl) + (mg9 && mg9[1] ? menH("Zbritësorja IX", tipQ(mg9[1])[0]) : ""), "after"]);
       // Lavdërimet: aq vargëzime ngjallësore sa thotë Tipikoja, pastaj ato të Mujorit
-      const lvCl = tipSeg(tx, /LAVDËRIMET/, /DHOKSOLOGJI/), LC = tipCount(lvCl);
-      let lvH = lvCl ? noteH(lvCl) : "";
-      if (LC) {
-        lvH += okto("lavderimet", LC.res);
-        for (let i = 0; i < Math.min(LC.menSlots, 8); i++) lvH += menH(`Vargëzimi ${Math.min(i + 1, LC.men || i + 1)} i ${LC.who}${i >= LC.men ? " (edhe një herë)" : ""}`, "");
-      } else lvH += okto("lavderimet", 8);
-      ins.push([(b) => /^Do të të lavdëroj me gjithë zemër, o Zot/.test(b.x), lvH, "after"]);
+      // vargëzimi pas vargut të vet (si te “O Zot thirra”): numërohen nga fundi, ngjallësoret para atyre të Mujorit
+      const lvCl = tipSeg(tx, /LAVDËRIMET/, /DHOKSOLOGJI/), LC = tipCount(lvCl) || { res: 8, resSlots: 8, men: 0, menSlots: 0, who: "" };
+      {
+        const v0 = B.findIndex((b) => b.t === "p" && /^Vargjet e Vargëzimeve të Lavdërimeve/.test(b.x));
+        const v1 = v0 < 0 ? -1 : B.findIndex((b, i) => i > v0 && b.t === "p" && /^Lavdi Atit/.test(b.x));
+        if (v0 >= 0 && v1 > v0) {
+          const verses = B.slice(v0 + 1, v1).filter((b) => b.t === "p").map((b) => b.x);
+          const lst = okP("lavderimet").slice(0, LC.res);
+          const res = lst.length ? Array(Math.max(0, LC.resSlots - lst.length)).fill(lst[0]).concat(lst) : [];
+          const men = [];
+          for (let i = 0; i < LC.men; i++) { men.push(`Vargëzimi ${i + 1} i ${LC.who}`); if (men.length < LC.menSlots && i < LC.menSlots - LC.men) men.push(`Vargëzimi ${i + 1} i ${LC.who} (edhe një herë)`); }
+          men.length = Math.min(men.length, LC.menSlots);
+          const slots = [...res.map((x) => ({ x })), ...men.map((l) => ({ l }))].slice(0, verses.length), off = verses.length - slots.length;
+          let html = "";
+          verses.forEach((v, i) => {
+            html += `<p class="verse para thv"><span class="vl"><b class="vlab">Varg ${verses.length - i}:</b> ${esc(v)}</span></p>`;
+            const st = slots[i - off];
+            if (st) html += st.x ? stH(st.x, `Tetëtingullshi · ${TONE_FULL[tone]}`) : menH(st.l, "");
+          });
+          B.splice(v0 + 1, v1 - v0 - 1, { t: "html", html });
+        }
+      }
       // Dërgimsorja dhe Lavdia mëngjesore sipas Ungjillit mëngjesor (fundi i Tetëtingullshit) dhe Tipikosë
       const eo = OKA.eothina;
       const dgCl = tipSeg(tx, /DËRGIMSOR/, /LAVDËRIMET/), dgWho = tipWho(dgCl);
@@ -9085,8 +9105,8 @@ function pickPhoto(it) {
         if (dg) ins.push([(b) => b.t === "rubric" && /psalet dërgimsorja e Ngjalljes/.test(b.x),
           noteH(dgCl) + (dgWho
             ? box(`Dërgimsorja ngjallësore ${umR}`, (eo.mel || "") + " · Tetëtingullshi", [{ t: "p", x: dg.x }], true,
-              /Hyjlindësor/i.test(dgCl) ? subH("Lavdi…") + menH(`Dërgimsorja e ${dgWho}`, "") + subH("Tani…") + menH("Hyjlindësorja e saj", "") : subH("Lavdi… Tani…") + menH(`Dërgimsorja e ${dgWho}`, ""))
-            : box(`Dërgimsorja ngjallësore ${umR}`, (eo.mel || "") + " · Tetëtingullshi", [{ t: "p", x: dg.x }, { t: "sub", x: "Lavdi dhe tani · Hyjlindësorja" }, { t: "p", x: dg.theo }])), "after"]);
+              menH(`Dërgimsorja e ${dgWho}`, "") + (/Hyjlindësor/i.test(dgCl) ? menH("Hyjlindësorja e saj", "") : ""))
+            : box(`Dërgimsorja ngjallësore ${umR}`, (eo.mel || "") + " · Tetëtingullshi", [{ t: "p", x: dg.x }, { t: "sub", x: "Hyjlindësorja" }, { t: "p", x: dg.theo }])), "after"]);
         if (lv || lvMen) ins.push([(b) => b.t === "rubric" && /psalet lavdia mëngjesore/.test(b.x),
           lvMen ? menH(`Lavdia e ${tipWho(gL.lavdi)}`, tipQ(gL.lavdi)[0]) : box(`Lavdia mëngjesore ${umR}`, lv.tone + " · Tetëtingullshi", [{ t: "p", x: lv.x }]), "after"]);
       }
@@ -10680,7 +10700,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.5";
+  const APP_VERSION = "3.2.8";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
