@@ -2602,31 +2602,31 @@ html.mzv-open, html.mzv-open body { overflow: hidden; }
 
 .nf-pick { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
 
-.nf-sel { font: inherit; font-size: 14px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; max-width: 220px; }
-
-/* Dëgjo leximet — butoni dhe lojtësi i vogël */
-.ra-go { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 12px 0 4px; padding: 12px 16px; border: 0; border-radius: 16px; font: inherit; font-weight: 700; font-size: 15px; color: #fff8ea; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #1a0f0a)); box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 35%, transparent), inset 0 1px 0 rgba(255, 255, 255, .25); cursor: pointer; }
-.ra-go svg { width: 20px; height: 20px; fill: currentColor; }
-.ra-go.on { background: linear-gradient(135deg, var(--gold), color-mix(in srgb, var(--gold) 50%, #2b1d14)); color: #1d140c; }
-.ra-go.busy { opacity: .7; pointer-events: none; }
-.reader .ra-go { max-width: 420px; margin: 6px auto 18px; }
-.ra-bar { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 86px); transform: translateX(-50%); z-index: 70; width: min(560px, calc(100% - 24px)); display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 12px; border-radius: 20px; background: var(--glass, var(--card)); color: var(--ink); border: 1px solid var(--glass-brd, var(--line)); box-shadow: 0 14px 34px rgba(0, 0, 0, .28); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); animation: raIn .28s ease both; }
-.ra-bar.bye { animation: raOut .25s ease both; }
-@keyframes raIn { from { opacity: 0; transform: translate(-50%, 16px); } }
-@keyframes raOut { to { opacity: 0; transform: translate(-50%, 16px); } }
-.ra-ic { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; flex: none; color: #fff8ea; background: linear-gradient(135deg, var(--accent), var(--gold)); }
-.ra-ic svg { width: 18px; height: 18px; fill: currentColor; }
-.ra-bar.on .ra-ic { animation: raPulse 1.6s ease-in-out infinite; }
-@keyframes raPulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--gold) 25%, transparent); } }
-.ra-t { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
-.ra-t b { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ra-t small { font-size: 12px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ra-bar .icon-btn { width: 36px; height: 36px; flex: none; }
-.ra-bar [data-ra="next"] svg, .ra-bar [data-ra="prev"] svg { width: 18px; height: 18px; }
-.ra-rate { flex: none; min-width: 42px; height: 30px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
-.ra-now { background: color-mix(in srgb, var(--gold) 18%, transparent); border-radius: 10px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--gold) 18%, transparent); transition: background .3s; }
-section.ra-now { padding: 4px 6px; }
-@media (max-width: 380px) { .ra-bar [data-ra="prev"] { display: none; } }
+.nf-sel { font: inherit; font-size: 14px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; max-width: 220px; }
+
+/* Dëgjo leximet — butoni dhe lojtësi i vogël */
+.ra-go { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 12px 0 4px; padding: 12px 16px; border: 0; border-radius: 16px; font: inherit; font-weight: 700; font-size: 15px; color: #fff8ea; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #1a0f0a)); box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 35%, transparent), inset 0 1px 0 rgba(255, 255, 255, .25); cursor: pointer; }
+.ra-go svg { width: 20px; height: 20px; fill: currentColor; }
+.ra-go.on { background: linear-gradient(135deg, var(--gold), color-mix(in srgb, var(--gold) 50%, #2b1d14)); color: #1d140c; }
+.ra-go.busy { opacity: .7; pointer-events: none; }
+.reader .ra-go { max-width: 420px; margin: 6px auto 18px; }
+.ra-bar { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 86px); transform: translateX(-50%); z-index: 70; width: min(560px, calc(100% - 24px)); display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 12px; border-radius: 20px; background: var(--glass, var(--card)); color: var(--ink); border: 1px solid var(--glass-brd, var(--line)); box-shadow: 0 14px 34px rgba(0, 0, 0, .28); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); animation: raIn .28s ease both; }
+.ra-bar.bye { animation: raOut .25s ease both; }
+@keyframes raIn { from { opacity: 0; transform: translate(-50%, 16px); } }
+@keyframes raOut { to { opacity: 0; transform: translate(-50%, 16px); } }
+.ra-ic { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; flex: none; color: #fff8ea; background: linear-gradient(135deg, var(--accent), var(--gold)); }
+.ra-ic svg { width: 18px; height: 18px; fill: currentColor; }
+.ra-bar.on .ra-ic { animation: raPulse 1.6s ease-in-out infinite; }
+@keyframes raPulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--gold) 25%, transparent); } }
+.ra-t { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.ra-t b { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ra-t small { font-size: 12px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ra-bar .icon-btn { width: 36px; height: 36px; flex: none; }
+.ra-bar [data-ra="next"] svg, .ra-bar [data-ra="prev"] svg { width: 18px; height: 18px; }
+.ra-rate { flex: none; min-width: 42px; height: 30px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.ra-now { background: color-mix(in srgb, var(--gold) 18%, transparent); border-radius: 10px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--gold) 18%, transparent); transition: background .3s; }
+section.ra-now { padding: 4px 6px; }
+@media (max-width: 380px) { .ra-bar [data-ra="prev"] { display: none; } }
 
 /* Kinemaja · serverët, filtrat (lloji / gjuha / tema), grupet kronologjike, Superlibri */
 .vp-srv { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 0 12px 10px; }
@@ -2675,3 +2675,99 @@ section.ra-now { padding: 4px 6px; }
 .pf-chips { bottom: calc(var(--safe-b, 0px) + 184px) !important; }
 @media (min-width: 640px) { .pf-find { bottom: calc(var(--safe-b, 0px) + 84px) !important; } .pf-top { bottom: calc(var(--safe-b, 0px) + 136px) !important; } .pf-bar { bottom: calc(var(--safe-b, 0px) + 80px) !important; } .pf-chips { bottom: calc(var(--safe-b, 0px) + 132px) !important; } }
 .pane::after { content: ""; display: block; height: 96px; }
+
+/* Shërbesat e ditës: leximet profetike, Liturgjia, rreshti te «Sot në Kishë» */
+.prof-ref { margin: 2px 0 6px; font-size: 13px; font-weight: 600; color: var(--gold); }
+.sun-eve { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; justify-content: center; }
+.sun-eve svg { width: 15px; height: 15px; }
+.lit-full { margin-top: 18px; padding: 0; }
+.today-svc { display: flex; align-items: center; gap: 8px; width: max-content; max-width: 100%; margin: 0 0 10px; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(226, 189, 98, .3); background: rgba(255, 255, 255, .07); position: relative; z-index: 1; color: rgb(255, 244, 214); text-decoration: none; font-size: 13px; }
+.today-svc b { color: rgb(255, 244, 214); font-family: Cinzel, "EB Garamond", serif; font-size: 13px; letter-spacing: .02em; }
+.today-svc svg { width: 16px; height: 16px; color: #e2bd62; flex: none; }
+.today-svc small { color: rgba(255, 244, 214, .72); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.today-svc i { font-style: normal; color: #e2bd62; }
+
+/* Biblioteka: librat e Kishës (flipbook) */
+.fb-find { margin: 0 0 8px; }
+.fb-sec { margin: 6px 0 18px; }
+.fb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 14px 12px; }
+.fb-book { display: block; text-decoration: none; perspective: 600px; }
+.fb-cover { position: relative; display: flex; flex-direction: column; justify-content: space-between; aspect-ratio: 3 / 4.2; padding: 12px 10px 10px 14px; border-radius: 4px 9px 9px 4px; overflow: hidden; background: linear-gradient(100deg, rgba(0, 0, 0, .35) 0 6%, rgba(255, 255, 255, .12) 7%, transparent 11%), radial-gradient(120% 90% at 80% 0%, rgba(255, 220, 150, .28), transparent 60%), var(--fb, #6b4a12); box-shadow: 0 1px 0 rgba(255, 255, 255, .15) inset, 0 6px 14px rgba(0, 0, 0, .28), 3px 3px 0 -1px #efe6d2, 4px 4px 0 -1px rgba(0, 0, 0, .25); transform-origin: left center; transition: transform .25s; }
+.fb-cover::after { content: ""; position: absolute; inset: 7px 7px 7px 11px; border: 1px solid rgba(226, 189, 98, .55); border-radius: 3px 6px 6px 3px; pointer-events: none; }
+.fb-cover i { font-style: normal; color: #e2bd62; font-size: 18px; text-align: center; }
+.fb-cover b { color: #fff4d6; font-family: var(--font-cap); font-weight: 500; font-size: 11.5px; line-height: 1.25; letter-spacing: .02em; text-align: center; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; hyphens: auto; }
+.fb-book:hover .fb-cover, .fb-book.on .fb-cover { transform: rotateY(-14deg); }
+.fb-book.on .fb-cover { outline: 2px solid var(--gold); outline-offset: 3px; }
+.fb-view { height: calc(100dvh - 150px); min-height: 420px; margin: 0 -4px; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: var(--shadow); }
+.fb-view iframe { width: 100%; height: 100%; border: 0; display: block; }
+.fb-links a { color: var(--gold); }
+
+/* Lexuesi flipbook i Bibliotekës */
+.fbk { display: flex; flex-direction: column; gap: 10px; }
+.fbk.max { position: fixed; inset: 0; z-index: 9000; background: #1b140c; padding: 10px; }
+.fbk:fullscreen { background: #1b140c; padding: 12px; }
+.fbk-stage { position: relative; height: calc(100dvh - 210px); min-height: 380px; perspective: 1800px; border-radius: 14px; overflow: hidden; touch-action: pan-y; background: radial-gradient(120% 90% at 50% 0%, #3b2a14, #1b140c 70%); box-shadow: inset 0 0 40px rgba(0, 0, 0, .5); user-select: none; }
+.fbk.max .fbk-stage, .fbk:fullscreen .fbk-stage { height: calc(100dvh - 80px); }
+.fbk-view { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; transform-origin: left center; transform-style: preserve-3d; backface-visibility: hidden; }
+.fbk-view.two { gap: 0; }
+.fbk-page { display: flex; align-items: center; justify-content: center; }
+.fbk-page canvas { display: block; background: #fff; box-shadow: 0 8px 26px rgba(0, 0, 0, .45); }
+.fbk-view.two .fbk-page:first-child canvas { box-shadow: -8px 8px 26px rgba(0, 0, 0, .45), inset -10px 0 18px rgba(0, 0, 0, .12); }
+.fbk-view.two .fbk-page:first-child { justify-content: flex-end; flex: 1; }
+.fbk-view.two .fbk-page:last-child { justify-content: flex-start; flex: 1; }
+.fbk-view.two .fbk-page:only-child { justify-content: center; }
+.fbk-view.turn-out { animation: fbkOut .43s ease-in forwards; z-index: 2; }
+.fbk-view.turn-in { animation: fbkIn .43s ease-out forwards; z-index: 2; }
+@keyframes fbkOut { from { transform: rotateY(0); filter: brightness(1); } to { transform: rotateY(-110deg); filter: brightness(.55); } }
+@keyframes fbkIn { from { transform: rotateY(-110deg); filter: brightness(.55); } to { transform: rotateY(0); filter: brightness(1); } }
+.fbk-load { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; color: #f8ead0; }
+.fbk-load small { opacity: .7; }
+.fbk-spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(226, 189, 98, .25); border-top-color: #e2bd62; animation: fbkSpin 1s linear infinite; }
+@keyframes fbkSpin { to { transform: rotate(360deg); } }
+.fbk-bar { display: flex; align-items: center; gap: 10px; padding: 0 4px; }
+.fbk-b { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(226, 189, 98, .45); background: var(--card, rgba(255, 255, 255, .6)); color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer; flex: none; }
+.fbk.max .fbk-b, .fbk:fullscreen .fbk-b { background: rgba(255, 255, 255, .08); color: #f8ead0; }
+.fbk-rng { flex: 1; accent-color: #b8892f; min-width: 0; }
+.fbk-n { font-size: 12.5px; color: var(--ink-2); min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+.fbk.max .fbk-n, .fbk:fullscreen .fbk-n { color: #f8ead0; }
+
+/* Pllakat e «Lutja»: titulli i plotë, pa e ndarë fjalën në mes (Komboskini, Frymëmarrja…) */
+.sp-compact .feat-tiles.hub .ftile { container-type: inline-size; grid-template-columns: 30px minmax(0, 1fr) !important; column-gap: 9px !important; padding: 10px !important; }
+.sp-compact .feat-tiles.hub .ftile > :first-child { width: 30px !important; height: 30px !important; max-width: 30px; max-height: 30px; }
+.sp-compact .feat-tiles.hub .ftile > :first-child svg { width: 20px !important; height: 20px !important; }
+.sp-compact .feat-tiles.hub .ftile > svg:first-child { padding: 5px; }
+.sp-compact .feat-tiles.hub .ftile .ft-days { font-size: 15px !important; line-height: 30px; }
+.sp-compact .feat-tiles.hub .ftile strong { display: block !important; -webkit-line-clamp: unset !important; overflow: visible !important; overflow-wrap: normal !important; word-break: keep-all !important;
+  letter-spacing: 0 !important; font-size: clamp(11px, 9cqi, 13.5px) !important; line-height: 1.15 !important; }
+
+/* Këndi i Lutjes te Kisha */
+.kl-card { display: flex; align-items: center; gap: 12px; margin: 4px 0 12px; padding: 14px 16px; border-radius: 18px; text-decoration: none; color: #fff4d6;
+  background: radial-gradient(120% 140% at 0% 0%, rgba(255, 210, 120, .22), transparent 55%), linear-gradient(135deg, var(--accent, #7a1f1f), #3a1410); box-shadow: 0 8px 20px rgba(40, 18, 6, .22), 0 0 0 1px rgba(226, 189, 98, .35) inset; }
+.kl-card svg { width: 26px; height: 26px; color: #e2bd62; flex: none; }
+.kl-card span { flex: 1; display: grid; gap: 2px; }
+.kl-card b { font-family: var(--font-cap); font-weight: 500; letter-spacing: .03em; font-size: 15.5px; }
+.kl-card small { font-size: 12.5px; opacity: .85; }
+.kl-card i { font-style: normal; font-size: 22px; color: #e2bd62; }
+.kl-new { font-style: normal; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--accent); color: #fff; }
+
+/* Gazeta: margjina të barabarta në të katër anët (60px), edhe fundfaqja brenda tyre */
+.gz-sheet { padding: 60px 60px 100px !important; }
+.gz-foot { left: 60px !important; right: 60px !important; bottom: 60px !important; }
+
+/* Temat: pjesët me ngjyrë të fiksuar (purpur) marrin ngjyrën e temës së zgjedhur */
+:root[data-palette] .sp-hero { background: radial-gradient(120% 140% at 15% 0%, color-mix(in srgb, var(--accent) 88%, #000) 0%, color-mix(in srgb, var(--accent) 38%, #0d0806) 45%, #0d0907 100%); }
+:root[data-palette] .radio-card { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, #1b2422) 0%, #18201f 55%, color-mix(in srgb, var(--accent) 60%, #000) 100%); }
+:root[data-palette] .kl-card { background: radial-gradient(120% 140% at 0% 0%, rgba(255, 210, 120, .22), transparent 55%), linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 40%, #000)); }
+:root[data-palette] .ch-n.mz:not(.lv-pill) { background: radial-gradient(120% 140% at 85% 0%, color-mix(in srgb, var(--accent) 85%, #000), color-mix(in srgb, var(--accent) 18%, #050303) 75%); }
+:root[data-palette] .pb-mon { background: linear-gradient(var(--accent), color-mix(in srgb, var(--accent) 75%, #000)); }
+:root[data-palette] .pb-new { background: var(--accent); }
+
+/* Karta e ditës (data, ungjilli, kreshma, leximet, shërbesat) merr ngjyrën e temës */
+:root[data-palette] .today-card { background: radial-gradient(130% 100% at 0% 0%, color-mix(in srgb, var(--accent) 34%, color-mix(in srgb, var(--bg-2, var(--bg)) 24%, #000)) 0%, color-mix(in srgb, var(--bg) 20%, #0b0907) 60%, color-mix(in srgb, var(--bg) 10%, #060505) 100%) !important; }
+:root[data-theme="dark"][data-palette] .today-card { background: radial-gradient(130% 100% at 0% 0%, color-mix(in srgb, var(--accent) 30%, color-mix(in srgb, var(--bg-2, var(--bg)) 70%, #000)) 0%, color-mix(in srgb, var(--bg) 62%, #000) 60%, color-mix(in srgb, var(--bg) 40%, #000) 100%) !important; }
+:root[data-palette] .today-card::after { background: radial-gradient(60% 50% at 90% 0%, color-mix(in srgb, var(--gold) 30%, transparent), transparent 70%); }
+:root[data-palette] .today-card .eyebrow, :root[data-palette] .today-svc svg, :root[data-palette] .today-card .lit-chip { color: var(--gold-2, var(--gold)); }
+:root[data-palette] .today-svc, :root[data-palette] .today-card .fast-card, :root[data-palette] .tc2 .today-read { border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
+:root[data-palette] .today-card .lit-chip { background: color-mix(in srgb, var(--gold) 20%, transparent); }
+:root[data-palette] .today-card .lit-chip.great { background: var(--accent); color: var(--accent-ink, #fff); }
+:root[data-palette] .pb-wd { color: var(--accent); }

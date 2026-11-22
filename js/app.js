@@ -1150,12 +1150,18 @@ function pickPhoto(it) {
     const cached = store.get(src === "kisha" ? "news" : "news.ngj", null);
     listPane.innerHTML = `${churchTop(src, "newsRefresh")}
       ${src === "kisha"
-        ? `<div class="ks-cats">${SITE_GROUPS.map(([gt, ls], gi) => `<details class="ks-cat" data-g="${gi}"><summary>${icon(ls[0][2])}<span><b>${esc(gt)}</b><small>${ls.length} rubrika · ${esc(ls.slice(0, 3).map((l) => l[0]).join(" · "))}</small></span><i>›</i></summary><div class="site-links">${ls.map(([t, u, ic]) => `<button class="site-link" data-url="${SITE + u}">${icon(ic)}<span>${t}</span></button>`).join("")}</div></details>`).join("")}</div>`
+        ? `<a class="kl-card" id="klCard" href="#/kisha-lutjet">${icon("candle")}<span><b>Këndi i Lutjes</b><small>Shërbesat e Kishës · ${esc(KOASH_CITE)}</small></span><i>›</i></a>
+          <div class="ks-cats">${SITE_GROUPS.map(([gt, ls], gi) => `<details class="ks-cat" data-g="${gi}"><summary>${icon(ls[0][2])}<span><b>${esc(gt)}</b><small>${ls.length} rubrika · ${esc(ls.slice(0, 3).map((l) => l[0]).join(" · "))}</small></span><i>›</i></summary><div class="site-links">${ls.map(([t, u, ic]) => `<button class="site-link" data-url="${SITE + u}">${icon(ic)}<span>${t}</span></button>`).join("")}</div></details>`).join("")}</div>`
         : `<div class="site-links">${NGJ_LINKS.map(([t, u, ic]) => `<button class="site-link" data-url="${u.startsWith("http") ? u : NGJ + u}">${icon(ic)}<span>${t}</span></button>`).join("")}</div>`}
       <h2 class="section-title">Lajmet e fundit</h2>
       <div id="newsList" class="news-list">${cached ? newsHtml(cached.items) : `<p class="muted">Po ngarkohen lajmet…</p>`}</div>`;
     enter(listPane);
     newsFold($("#newsList", listPane), ".news-card");
+    if (src === "kisha") load("kendi_lutjes").then((K) => {
+      const L = (K && K.items) || [], c = $("#klCard small", listPane); if (!c || !L.length) return;
+      const n = klNew(L).size, ok = L.filter((x) => x.ok).length;
+      c.textContent = `${ok} shërbesa${n ? ` · ${n} të reja` : ""}`;
+    });
     // vetëm një kategori e hapur njëherësh
     $$(".ks-cats", listPane).forEach((h) => h.addEventListener("toggle", (e) => { if (e.target.open) $$(".ks-cat[open]", h).forEach((d) => d !== e.target && (d.open = false)); }, true));
     // seksionet/faqet e reja që faqja e Kishës krijon: i zbulon vetë sinkronizimi → hapen te ne, me citim
@@ -1721,19 +1727,28 @@ function pickPhoto(it) {
     }
   }
 
-  async function viewKendiLutjes(slug) {
-    setNav("lexo");
+  // shërbesat që Kisha shton (ose që dalin nga «së shpejti») shënohen «E re» derisa të hapen
+  function klNew(L) {
+    const seen = store.get("kl.seen", null), keys = L.filter((x) => x.ok).map((x) => x.slug);
+    if (!seen) { store.set("kl.seen", keys); return new Set(); }
+    return new Set(keys.filter((k) => !seen.includes(k)));
+  }
+  async function viewKendiLutjes(slug, inKisha) {
+    setNav(inKisha ? "kisha" : "lexo");
     const D = await load("kendi_lutjes");
     const L = (D && D.items) || [];
-    listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/libraria" aria-label="Kthehu">${icon("back")}</a><h1>Këndi i Lutjes</h1></header>
+    const R = inKisha ? "#/kisha-lutjet" : "#/kendi-lutjes";
+    if (slug) { const seen = store.get("kl.seen", []); if (!seen.includes(slug)) store.set("kl.seen", seen.concat(slug)); }
+    const nw = klNew(L);
+    listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="${inKisha ? "#/kisha" : "#/libraria"}" aria-label="Kthehu">${icon("back")}</a><h1>Këndi i Lutjes</h1></header>
       <p class="sec-intro">Shërbesat e Kishës, ashtu siç i ka Kisha Orthodhokse Autoqefale e Shqipërisë.</p>
-      <nav class="kl-list">${L.map((x) => x.ok ? `<a class="kl-i${x.slug === slug ? " on" : ""}" href="#/kendi-lutjes/${x.slug}">${icon("candle")}<span>${esc(x.t)}</span><i>›</i></a>`
+      <nav class="kl-list">${L.map((x) => x.ok ? `<a class="kl-i${x.slug === slug ? " on" : ""}" href="${R}/${x.slug}">${icon("candle")}<span>${esc(x.t)}</span>${nw.has(x.slug) ? `<em class="kl-new">E re</em>` : ""}<i>›</i></a>`
         : `<span class="kl-i off">${icon("candle")}<span>${esc(x.t)}</span><small>së shpejti</small></span>`).join("")}</nav>
       <p class="art-src art-cite">${icon("globe")}<span>Burimi: <a href="${SITE}kendi-i-lutjes/" target="_blank" rel="noopener">${esc(KOASH_CITE)}</a></span></p>`;
     enter(listPane);
     const x = L.find((i) => i.slug === slug && i.ok);
     if (!x) { setMode("list"); if (mainPane && !mainPane.textContent.trim()) mainPane.innerHTML = emptyMain(); return; }
-    mainPane.innerHTML = `<header class="page-head art-head"><a class="back-btn art-back" href="#/kendi-lutjes" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">Këndi i Lutjes</h2></header>
+    mainPane.innerHTML = `<header class="page-head art-head"><a class="back-btn art-back" href="${R}" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">Këndi i Lutjes</h2></header>
       <article class="article klt" lang="sq">${x.html ? x.html.replace(/\son\w+="[^"]*"/g, "") : `<h1>${esc(x.t)}</h1>${String(x.text || "").split(/\n{1,}/).filter(Boolean).map((l) => `<p>${esc(l)}</p>`).join("")}`}
         <p class="art-src art-cite">${icon("globe")}<span>Burimi: <a href="${SITE}kendi-i-lutjes/#${x.slug}" target="_blank" rel="noopener">${esc(KOASH_CITE)} · Këndi i Lutjes</a></span></p></article>`;
     mainPane.classList.add("art-open"); enter(mainPane); setMode("read"); mainPane.scrollTop = 0;
@@ -1744,7 +1759,7 @@ function pickPhoto(it) {
     });
   }
   async function viewSection(src, path) {
-    if (src === "kisha" && /^kendi-i-lutjes\/?$/.test(path)) { location.replace("#/kendi-lutjes"); return; }
+    if (src === "kisha" && /^kendi-i-lutjes\/?$/.test(path)) { location.replace("#/kisha-lutjet"); return; }
     if (src === "kisha" && ARKIV_MAP[path]) { location.replace("#/arkiv/" + ARKIV_MAP[path]); return; }
     const rd = src === "kisha" && isReadPath(path);
     setNav(rd ? "lexo" : "kisha");
@@ -1791,6 +1806,16 @@ function pickPhoto(it) {
       const L = await load("liturgjike"), lt = L && (L.items || []).find((x) => String(x.id) === String(id));
       if (lt && location.hash.startsWith("#/lajm/")) {
         const post = `${SITE}?p=${encodeURIComponent(id)}`, pdf = /\.pdf($|\?)/i.test(lt.src || "") ? lt.src : "";
+        const FB = pdf ? await load("flipbooks") : null, UP = "wp-content/uploads/";
+        const rel = pdf && pdf.includes(UP) ? decodeURI(pdf.split(UP)[1].split("?")[0]) : "";
+        if (rel && FB && (FB.sections || []).some((sc) => sc.items.some((b) => b.pdf === rel))) {
+          mainPane.innerHTML = `<header class="page-head art-head"><a class="back-btn art-back" href="#/kisha" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">${esc(lt.t)}</h2></header>
+            <div class="fb-host"></div><p class="art-src art-cite fb-links">${icon("globe")}<span>Burimi: ${esc(KOASH_CITE)}</span></p>`;
+          $(".art-back", mainPane).addEventListener("click", (e) => { if (history.length > 1) { e.preventDefault(); history.back(); } });
+          const h = location.hash;
+          await openBook($(".fb-host", mainPane), rel, "lt-" + id, lt.t, () => location.hash === h);
+          return;
+        }
         mainPane.innerHTML = `<header class="page-head art-head"><a class="back-btn art-back" href="#/kisha" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">Tekste liturgjike</h2></header>
           <article class="article lit-book" lang="sq"><p class="art-kick">Libër liturgjik i Kishës</p><h1 class="art-title">${esc(lt.t)}</h1>
           ${pdf && !android ? `<iframe class="lit-pdf" src="${esc(pdf)}#view=FitH&toolbar=1" title="${esc(lt.t)}" loading="lazy"></iframe>` : ""}
@@ -2428,6 +2453,11 @@ function pickPhoto(it) {
           ${gr || (gs && gs.verses.length) ? `<a class="today-read" href="#/dita/ungjilli">${icon("book")}<span><b>Ungjilli</b><small>${esc(gr || Today.niceDisplay(gs))}</small></span></a>` : ""}`; })()}
           <a class="today-read" href="#/sinaksari/sot">${icon("calendar")}<span><b>Sinaksari</b><small>Shenjtorët e sotëm</small></span></a>
         </div>
+        ${(() => { const d0 = new Date(), d1 = new Date(); d1.setDate(d1.getDate() + 1);
+          const ds = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+          const lit = litDay(Fast.info(d0), null);
+          const eve = new Date().getHours() >= 15, href = eve ? `#/sherbesa-dites/${ds(d1)}/mbr` : `#/sherbesa-dites/${ds(d0)}/${lit && new Date().getHours() >= 8 ? "lit" : "men"}`;
+          return `<a class="today-svc" href="${href}">${icon("candle")}<b>Shërbesat e ditës</b><small>Mëngjesorja${lit ? " · Liturgjia" : ""} · Mbrëmësorja</small><i>›</i></a>`; })()}
         ${t.saints.length ? (() => { const chips = (clone) => t.saints.map((s) => `
           <a class="saint-chip"${clone ? ' data-clone aria-hidden="true" tabindex="-1"' : ""} href="#/lajm/shenjt/${encodeURIComponent((s.link.split("ods_saint=")[1] || "").split("&")[0])}">
             ${s.img ? `<span class="saint-img" style="background-image:url('${esc(s.img)}')"></span>` : ""}<span>${esc(s.title)}</span></a>`).join("");
@@ -4838,12 +4868,18 @@ function pickPhoto(it) {
   // lajmet në çdo format të skriptit: { items } ose listë e thjeshtë me src_id / summary
   const SRC_ID = [[/^ugo/, "ugo"], [/^koash|albania_koash/, "koash"], [/^ecp|ecumenical/, "ecp"], [/^alx|alexandria/, "alx"], [/^ant/, "ant"], [/^jer/, "jer"], [/^srb|serbia/, "srb"], [/^geo/, "geo"],
     [/^bul/, "bul"], [/^mos/, "mos"], [/^gre/, "gre"], [/^cyp/, "cyp"], [/^pol/, "pol"], [/^cze|czech/, "cze"], [/^oca/, "oca"], [/^goa/, "goa"], [/^rom|^basil/, "basil"], [/^ot(?:_|$)|orthodoxtimes/, "ot"], [/^orthinfo/, "orthinfo"], [/^pem/, "pem"], [/^oaj/, "oaj"], [/^po$/, "po"], [/^ancientfaith/, "af"]];
+  const EN_W = /\b(?:the|and|of|with|his|her|for|on|was|were|is|are|from|by|which|this|that|at|Holy|Church|Patriarch|Metropolitan|celebrated)\b/gi;
+  const enLike = (t) => { const w = String(t || "").split(/\s+/).filter(Boolean).length; return w >= 5 && (String(t).match(EN_W) || []).length / w > 0.2 && !/[ëç]/i.test(t); };
   function normNews(doc) {
     if (!doc) return doc;
     const items = Array.isArray(doc) ? doc : doc.items || [];
     items.forEach((n) => {
       if (!n || typeof n !== "object") return;
       if (!n.ex && n.summary) n.ex = n.summary;
+      // gazetat janë vetëm shqip: versionet anglisht/greqisht të faqeve shqip shënohen si të huaja
+      if ((n.lang || "sq") === "sq" && (/\/(?:en|el|fr|it|de|es|ro|sr|bg|ar|ko|ru)\/20\d\d\//.test(n.link || "") || /[Ͱ-ϿЀ-ӿ]/.test(n.title || "") || enLike(n.title + " " + (n.ex || "")))) n.lang = /[Ͱ-Ͽ]/.test(n.title || "") ? "el" : "en";
+      // titujt që përkthimi i la anglisht
+      if ((n.lang || "sq") === "sq") ["title", "ex"].forEach((k) => { if (n[k]) n[k] = String(n[k]).replace(/\bMetropolitan\b/g, "Mitropoliti").replace(/\bArchbishop\b/g, "Kryepeshkopi").replace(/\bPatriarch\b/g, "Patriarku").replace(/\bBishop\b/g, "Episkopi"); });
       if (n.src_id && !NEWS_SRC[n.src]) { const hit = SRC_ID.find(([r]) => r.test(n.src_id)); n.src_name = n.src_name || n.src; n.src = hit ? hit[1] : n.src_id; }
       if (typeof n.imgs === "string") { try { n.imgs = JSON.parse(n.imgs.replace(/'/g, '"')); } catch (e) { n.imgs = []; } }
     });
@@ -5299,6 +5335,24 @@ function pickPhoto(it) {
     ["bota", "Kishat e botës", "Orthodox Times · OCA · Basilica.ro · anglisht"],
     ["studime", "Studime, teologji dhe art", "Public Orthodoxy · Pemptousia · Orthodox Arts Journal · anglisht"],
   ];
+  // balanca e lajmeve të kishave të botës: së pari Fanari dhe kishat greke, pastaj të tjerat, pak nga ato sllave/ruse;
+  // brenda çdo grupi burimet alternohen, që një patriarkanë të mos i zërë të gjitha
+  const GZ_GR = /Ekumenik|Fanar|Konstandinopo|Greqis|Qipro|Aleksandri|Jerusalem|Antioki|Athos|Mali i Shenjtë/i;
+  const GZ_SL = /Moskë|Moskv|Rus|Serbi|Bullgari|Poloni|Çeki|Sllovaki|Ukrain|Maqedoni|Ohër/i;
+  function gzBalance(arr) {
+    const lab = (n) => String(NEWS_SRC[n.src] || n.src || "");
+    const tier = (n) => (GZ_GR.test(lab(n)) ? 0 : GZ_SL.test(lab(n)) ? 2 : 1);
+    const out = [];
+    [0, 1, 2].forEach((t) => {
+      const m = new Map();
+      arr.filter((n) => tier(n) === t).forEach((n) => { const k = lab(n).split(" · ")[0]; if (!m.has(k)) m.set(k, []); m.get(k).push(n); });
+      const qs = [...m.values()]; let got = [];
+      while (qs.some((q) => q.length)) qs.forEach((q) => { if (q.length) got.push(q.shift()); });
+      if (t === 2) got = got.slice(0, Math.max(1, Math.round(out.length / 4)));
+      out.push(...got);
+    });
+    return out;
+  }
   async function viewGazeta(dayArg, M) {
     if (!$("#gzFonts")) {
       const l = document.createElement("link"); l.id = "gzFonts"; l.rel = "stylesheet";
@@ -5386,7 +5440,7 @@ function pickPhoto(it) {
     const sermons = items.filter((n) => n.cat === "predikim" && (n.text || "").length > 800).slice(0, 3);
     if (sermons.length) items = items.filter((n) => !sermons.includes(n));
     const by = (g) => items.filter((n) => n.grp === g);
-    const koash = by("koash"), ugo = by("ugo"), bota = by("bota");
+    const koash = by("koash"), ugo = by("ugo"), bota = M ? by("bota") : gzBalance(by("bota")), patr = M ? by("patr") : gzBalance(by("patr"));
     const lead = M && M.full ? by("m").find((n) => n.img && (n.ex || "").length > 150) || by("m").find((n) => n.img) || items[0] : M ? by("m").find((n) => n.img) || by("m")[0] || items[0] : koash.find((n) => n.img) || ugo.find((n) => n.img) || items[0];
     const second = M && M.full ? items.find((n) => n.img && n !== lead && n.grp !== "v") || items.find((n) => n.img && n !== lead) : M ? by("m").find((n) => n.img && n !== lead) || by("p").find((n) => n.img && n !== lead) : ugo.find((n) => n.img && n !== lead) || bota.find((n) => n.img && n !== lead) || by("studime").find((n) => n.img && n !== lead);
     const rest = (arr) => arr.filter((n) => n !== lead && n !== second);
@@ -5445,7 +5499,7 @@ function pickPhoto(it) {
           ${M && M.kind !== "vatikan" && M.kind !== "shkolla" ? `<div class="gz-box gz-cal"><b>Kalendari i javës që vjen</b><ul>${[1, 2, 3, 4, 5, 6, 7].map((k) => { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + k); let f = {}; try { f = Fast.info(d) || {}; } catch (e) { /* */ } return `<li><span>${DIT[d.getDay()].replace("E ", "")} ${d.getDate()}</span>${esc(f.feast || "")}${f.level && f.level.cls !== "free" ? `<small>${esc(f.level.name)}</small>` : ""}</li>`; }).join("")}</ul></div>` : ""}
         </aside>
       </div>
-      <div class="gz-secs"${M ? ` style="grid-template-columns:repeat(${Math.max(1, Math.min(3, SECS.filter(([g]) => rest(by(g)).length).length))},1fr)"` : ""}>${M ? SECS.filter(([g]) => rest(by(g)).length).slice(0, 3).map(([g]) => sec(g, rest(by(g)))).join("") : sec("koash", rest(koash)) + sec("patr", rest(by("patr"))) + sec("ugo", rest(ugo)) + (bota.length ? sec("bota", rest(bota)) : sec("ugos", rest(by("ugos"))))}</div>
+      <div class="gz-secs"${M ? ` style="grid-template-columns:repeat(${Math.max(1, Math.min(3, SECS.filter(([g]) => rest(by(g)).length).length))},1fr)"` : ""}>${M ? SECS.filter(([g]) => rest(by(g)).length).slice(0, 3).map(([g]) => sec(g, rest(by(g)))).join("") : sec("koash", rest(koash)) + sec("patr", rest(patr)) + sec("ugo", rest(ugo)) + (bota.length ? sec("bota", rest(bota)) : sec("ugos", rest(by("ugos"))))}</div>
       <footer class="gz-foot"><span>Fjala e Shenjtë · Nr. ${doy}</span><span>${M ? M.ed || "botim javor" : "botim i përditshëm"}</span><span>Faqe 1</span></footer>`;
     pages.innerHTML = ""; pages.appendChild(sheet);
     gzHyphenate(sheet);
@@ -5986,11 +6040,11 @@ function pickPhoto(it) {
     };
   }
 
-  // Gazeta e Vatikanit: botim JAVOR (si Fanari), çdo të diel pas orës 12, me lajmet e Vatican News në shqip
+  // Gazeta e Vatikanit: botim JAVOR (si Fanari), çdo të diel pas orës 20, me lajmet e Vatican News në shqip
   async function viewVatikan(wk) {
     const doc = (await liveJson("vatikan")) || { items: [] };
     const latest = mtSunday(new Date()), weeks = [];
-    for (let S = new Date(latest); S >= MT_FIRST; S = new Date(S.getFullYear(), S.getMonth(), S.getDate() - 7, 12)) weeks.push(S);
+    for (let S = new Date(latest); S >= MT_FIRST; S = new Date(S.getFullYear(), S.getMonth(), S.getDate() - 7, 20)) weeks.push(S);
     const S = weeks.find((w) => isoD(w) === wk) || latest;
     const from = new Date(S.getFullYear(), S.getMonth(), S.getDate() - 7, 12);
     const items = (doc.items || []).filter((n) => { const t = new Date(n.date); return t > from && t <= S; }).map((n) => Object.assign({}, n, { grp: "m" }));
@@ -6000,18 +6054,18 @@ function pickPhoto(it) {
     if (!items.length) {
       listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/gazetat" aria-label="Kthehu">${icon("back")}</a><h1>Gazeta e Vatikanit</h1></header>
         ${wkTabs.length > 1 ? `<div class="lj-tabs gz-days">${wkTabs.map((w) => `<a role="tab" href="${w.href}" aria-selected="${w.on}">${esc(w.label)}</a>`).join("")}</div>` : ""}
-        <p class="muted" style="padding:16px">Numri javor i ${esc(range)} nuk ka ende lajme. Numri i ri del të dielën pas orës 12:00.</p>`;
+        <p class="muted" style="padding:16px">Numri javor i ${esc(range)} nuk ka ende lajme. Numri i ri del të dielën pas orës 20:00.</p>`;
       enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list"); return;
     }
     await viewGazeta(null, { kind: "vatikan", id: "vat", name: "Lajme nga Vatikani", head: "Gazeta e Vatikanit", date: S, no: mtNo(S), range,
       bar: "Gazeta javore e Vatikanit · Vatican News", items, tabs: [], weeks: wkTabs });
   }
 
-  // Gazetat e Mitropolive dhe e Fanarit: botim JAVOR, del çdo të diel pas orës 12:00 me lajmet e javës
-  // (nga e diela e kaluar ora 12 deri te kjo e diel ora 12). Nr. 1 = e diela 15 nëntor 2026.
-  var MT_FIRST = new Date(2026, 10, 15, 12);
+  // Gazetat e Mitropolive dhe e Fanarit: botim JAVOR, del çdo të diel pas orës 20:00 me lajmet e javës
+  // (nga e diela e kaluar ora 20 deri te kjo e diel ora 20). Nr. 1 = e diela 15 nëntor 2026.
+  var MT_FIRST = new Date(2026, 10, 15, 20);
   function mtSunday(d) {
-    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() - d.getDay(), 12);
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() - d.getDay(), 20);
     if (x > d) x.setDate(x.getDate() - 7);
     return x;
   }
@@ -6061,7 +6115,7 @@ function pickPhoto(it) {
     const general = sq(doc.koash);
     const latest = mtSunday(new Date());
     const weeks = [];
-    for (let S = new Date(latest); S >= MT_FIRST; S = new Date(S.getFullYear(), S.getMonth(), S.getDate() - 7, 12)) weeks.push(S);
+    for (let S = new Date(latest); S >= MT_FIRST; S = new Date(S.getFullYear(), S.getMonth(), S.getDate() - 7, 20)) weeks.push(S);
     const S = weeks.find((w) => isoD(w) === wk) || latest;
     const from = new Date(S.getFullYear(), S.getMonth(), S.getDate() - 7, 12);
     const inWeek = (n) => { const t = new Date(n.date); return t > from && t <= S; };
@@ -6072,7 +6126,7 @@ function pickPhoto(it) {
     if (!groups.length) {
       listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/gazetat" aria-label="Kthehu">${icon("back")}</a><h1>${head}</h1></header>
         ${wkTabs.length > 1 ? `<div class="lj-tabs gz-days">${wkTabs.map((w) => `<a role="tab" href="${w.href}" aria-selected="${w.on}">${esc(w.label)}</a>`).join("")}</div>` : ""}
-        <p class="muted" style="padding:16px">Numri javor i ${esc(range)} nuk ka lajme në shqip${fanar ? " nga Fanari" : " nga mitropolitë"}. Numri i ri del të dielën pas orës 12:00.</p>`;
+        <p class="muted" style="padding:16px">Numri javor i ${esc(range)} nuk ka lajme në shqip${fanar ? " nga Fanari" : " nga mitropolitë"}. Numri i ri del të dielën pas orës 20:00.</p>`;
       enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list"); return;
     }
     const G = groups.find((g) => g.id === id) || groups[0];
@@ -6392,7 +6446,7 @@ function pickPhoto(it) {
     ["live", "Shërbesat live", "Kur nis një transmetim i Radio Ngjallja", "aw"],
     ["kinema", "Kinemaja", "Premierat që ruan · në shfletues edhe filmat e episodet e reja", "aw"],
     ["gazeta", "Gazeta e ditës", "Çdo ditë në 20:00", "w"],
-    ["javore", "Gazetat e javës", "Të dielën në 12:00", "w"],
+    ["javore", "Gazetat e javës", "Të dielën në 20:00", "w"],
     ["news", "Lajmet e reja", "Kur del një lajm i ri nga Kisha", "w"],
   ];
   // vetëm ato që punojnë në këtë pajisje: kujtesat e telefonit (Android) dhe kontrolli i shfletuesit (web)
@@ -7229,15 +7283,147 @@ function pickPhoto(it) {
     ["Si bëhem ortodoks?", "Fol me priftin e famullisë tënde. Pas katekizmit (mësimit të besimit) pagëzohesh dhe krizmohesh në Kishën Orthodhokse."],
     ["Çfarë është Sinaksari?", "Libri që tregon cilët shenjtorë kujtojmë çdo ditë dhe jetën e tyre."],
   ];
+  // ---------- Biblioteka: librat e shërbesave të Kishës, në flipbook-un e faqes zyrtare ----------
+  const FB_TONE = ["#7a1f1f", "#1f3b6b", "#6b4a12", "#24533a", "#4a2a63", "#5b2a1a"];
+  async function viewFlipLibrary(si, ii) {
+    const F = await load("flipbooks");
+    const S = (F && F.sections) || [];
+    const book = si != null ? (S[+si] || { items: [] }).items[+ii] : null;
+    if (!$(".fb-lib", listPane)) {
+      listPane.innerHTML = `
+        <header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>Biblioteka</h1></header>
+        <p class="sec-intro">Librat e shërbesave të Kishës Orthodhokse Autoqefale të Shqipërisë, në flipbook.</p>
+        <form class="fb-find" onsubmit="return false"><input type="search" placeholder="Kërko një libër ose shërbesë…" aria-label="Kërko në Bibliotekë"></form>
+        <div class="fb-lib">${S.map((sc, a) => `<section class="fb-sec" data-s="${a}"><h2 class="hub-h">${esc(sc.title)}</h2>
+          <div class="fb-grid">${sc.items.map((b, k) => `<a class="fb-book" href="#/biblioteka/libri/${a}/${k}" data-q="${esc(nrm(b.t + " " + sc.title))}" style="--fb:${FB_TONE[a % FB_TONE.length]}">
+            <span class="fb-cover"><i>☦</i><b>${esc(b.t)}</b></span></a>`).join("")}</div></section>`).join("")}</div>
+        <p class="art-src art-cite">${icon("globe")}<span>Burimi: <a href="${esc((F && F.src) || SITE)}" target="_blank" rel="noopener">${esc(KOASH_CITE)} · Tekste liturgjike</a></span></p>`;
+      const inp = $(".fb-find input", listPane);
+      inp.addEventListener("input", () => {
+        const q = nrm(inp.value.trim());
+        $$(".fb-book", listPane).forEach((b) => { b.hidden = !!q && !b.dataset.q.includes(q); });
+        $$(".fb-sec", listPane).forEach((x) => { x.hidden = !$$(".fb-book", x).some((b) => !b.hidden); });
+      });
+      enter(listPane);
+    }
+    $$(".fb-book", listPane).forEach((b) => b.classList.toggle("on", !!book && b.getAttribute("href") === `#/biblioteka/libri/${si}/${ii}`));
+    if (!book) { mainPane.innerHTML = emptyMain(); setMode("list"); return; }
+    const key = `${si}-${ii}`;
+    mainPane.innerHTML = `<header class="page-head art-head"><a class="back-btn art-back" href="#/biblioteka" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">${esc(book.t)}</h2></header>
+      <div class="fb-host"></div>
+      <p class="art-src art-cite fb-links">${icon("globe")}<span>Burimi: ${esc(KOASH_CITE)}</span></p>`;
+    mainPane.classList.add("art-open"); enter(mainPane); setMode("read"); mainPane.scrollTop = 0;
+    await openBook($(".fb-host", mainPane), book.pdf, key, book.t, () => location.hash.startsWith("#/biblioteka/libri/"));
+  }
+  // burimi i PDF-së: në Android ndërmjetësi vendas /oa-pdf/; në web kopja jonë te pdf/ (me lejen e Kishës);
+  // kurrë faqja e Kishës brenda aplikacionit
+  function bookSrcs(rel) {
+    if (window.__fbTest) return [window.__fbTest];
+    const e = encodeURI(rel);
+    if (location.host === "appassets.androidplatform.net") return [`${location.origin}/oa-pdf/${e}`, LIVE_BASE + "pdf/" + e];
+    return /^https?:$/.test(location.protocol) ? ["pdf/" + e, LIVE_BASE + "pdf/" + e] : [LIVE_BASE + "pdf/" + e];
+  }
+  async function openBook(host, rel, key, title, still) {
+    for (const u of bookSrcs(rel)) { if (!still()) return; if (await flipBook(host, u, key, title)) return; }
+    if (!still()) return;
+    host.innerHTML = `<div class="empty">${icon("book")}<h3>Libri nuk u hap</h3><p>${navigator.onLine ? "Provo sërish pas pak." : "Libri hapet herën e parë me internet."}</p><button class="btn primary" type="button">Provo sërish</button></div>`;
+    $("button", host).addEventListener("click", () => openBook(host, rel, key, title, still));
+  }
+  // ---------- Lexuesi flipbook: faqet e PDF-së (pdf.js) me kthim faqesh si në libër ----------
+  let PDFJS = null;
+  const PDFJS_V = "3.11.174";
+  function loadPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    return PDFJS || (PDFJS = new Promise((res, rej) => {
+      const sc = document.createElement("script");
+      sc.src = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_V}/pdf.min.js`;
+      sc.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_V}/pdf.worker.min.js`; res(window.pdfjsLib); };
+      sc.onerror = () => { PDFJS = null; rej(new Error("pdf.js")); };
+      document.head.appendChild(sc);
+    }));
+  }
+  async function flipBook(host, url, key, title) {
+    host.innerHTML = `<div class="fbk"><div class="fbk-stage"><div class="fbk-load"><span class="fbk-spin"></span><b>Po hapet libri…</b><small></small></div></div>
+      <div class="fbk-bar"><button type="button" class="fbk-b fbk-prev" aria-label="Faqja e mëparshme">‹</button>
+        <input type="range" class="fbk-rng" min="1" max="1" value="1" aria-label="Faqja"><span class="fbk-n"></span>
+        <button type="button" class="fbk-b fbk-next" aria-label="Faqja tjetër">›</button><button type="button" class="fbk-b fbk-fs" aria-label="Ekran i plotë">⤢</button></div></div>`;
+    const box = $(".fbk", host), stage = $(".fbk-stage", host), rng = $(".fbk-rng", host), num = $(".fbk-n", host);
+    let doc;
+    try {
+      const lib = await loadPdfJs();
+      const nr = url.includes("/oa-pdf/");   // ndërmjetësi i Android-it jep skedarin e plotë; në web faqet e para vijnë me pjesë (Range)
+      const task = lib.getDocument({ url, disableRange: nr, disableStream: nr, disableAutoFetch: !nr });
+      task.onProgress = (p) => { const sm = $(".fbk-load small", host); if (sm && p.total) sm.textContent = Math.round((p.loaded / p.total) * 100) + "%"; };
+      doc = await task.promise;
+    } catch (e) { return false; }
+    const N = doc.numPages, wide = () => stage.clientWidth >= 720 && N > 2;
+    const norm = (n) => { n = Math.max(1, Math.min(N, n)); return wide() && n > 1 && n % 2 === 1 ? n - 1 : n; };   // 1 (kopertina) · 2-3 · 4-5 …
+    let cur = norm(+store.get("fb.p." + key, 1) || 1), busy = false, cache = new Map();
+    rng.max = N;
+    const render = (n) => {
+      if (n < 1 || n > N) return Promise.resolve(null);
+      if (cache.has(n)) return cache.get(n);
+      const pr = doc.getPage(n).then(async (pg) => {
+        const v0 = pg.getViewport({ scale: 1 }), w = (wide() ? stage.clientWidth / 2 : stage.clientWidth) - 8, h = stage.clientHeight - 8;
+        const sc = Math.min(w / v0.width, h / v0.height), dpr = Math.min(2, window.devicePixelRatio || 1), vp = pg.getViewport({ scale: sc * dpr });
+        const c = document.createElement("canvas"); c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+        c.style.width = Math.floor(vp.width / dpr) + "px"; c.style.height = Math.floor(vp.height / dpr) + "px";
+        await pg.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+        return c;
+      });
+      cache.set(n, pr); return pr;
+    };
+    const pagesOf = (n) => (wide() ? (n === 1 ? [1] : [n, n + 1].filter((k) => k <= N)) : [n]);
+    const build = async (n) => {
+      const v = document.createElement("div"); v.className = "fbk-view" + (wide() ? " two" : "");
+      for (const k of pagesOf(n)) { const c = await render(k), p = document.createElement("div"); p.className = "fbk-page"; if (c) p.appendChild(c); v.appendChild(p); }
+      return v;
+    };
+    const label = () => { const ps = pagesOf(cur); num.textContent = `${ps.join("–")} / ${N}`; rng.value = cur; store.set("fb.p." + key, cur); };
+    const show = async (n, dir) => {
+      n = norm(n);
+      if (busy || (n === cur && $(".fbk-view", stage))) return;
+      busy = true;
+      const old = $(".fbk-view", stage), nv = await build(n);
+      $(".fbk-load", stage)?.remove();
+      if (!old || !dir) { if (old) old.remove(); stage.appendChild(nv); }
+      else if (dir > 0) { stage.insertBefore(nv, old); old.classList.add("turn-out"); await new Promise((r) => setTimeout(r, 430)); old.remove(); }
+      else { nv.classList.add("turn-in"); stage.appendChild(nv); await new Promise((r) => setTimeout(r, 430)); old.remove(); nv.classList.remove("turn-in"); }
+      cur = n; label(); busy = false;
+      const step = wide() ? 2 : 1; render(cur + step); render(cur + step + 1); render(cur - step);   // faqet fqinje gati
+    };
+    const step = () => (wide() ? (cur === 1 ? 1 : 2) : 1);
+    const next = () => cur + (wide() && cur === 1 ? 1 : step()) <= N && show(cur + step(), 1);
+    const prev = () => cur > 1 && show(cur - (wide() ? 2 : 1), -1);
+    $(".fbk-next", host).onclick = next; $(".fbk-prev", host).onclick = prev;
+    rng.oninput = () => { num.textContent = `${rng.value} / ${N}`; };
+    rng.onchange = () => show(+rng.value, +rng.value > cur ? 1 : -1);
+    $(".fbk-fs", host).onclick = () => { const fs = document.fullscreenElement; if (fs) document.exitFullscreen(); else if (box.requestFullscreen) box.requestFullscreen().catch(() => box.classList.toggle("max")); else box.classList.toggle("max"); };
+    // prekja: rrëshqit majtas/djathtas ose prek anët e faqes
+    let x0 = null;
+    stage.addEventListener("pointerdown", (e) => { x0 = e.clientX; });
+    stage.addEventListener("pointerup", (e) => {
+      if (x0 == null) return; const dx = e.clientX - x0; x0 = null;
+      if (Math.abs(dx) > 40) return dx < 0 ? next() : prev();
+      const r = stage.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width;
+      if (fx > 0.66) next(); else if (fx < 0.34) prev();
+    });
+    const onKey = (e) => { if (!host.isConnected) return removeEventListener("keydown", onKey); if (e.key === "ArrowRight") next(); else if (e.key === "ArrowLeft") prev(); };
+    addEventListener("keydown", onKey);
+    let rt = 0;
+    const ro = new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { if (!host.isConnected) return ro.disconnect(); cache = new Map(); cur = norm(cur); $(".fbk-view", stage)?.remove(); show(cur, 0); }, 250); });
+    ro.observe(stage);
+    await show(cur, 0);
+    return true;
+  }
   async function viewLibrary2(sub) {
+    // Biblioteka tani mban vetëm librat e Kishës; faqet e vjetra hapen vetëm me lidhjen e tyre (p.sh. ftesa për pagëzim)
+    if (!sub || sub === "libri") { const P = location.hash.split("/"); await viewFlipLibrary(P[3], P[4]); return; }
     const lj = await load("lutjet");
     const tab = sub || "lutjet";
     const kn = tab === "kanonet" ? await load("kanonet") : null;
     listPane.innerHTML = `
-      <header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>Biblioteka</h1></header>
-      <div class="seg bib-seg" role="tablist">
-        ${[["lutjet", "Lutjet"], ["fjalori", "Fjalori"], ["pyetje", "Pyetje"], ["pagezimi", "Pagëzimi"]].map(([k, l]) => `<a role="tab" class="seg-a" href="#/biblioteka/${k}" aria-checked="${tab === k}">${l}</a>`).join("")}
-      </div>
+      <header class="page-head"><a class="back-btn" href="#/biblioteka" aria-label="Kthehu">${icon("back")}</a><h1>${esc({ lutjet: "Lutjet", fjalori: "Fjalori", pyetje: "Pyetje", pagezimi: "Pagëzimi", kanonet: "Kanonet" }[tab] || "Biblioteka")}</h1></header>
       <div class="bib-body">${
         tab === "fjalori" ? `<dl class="gloss">${GLOSSARY.map(([t, d]) => `<div><dt>${esc(t)}</dt><dd>${esc(d)}</dd></div>`).join("")}</dl>`
         : tab === "pyetje" ? FAQ.map(([q, a]) => `<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")
@@ -8830,10 +9016,10 @@ function pickPhoto(it) {
     const tp = data.tipikoja, sc = tp && sun.getFullYear() === 2026 ? tp.sections[sun.getMonth()] : null;
     const it = sc ? sc.items.find((x) => parseInt(x.title, 10) === sun.getDate()) : null;
     if (!it) return null;
-    const o = { mbr: "", men: "", lit: "" }; let part = "";
+    const o = { mbr: "", men: "", lit: "", pre: "" }; let part = "";
     it.blocks.forEach((b) => {
       if (b.t === "h") part = /Mëngjesore/i.test(b.x) ? "men" : /Liturgji/i.test(b.x) ? "lit" : /Mbrëmësore/i.test(b.x) ? "mbr" : part;
-      else if (b.t === "p" && part) o[part] += " " + b.x;
+      else if (b.t === "p") o[part || "pre"] += " " + b.x;
     });
     for (const k in o) o[k] = o[k].replace(/(\p{L})-\s+(\p{L})/gu, "$1$2").replace(/\bdhe dhe\b/g, "dhe").replace(/\s+/g, " ").trim();
     return o;
@@ -9029,6 +9215,9 @@ function pickPhoto(it) {
       }
       // ---- Përlëshorja: “Lavdi…” / “Tani…” sipas Tipikosë ----
       apolyt(tipSeg(tx, /PËRLËSHOR/, null), /^Pastaj psalet përlëshorja sipas rregullit/);
+      // ---- Leximet profetike (nga Libri i Profecive) pas paravargut ----
+      const pr = await profHtml(sun, tx);
+      if (pr) putAfter((b) => b.t === "rubric" && /^Pas paravargut, nëse ka lexime/.test(b.x), pr);
     } else {
       // ---- Përlëshoret (“Perëndi është Zoti…”) ----
       let apCl = tipSeg(tx, /ZOTI/, /NDENJ/).replace(/^ZOTI[^”]*”\s*,?\s*/, "");
@@ -9127,6 +9316,251 @@ function pickPhoto(it) {
     return segs.map((s) => (typeof s === "string" ? s : blocksHtml("sherbesa", s, { priest: true }))).join("");
   }
 
+  // ---------- Leximet profetike të Mbrëmësores: tekstet nga Libri i Profecive, sipas Tipikosë ----------
+  async function profHtml(d, tx) {
+    if (!/LEXIMET/.test(tx || "")) return "";
+    const seg = tipSeg(tx, /LEXIMET/, /PASVARGJET|PËRLËSHOR/);
+    const refs = [...seg.matchAll(/Leximi\s+([IVX]+)\s*:\s*([^;)]+)/g)].map((m) => [m[1], m[2].replace(/\s+/g, " ").replace(/(\d)-\s+(\d)/g, "$1-$2").trim()]);
+    const P = await load("profecite");
+    const key = `${d.getDate()} ${MUAJ_G[d.getMonth()]}`, num = (r) => ((/(\d+)\s*:\s*(\d+)/.exec(r) || []).slice(1).join(":"));
+    let it = null;
+    for (const sc of (P && P.sections) || []) { it = sc.items.find((x) => x.title.startsWith(key + " ")); if (it) break; }
+    if (!it && refs.length) {   // sipas referencave (p.sh. të dielat e lëvizshme)
+      const want = refs.map((r) => num(r[1])).filter(Boolean).join("|");
+      for (const sc of (P && P.sections) || []) { it = sc.items.find((x) => x.blocks.filter((b) => b.t === "ref").map((b) => num(b.x)).filter(Boolean).join("|") === want); if (it) break; }
+    }
+    if (it) return `<details class="okto prof" open><summary>${icon("scroll")} Leximet profetike <small>Nga Libri i Profecive</small></summary>
+      ${it.blocks.map((b) => (b.t === "h" ? `<p class="okto-sub">${esc(b.x)}</p>` : b.t === "ref" ? `<p class="prof-ref">${esc(b.x)}</p>` : b.x ? `<p class="okto-p">${esc(b.x)}</p>` : "")).join("")}</details>`;
+    if (!refs.length) return "";
+    return `<div class="tip-men"><span class="okto-src">${icon("scroll")} Leximet profetike · sipas Tipikosë</span>${refs.map(([n, r]) => `<p><b>Leximi ${esc(n)}</b> · ${esc(r)}</p>`).join("")}</div>`;
+  }
+  // himnet e cituara me fillimin e tyre: Tetëtingullshi + përlëshoret e përbashkëta të librit të shërbesave
+  let HPOOL = null;
+  async function hymnPool() {
+    if (HPOOL) return HPOOL;
+    const [OKA, sh] = await Promise.all([load("tetetingullshi"), load("sherbesa")]), pool = [];
+    OKA.tones.forEach((tt, ti) => tt.sections.forEach((sc) => sc.blocks.forEach((b) => { if (b.t === "p") pool.push({ x: b.x, n: nrmH(b.x), src: `${sc.title} · Tetëtingullshi · ${TONE_FULL[ti + 1]}` }); })));
+    sh.sections.forEach((sc) => sc.items.forEach((it) => { let tn = ""; it.blocks.forEach((b) => { if (b.t === "h" && /^Ting\./.test(b.x)) tn = b.x; else if (b.t === "p" && b.x.length > 60) pool.push({ x: b.x, n: nrmH(b.x), src: (tn ? tn + " · " : "") + it.title }); }); }));
+    return (HPOOL = pool);
+  }
+  const WHO_RE = /(së kremtes|shën\s+\p{Lu}\p{L}+|shenjt\p{L}*|ungjillorit|apostull\p{L}*|profet\p{L}*|dëshmor\p{L}*|kryeengjëjve|engjëjve|Kryqit)/u;
+  const whoOf = (x) => { const m = WHO_RE.exec(x || ""); return m ? m[1] : ""; };
+  const WD_NAME = ["", "hën", "mart", "mërkur", "enjt", "premt", "shtun"];
+  const WD_FULL = ["e diel", "e hënë", "e martë", "e mërkurë", "e enjte", "e premte", "e shtunë"];
+  // ---------- Shërbesat e ditëve të javës sipas Tipikosë (e diela formohet nga composeSunday) ----------
+  async function composeDay(kind, d, tone, T, kd) {
+    const sh = await load("sherbesa");
+    const find = (title) => { for (const sc of sh.sections) { const it = sc.items.find((x) => x.title === title); if (it) return it; } return null; };
+    const TD = tipDay(d), tx = TD ? TD[kind] : "";
+    const dow = d.getDay(), eve = (dow + 6) % 7;
+    const pd = Math.round((d - Fast.pascha(d.getFullYear())) / 864e5), lentWk = dow >= 1 && dow <= 5 && pd >= -48 && pd <= -9;
+    const feastV = /HYRJA|LEXIMET/.test(tx), feastM = /UNGJILLI mëngjesor|DHOKSOLOGJIA e Madhe/i.test(tx);
+    const base = find(kind === "mbr" ? (feastV ? "Mbrëmësorja Kremtuese" : lentWk ? "Mbrëmësorja Kataniktike" : "Mbrëmësorja e Përditshme")
+      : feastM ? "Mëngjesorja e të Kremteve" : lentWk ? "Mëngjesorja e Përditshme gjatë Kreshmëve të Madhe" : "Mëngjesorja e Përditshme");
+    if (!base) return "";
+    let B = base.blocks.slice();
+    const pool = await hymnPool();
+    const look = (inc) => { const w = nrmH(inc || "").split(" ").filter(Boolean); if (w.length < 2) return null; const k = w.slice(0, 4).join(" "); return k.length < 8 ? null : pool.find((h) => h.n.startsWith(k)) || null; };
+    const menH = (label, q, src = "Nga Mujori") => `<div class="tip-men"><span class="okto-src">${icon("book")} ${esc(src)}</span><p>${label ? `<b>${esc(label)}</b>` : ""}${q ? `${label ? " · " : ""}<i>“${esc(q)}…”</i>` : ""}</p></div>`;
+    const stH = (x, src) => `<div class="okto-st"><span class="okto-src">${icon("music")} ${esc(src)}</span><p class="okto-p">${versify(x)}</p></div>`;
+    const subH = (x) => `<p class="okto-sub">${esc(x)}</p>`;
+    const verseH = (n, v) => `<p class="verse para thv"><span class="vl"><b class="vlab">Varg ${n}:</b> ${esc(v)}</span></p>`;
+    const capW = (t) => capFirst(t.replace(/[A-ZËÇ]{3,}/gu, (w) => (/^[IVX]+$/.test(w) ? w : w.charAt(0) + w.slice(1).toLowerCase())));
+    // një pjesë e Tipikosë → himnet e cituara (kur janë në aplikacion) ose vendi i tyre me fjalët e Tipikosë
+    const tipH = (x, name) => {
+      const out = [], R = /“\s*([^”]+?)\s*”/g; let m, last = 0, lastH = "", pend = "", skip = false;
+      // «… në vend të: “Më të nderuarën...”» → ai himn nuk psalet; «tropari i shenjtores. Më pas: “…”» → dy vende të ndryshme
+      const chunk = (t0) => {
+        if (/në vend të\s*:?\s*$/i.test(t0)) skip = true;
+        const pcs = t0.split(/\.\s+/);
+        pcs.forEach((t, i) => one(t, i === pcs.length - 1 && /:\s*$/.test(t0)));
+      };
+      const one = (t, lab) => {
+        t = t.replace(/\b(?:Pastaj|Më pas|psal(?:et|en)|thuhet|lexohet)\b\s*:?/gi, " ").replace(/^[\s,.:;–-]+|[\s,.:;–-]+$/g, "").replace(/^dhe\s+/, "").replace(/\s+/g, " ").trim();
+        if (!t || t.length > 110) return;
+        if (/^po (?:ajo|ai)\b/i.test(t)) { out.push(lastH || subH("Po ajo")); return; }
+        if (/^\(?\d+ herë\)?$/.test(t)) { out.push(subH(t.replace(/[()]/g, ""))); return; }
+        const w = whoOf(t), label = /^(?:e|i|të)\s/.test(t) && name ? `${name} ${t}` : capW(t);
+        if (lab) { pend = label; return; }
+        if (w || /Hyjlindësor|tropar|ndenjësor|vargëzim|përlëshor|shkurtor|kungator|dërgimsor/i.test(t)) out.push(menH(label, "", w ? "Nga Mujori" : "Sipas Tipikosë"));
+      };
+      while ((m = R.exec(x || ""))) {
+        chunk(x.slice(last, m.index));
+        const q = m[1].replace(/[\s.…]+$/, "");
+        if (skip) skip = false;
+        else if (/^(?:Lavdi|Tani)$/.test(q)) out.push(subH(q + "…"));
+        else { const h = look(q); lastH = h ? stH(h.x, h.src) : menH(pend, q); out.push(lastH); }
+        pend = ""; last = R.lastIndex;
+      }
+      chunk((x || "").slice(last));
+      return out.join("");
+    };
+    const putAt = (pred, html, before) => { const i = B.findIndex((b) => b.t !== "html" && pred(b)); if (i < 0 || !html) return -1; B.splice(before ? i : i + 1, 0, { t: "html", html }); return i; };
+    // vendet e Mujorit: «3 Vargëzimet … të së kremtes, që bëhen 6 (të tria nga 2 herë) dhe 3 Vargëzimet e shën Ekaterinës»
+    const slotsOf = (cl) => {
+      const out = [];
+      (cl || "").replace(/^[^”]*”\s*/, "").split(/\s+dhe\s+(?=(?:\.\.\.”\s*)?\d)/).forEach((part) => {
+        const m = /(\d+)\s+Vargëzim/.exec(part); if (!m) return;
+        const n = +m[1], b = /që bëhen\s+(\d+)/.exec(part), res = /ngjallësor/i.test(part), w = whoOf(part) || "ditës";
+        const one = Array.from({ length: n }, (_, i) => (res ? { l: `Vargëzimi ngjallësor ${i + 1}`, src: "Nga Tetëtingullshi" } : { l: `Vargëzimi ${i + 1} i ${w}`, src: "Nga Mujori" }));
+        const extra = b ? Math.max(0, +b[1] - n) : 0;
+        one.forEach((x, i) => { out.push(x); if (i < extra) out.push({ l: x.l + " (edhe një herë)", src: x.src }); });
+      });
+      return out;
+    };
+    const plainSlots = () => [1, 2, 3].map((i) => ({ l: `Vargëzimi ${i} i ditës`, src: "Nga Tetëtingullshi i ditës" })).concat([1, 2, 3].map((i) => ({ l: `Vargëzimi ${i} i shenjtorit të ditës`, src: "Nga Mujori" })));
+    // vargjet e psalmit me vargëzimin pas secilit (numërohen nga fundi)
+    const weave = (verses, slots) => { const off = Math.max(0, verses.length - slots.length); return verses.map((v, i) => verseH(verses.length - i, v) + (slots[i - off] ? menH(slots[i - off].l, "", slots[i - off].src) : "")).join(""); };
+    // vetëm grupi i ditës (Të hënën / Të mërkurën dhe të premten …)
+    const dayGroups = (from) => {
+      const a = B.findIndex((b) => b.t === "rubric" && from.test(b.x)); if (a < 0) return;
+      let e = B.findIndex((b, i) => i > a && b.t === "rubric"); if (e < 0) e = B.length;
+      const out = []; let keep = true;
+      for (let i = a + 1; i < e; i++) { const b = B[i]; if (b.t === "h" && /^Të (?:hënën|martën|mërkurën|enjten|premten|shtunën)/.test(b.x)) keep = b.x.includes(WD_NAME[dow]); if (keep) out.push(b); }
+      B.splice(a + 1, e - a - 1, ...out);
+    };
+    // përlëshoret sipas Tipikosë në vend të përmbledhjes së librit (kur Tipikoja i jep)
+    const apolyt = (cl, from, to) => {
+      const html = cl ? tipH(cl.replace(/^PËRLËSHOR\w*\s*/, "Përlëshorja "), "Përlëshorja") : "";
+      if (!html) return;
+      for (let a = 0; a < B.length; a++) {
+        if (!(B[a].t === "rubric" && from.test(B[a].x))) continue;
+        let e = B.findIndex((b, i) => i > a && b.t === "rubric" && (!to || to.test(b.x))); if (e < 0) e = B.length;
+        B.splice(a + 1, e - a - 1, { t: "html", html }); a++;
+      }
+    };
+    if (kind === "mbr") {
+      // paravargu: vetëm ai i mbrëmjes së kësaj dite; paravargjet e mëdhenj vetëm kur i kërkon Tipikoja
+      {
+        const a = B.findIndex((b) => b.t === "h" && /^Paravargjet e gjithë javës/.test(b.x));
+        const e = a < 0 ? -1 : B.findIndex((b, i) => i > a && (b.t === "rubric" || (b.t === "h" && /^Paravargje të mëdhenj/.test(b.x))));
+        if (e > a) {
+          const LAB = (b) => b && b.t === "p" && /^Të \S+ në mbrëmje/.test(b.x), st = [];
+          for (let i = a + 1; i < e; i++) if (LAB(B[i]) || (B[i].t === "h" && /^Ting\./.test(B[i].x) && !LAB(B[i - 1]))) st.push(i);
+          if (st.length === 7) { const k = (eve + 1) % 7; B.splice(a + 1, e - a - 1, ...B.slice(st[k], st[k + 1] || e)); }
+        }
+        if (!/PARAVARG\w*\s+(?:i\s+)?madh/i.test(tx)) B = cutRange(B, (b) => b.t === "h" && /^Paravargje të mëdhenj/.test(b.x), (b) => b.t === "rubric");
+      }
+      // “O Zot thirra”: vargëzimet sipas Tipikosë (ose 3 të Tetëtingullshit + 3 të shenjtorit në ditët e zakonshme)
+      const thCl = tipSeg(tx, /THIRRA/, /“\s*Lavdi/);
+      let slots = slotsOf(thCl); if (!slots.length) slots = plainSlots();
+      const total = [4, 6, 8, 10].find((x) => x >= slots.length) || 10, NUMW = { 10: "dhjetë", 8: "tetë", 6: "gjashtë", 4: "katër" };
+      const a0 = B.findIndex((b) => b.t === "rubric" && new RegExp(`^Kur ka ${NUMW[total]} vargje`).test(b.x));
+      const a1 = B.findIndex((b, i) => i > a0 && b.t === "p" && /^Lavdi Atit e Birit edhe Shpirtit të Shenjtë\.$/.test(b.x.trim()));
+      if (a0 >= 0 && a1 > a0) {
+        const verses = B.slice(a0, a1).filter((b) => b.t === "p").flatMap((b) => b.x.split(/(?<=[.!?])\s+(?=[A-ZËÇ])/));
+        B.splice(a0, a1 - a0, { t: "html", html: weave(verses, slots) });
+      }
+      const g1 = tipGT(tipSeg(tx, /“\s*Lavdi/, /HYRJA|PARAVARG|PASVARGJET/));
+      if (g1) {
+        if (!g1.joint) putAt((b) => b.t === "rubric" && /^Dhe psalet Lavdia siç e përcakton/.test(b.x), tipH(g1.lavdi, "Lavdia"));
+        putAt((b) => b.t === "rubric" && /^Dhe psalet Hyjlindësorja\./.test(b.x), tipH(g1.tani, g1.joint ? "Lavdia" : "Hyjlindësorja"));
+      }
+      // leximet profetike
+      const pr = await profHtml(d, tx);
+      if (pr && putAt((b) => b.t === "rubric" && /^Pas paravargut, nëse ka lexime/.test(b.x), pr) < 0) putAt((b) => b.t === "rubric" && /^Pastaj prelati ose lexuesi, lexon/.test(b.x), pr, true);
+      // pasvargjet
+      const pasCl = tipSeg(tx, /PASVARGJET/, /PËRLËSHOR/), g2 = tipGT(pasCl), pw = whoOf(pasCl.split("“")[0]);
+      const pasH = pasCl ? (/ngjallësor|tingullit/i.test(pasCl.split("“")[0]) ? menH("Pasvargjet e tingullit", "", "Nga Tetëtingullshi") : menH(`Pasvargjet${pw ? " e " + pw : ""}`, "")) : menH("Pasvargjet e ditës", "", "Nga Tetëtingullshi i ditës");
+      if (base.title === "Mbrëmësorja Kremtuese") {
+        B = cutRange(B, (b) => b.t === "h" && /^Të shtunën në mbrëmje$/.test(b.x), (b) => b.t === "rubric");
+        putAt((b) => b.t === "rubric" && /^Në vazhdim psalet pasvargjet sipas rregullit/.test(b.x), pasH);
+        if (g2) {
+          const lv = B.findIndex((b) => b.t === "rubric" && /^Dhe psalet lavdia se së kremtes/.test(b.x));
+          const tn = lv < 0 ? -1 : B.findIndex((b, i) => i > lv && b.t === "p" && /^Tani e përherë/.test(b.x));
+          if (tn > lv) { B.splice(tn + 1, 0, { t: "html", html: tipH(g2.tani, g2.joint ? "Lavdia" : "Hyjlindësorja") }); if (!g2.joint) B.splice(lv + 1, 0, { t: "html", html: tipH(g2.lavdi, "Lavdia") }); }
+        }
+      } else {
+        // vargjet e pasvargjeve: të premten në mbrëmje ato të “Perëndi është Zoti”, ditët e tjera ato të javës
+        const v1 = B.findIndex((b) => b.t === "rubric" && /^Nga e diela në mbrëmje deri të enjten/.test(b.x));
+        const v2 = B.findIndex((b) => b.t === "rubric" && /^Të premten në mbrëmje, nëse në Mëngjesore/.test(b.x));
+        const v3 = B.findIndex((b) => b.t === "rubric" && /^Nëse në Mëngjesore ka “Aliluia”/.test(b.x));
+        const v4 = B.findIndex((b) => b.t === "rubric" && /^Pastaj thuhet Lavdi dhe Tani e pasvargjeve/.test(b.x));
+        if (v1 >= 0 && v2 > v1 && v3 > v2 && v4 > v3) B = eve === 5 ? B.slice(0, v1).concat(B.slice(v2, v3), B.slice(v4)) : B.slice(0, v2).concat(B.slice(v4));
+        putAt((b) => b.t === "rubric" && /^Në vazhdim psalen pasvargjet e ditës/.test(b.x), pasH);
+        if (g2) putAt((b) => b.t === "rubric" && /^Pastaj thuhet Lavdi dhe Tani e pasvargjeve/.test(b.x),
+          g2.joint ? subH("Lavdi… Tani…") + tipH(g2.lavdi, "Lavdia") : subH("Lavdi…") + tipH(g2.lavdi, "Lavdia") + subH("Tani…") + tipH(g2.tani, "Hyjlindësorja"), true);
+      }
+      apolyt(tipSeg(tx, /PËRLËSHOR/, null), /^Pastaj psalet përlëshorja sipas rregullit/, null);
+    } else {
+      // përlëshoret pas “Perëndi është Zoti” (dhe në fund të Mëngjesores së përditshme)
+      let apCl = tipSeg(tx, /PERËNDI ËSHTË ZOTI|ZOTI\.\.\./, /NDENJ/).replace(/^[^”]*”\s*,?\s*/, "");
+      if (/si në Mbrëmësore/i.test(apCl) && TD) apCl = tipSeg(TD.mbr, /PËRLËSHOR/, null);
+      apolyt(apCl, /^Pastaj psalet përlëshorja/, /litaninë e vogël|^Pas përlëshores dhe Hyjlindësores/);
+      // ndenjësoret
+      const ndCl = tipSeg(tx, /NDENJ/, /BEKIMTOR|SHKALLESAT|DËGJIMI|PSALMI 50/).replace(/^NDENJ\S*\s*:?\s*/, "");
+      let ndH = "";
+      if (/Stihologjia/i.test(ndCl)) { const P = ndCl.split(/Stihologjia\s*(?:\([^)]*\)\s*)?(I{1,3})\b\s*[:,]?/i); for (let i = 1; i < P.length; i += 2) ndH += `<div class="tip-grp">${subH("Pas Stihologjisë " + P[i])}${tipH(P[i + 1], "Ndenjësorja")}</div>`; }
+      else if (ndCl) ndH = tipH(ndCl, "Ndenjësoret");
+      if (base.title === "Mëngjesorja e Përditshme") dayGroups(/^Në vazhdim psalen ndenjësoret e ditës/);
+      if (ndH) putAt((b) => b.t === "rubric" && /^Në vazhdim psalen ndenjësoret/.test(b.x), ndH);
+      // paravargu dhe Ungjilli mëngjesor
+      const sk = tipSeg(tx, /SHKALLESAT/, /Le t/), pv = /Paravargu\s+(?:i\s+)?([^.]*)/i.exec(sk);
+      if (pv) putAt((b) => b.t === "rubric" && /^Dhe psalet paravargu i të kremtes/.test(b.x), menH(`Paravargu ${/^(?:e|i|të)\s/.test(pv[1]) ? pv[1] : "i " + pv[1]}`.replace(/\s+$/, ""), ""));
+      const um = /UNGJILLI mëngjesor\s+([^.]*)/.exec(tx);
+      if (um) putAt((b) => b.t === "rubric" && /Prifti lexon Ungjillin e Mëngjesores/.test(b.x), menH(`Ungjilli mëngjesor ${um[1].replace(/,?\s*i cili lexohet.*$/, "").trim()}`, "", "Sipas Tipikosë"));
+      // pas Psalmit 50
+      const p50 = tipSeg(tx, /PSALMI 50/, /SHKURTORJA/).replace(/^PSALMI 50\.?\s*/, "");
+      if (p50) putAt((b) => b.t === "rubric" && /^kremtes nga Mujori/.test(b.x), tipH(p50, ""));
+      // shkurtorja, shtëpia, sinaksari, zbritësoret
+      const kCl = tipSeg(tx, /SHKURTORJA/, /SINAKSARI/), kWho = whoOf(kCl);
+      const sx = await sxDay(d.getMonth() + 1, d.getDate());
+      const sxHtml = sx ? `<details class="okto" open><summary>${icon("music")} Sinaksari · ${d.getDate()} ${MUAJ_G[d.getMonth()]} <small>Nga Sinaksari</small></summary>${sx.blocks.filter((b) => ["intro", "li", "end"].includes(b.t)).map((b) => `<p class="okto-p">${versify(b.x)}</p>`).join("")}</details>` : "";
+      const zq = tipQ(tipSeg(tx, /ZBRITËSORET/, /MADHËSHTIM|“\s*Le t/))[0];
+      const kH = (kWho ? menH(`Shkurtorja dhe Shtëpia e ${kWho}`, "") : ""), zH = zq ? menH("Zbritësoret · katavasitë", zq) : "";
+      if (base.title === "Mëngjesorja e Përditshme") {
+        const a = B.findIndex((b) => b.t === "h" && /^Shkurtoret e përditshme/.test(b.x)), e = a < 0 ? -1 : B.findIndex((b, i) => i > a && b.t === "h");
+        if (e > a) {
+          const ps = B.slice(a + 1, e), RE = [null, /hëna/, /marta/, /mërkura/, /enjtja|Nikollës/, /premtja/, null][dow];
+          let out = [];
+          if (dow === 6) out = ps.slice(-1);
+          else { let keep = false; ps.forEach((b) => { if (b.x.length < 60) keep = RE.test(b.x); if (keep) out.push(b); }); if (dow === 4) out = out.filter((b) => b !== ps[ps.length - 1]); }
+          B.splice(a + 1, e - a - 1, ...out);
+        }
+        if (kH) putAt((b) => b.t === "rubric" && /^Pastaj lexohet shkurtorja e ditës/.test(b.x), kH);
+        putAt((b) => b.t === "h" && /^Sinaksari i ditës/.test(b.x), sxHtml + zH);
+        dayGroups(/^Dhe kori psal dërgimsoret e përditshme/);
+      } else putAt((b) => b.t === "rubric" && /^Pastaj lexohet shkurtorja, shtëpia dhe sinaksari/.test(b.x), kH + sxHtml + zH);
+      // madhështimet (kënga IX)
+      const mg = tipSeg(tx, /MADHËSHTIMET/, /“\s*I shenjtë është Zoti|DËRGIMSOR/).replace(/^MADHËSHTIMET:?\s*/, "");
+      if (mg) putAt((b) => b.t === "rubric" && /psal këngën e IX-të/.test(b.x), tipH(mg, ""));
+      // dërgimsorja
+      const dg = tipSeg(tx, /DËRGIMSOR/, /LAVDËRIMET/).replace(/^DËRGIMSOR\S*\s*/, "Dërgimsorja ");
+      if (dg) putAt((b) => b.t === "rubric" && /^Dhe (?:më pas )?kori psal dërgims/.test(b.x), tipH(dg, "Dërgimsorja"));
+      // lavdërimet: vargëzimet pas vargjeve
+      const lvCl = tipSeg(tx, /LAVDËRIMET/, /DHOKSOLOGJI/), lslots = slotsOf(tipSeg(lvCl, /\d+\s+Vargëzim/, /“\s*Lavdi/)), gL = tipGT(lvCl);
+      if (lslots.length) {
+        const v0 = B.findIndex((b) => b.t === "p" && /^Vargjet e Vargëzimeve të Lavdërimeve/.test(b.x));
+        const vf = lslots.length <= 4 ? B.findIndex((b) => b.t === "rubric" && /^Kur janë katër vargje/.test(b.x)) : v0;
+        const v1 = vf < 0 ? -1 : B.findIndex((b, i) => i > vf && b.t === "p" && /^Lavdi Atit/.test(b.x));
+        if (vf >= 0 && v1 > vf) B.splice(v0 + 1, v1 - v0 - 1, { t: "html", html: weave(B.slice(vf + 1, v1).filter((b) => b.t === "p").map((b) => b.x), lslots) });
+        else putAt((b) => b.t === "rubric" && /lexon dhoksologjinë e vogël/.test(b.x), lslots.map((x) => menH(x.l, "", x.src)).join(""), true);
+      }
+      if (gL) {
+        const lv = B.findIndex((b) => b.t === "rubric" && /^Dhe psalet lavdia e të kremtes/.test(b.x)), tn = lv < 0 ? -1 : B.findIndex((b, i) => i > lv && b.t === "p" && /^Tani e përherë/.test(b.x));
+        if (tn > lv) { B.splice(tn + 1, 0, { t: "html", html: tipH(gL.tani, gL.joint ? "Lavdia" : "Hyjlindësorja") }); if (!gL.joint) B.splice(lv + 1, 0, { t: "html", html: tipH(gL.lavdi, "Lavdia") }); }
+      }
+    }
+    const segs = []; let cur = [];
+    B.forEach((b) => { if (b.t === "html") { segs.push(cur, b.html); cur = []; } else cur.push(b); });
+    segs.push(cur);
+    return segs.map((x) => (typeof x === "string" ? x : blocksHtml("sherbesa", x, { priest: true }))).join("");
+  }
+  // ---------- Liturgjia e ditës: leximet + pjesët që cakton Tipikoja + teksti i plotë i Liturgjisë ----------
+  async function liturgyHtml(d, TD) {
+    const K = await load("kendi_lutjes"), L = (K && K.items) || [];
+    const lt = TD ? `${TD.lit} ${TD.pre}` : "";
+    const slug = /Vasilit/i.test(lt) ? "liturgjia-vasili" : /Parashenjtëruar/i.test(lt) ? "liturgjia-parashenjteruara" : "liturgjia-joan";
+    const x = L.find((i) => i.slug === slug && i.ok);
+    const lx = await tipikonReadings(d);
+    const rd = lx ? lx.apostle.map((r) => ["Apostulli", "letter", r]).concat(lx.gospel.map((r) => ["Ungjilli", "book", r])) : [];
+    const rHtml = rd.map(([w, ic, r]) => `<details class="okto" open><summary>${icon(ic)} ${esc(w)} ${esc(r.desc || "")} <small>${esc(r.ref)}</small></summary>
+      ${r.pre && r.pre.length ? `<div class="prokimen">${r.pre.map((l) => `<p>${esc(l)}</p>`).join("")}</div>` : ""}
+      ${r.item ? r.item.v.map((v) => `<p class="okto-p">${esc(v)}</p>`).join("") : `<p class="okto-miss">Teksti i këtij leximi lexohet në kishë sipas referencës së mësipërme.</p>`}</details>`).join("");
+    return `${rHtml}${x ? `<div class="article klt lit-full">${x.html.replace(/\son\w+="[^"]*"/g, "")}
+      <p class="art-src art-cite">${icon("globe")}<span>Burimi: <a href="${SITE}kendi-i-lutjes/#${x.slug}" target="_blank" rel="noopener">${esc(KOASH_CITE)} · Këndi i Lutjes</a></span></p></div>` : ""}`;
+  }
+
   function sundayFor(base) {
     const d = new Date(base || Date.now());
     d.setHours(12, 0, 0, 0);
@@ -9134,9 +9568,9 @@ function pickPhoto(it) {
     return d;
   }
   let sunTab = null;
-  async function viewSunday(isoStr, tabArg) {
+  async function viewSunday(isoStr, tabArg, daily) {
     const [okto, tp, sh] = await Promise.all([load("tetetingullshi"), load("tipikoja"), load("sherbesa"), load("kalendari")]);
-    const sun = isoStr ? new Date(isoStr + "T12:00:00") : sundayFor();
+    const sun = isoStr ? new Date(isoStr + "T12:00:00") : daily ? (() => { const x = new Date(); x.setHours(12, 0, 0, 0); return x; })() : sundayFor();
     const kd = calDay(sun);
     const tone = kalTone(kd, sun);
     const T = okto.tones[tone - 1];
@@ -9146,10 +9580,13 @@ function pickPhoto(it) {
     const f = Fast.info(sun);
     const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const now = new Date();
-    const tab = tabArg || sunTab || (now.getDay() === 6 && now.getHours() >= 12 ? "mbr" : "men");
-    sunTab = tab;
-    const prev = new Date(sun); prev.setDate(prev.getDate() - 7);
-    const next = new Date(sun); next.setDate(next.getDate() + 7);
+    const R = daily ? "#/sherbesa-dites/" : "#/edjela/", step = daily ? 1 : 7, hasLit = daily && litDay(f, it);
+    let tab = tabArg || (daily ? "men" : sunTab || (now.getDay() === 6 && now.getHours() >= 12 ? "mbr" : "men"));
+    if (tab === "lit" && !hasLit) tab = "men";
+    if (!daily) sunTab = tab;
+    const prev = new Date(sun); prev.setDate(prev.getDate() - step);
+    const next = new Date(sun); next.setDate(next.getDate() + step);
+    const eveD = new Date(sun); eveD.setDate(eveD.getDate() - 1);
     const shIdx = (title) => { for (let a = 0; a < sh.sections.length; a++) { const b = sh.sections[a].items.findIndex((x) => x.title === title); if (b >= 0) return `#/sherbesa/${a}/${b}`; } return "#/sherbesa"; };
     const hymnBox = (title, blocks, open) => `<details class="okto"${open ? " open" : ""}><summary>${icon("music")} ${esc(title)} <small>${esc(TONE_FULL[tone])}</small></summary>
         ${blocks.map((b) => (b.t === "sub" ? `<p class="okto-sub">${esc(b.x)}</p>` : `<p class="okto-p">${versify(b.x)}</p>`)).join("")}</details>`;
@@ -9204,17 +9641,18 @@ function pickPhoto(it) {
     }).join("") : `<div class="empty"><p>Tipikoja e kësaj të diele nuk është në aplikacion (vetëm viti 2026). Më poshtë janë himnet ngjallësore të tingullit.</p></div>
         ${T.sections.map((sc) => sectionHtml(sc.k, 0)).join("")}`;
     listPane.innerHTML = `
-      <header class="page-head"><a class="back-btn" href="#/shpirti" aria-label="Kthehu">${icon("back")}</a><h1>E Diela</h1></header>
+      <header class="page-head"><a class="back-btn" href="${daily ? "#/" : "#/shpirti"}" aria-label="Kthehu">${icon("back")}</a><h1>${daily ? "Shërbesat e ditës" : "E Diela"}</h1></header>
       <section class="sun-hero">
         <p class="eyebrow">${sun.getDate()} ${MUAJ_G[sun.getMonth()]} ${sun.getFullYear()}</p>
-        <h2>${esc(kd ? (/^[^.]*\.(?:\s*\([^)]*\))?/.exec(kd.x) || [kd.x])[0].replace(/(\d+) LLK\./, "E Diela e $1-të e Llukait") : f.feast || "E Diela")}</h2>
+        <h2>${esc(kd ? (/^[^.]*\.(?:\s*\([^)]*\))?/.exec(kd.x) || [kd.x])[0].replace(/(\d+) LLK\./, "E Diela e $1-të e Llukait") : f.feast || (it && (it.blocks.find((b) => b.t === "saints") || {}).x) || (daily ? capFirst(WD_FULL[sun.getDay()]) : "E Diela"))}</h2>
         <div class="sun-tone">${icon("music")} <b>${esc(TONE_FULL[tone])}</b>${kd && kd.um ? ` · Ungjilli Mëngjesor ${esc(kd.um)}` : ""}</div>
         ${kd && kd.ap ? `<p class="sun-reads">Apostulli: <b>${esc(kd.ap)}</b> · Ungjilli: <b>${esc(kd.ev)}</b></p>` : ""}
-        <nav class="sun-nav"><a class="btn" href="#/edjela/${iso(prev)}/${tab}">${icon("back")} ${prev.getDate()} ${MUAJ_G[prev.getMonth()].slice(0, 3)}</a>
-          <a class="btn" href="#/edjela/${iso(next)}/${tab}">${next.getDate()} ${MUAJ_G[next.getMonth()].slice(0, 3)} <svg style="transform:scaleX(-1)"><use href="#i-back"/></svg></a></nav>
+        ${daily && tab === "mbr" ? `<p class="sun-eve">${icon("candle")} Psalet ${WD_FULL[eveD.getDay()].replace(/^e /, "të ").replace(/ë$/, "ën").replace(/l$/, "lën").replace(/e$/, "en")} në mbrëmje, ${eveD.getDate()} ${MUAJ_G[eveD.getMonth()]}</p>` : ""}
+        <nav class="sun-nav"><a class="btn" href="${R}${iso(prev)}/${tab}">${icon("back")} ${prev.getDate()} ${MUAJ_G[prev.getMonth()].slice(0, 3)}</a>
+          <a class="btn" href="${R}${iso(next)}/${tab}">${next.getDate()} ${MUAJ_G[next.getMonth()].slice(0, 3)} <svg style="transform:scaleX(-1)"><use href="#i-back"/></svg></a></nav>
       </section>
-      <div class="seg sun-seg">${[["mbr", "Mbrëmësorja e Madhe"], ["men", "Mëngjesorja"], ["tip", "Tipikoja"]].map(([k, l]) => `<a class="seg-a" href="#/edjela/${iso(sun)}/${k}" aria-checked="${tab === k}">${l}</a>`).join("")}</div>
-      <article class="reader sun-body"><div class="verses" lang="sq">${tab === "tip" ? body : await composeSunday(tab, sun, tone, T, kd)}</div></article>`;
+      <div class="seg sun-seg">${[["mbr", sun.getDay() === 0 ? "Mbrëmësorja e Madhe" : "Mbrëmësorja"], ["men", "Mëngjesorja"], ...(hasLit ? [["lit", "Liturgjia"]] : []), ["tip", "Tipikoja"]].map(([k, l]) => `<a class="seg-a" href="${R}${iso(sun)}/${k}" aria-checked="${tab === k}">${l}</a>`).join("")}</div>
+      <article class="reader sun-body"><div class="verses" lang="sq">${tab === "tip" ? body : tab === "lit" ? await liturgyHtml(sun, tipDay(sun)) : sun.getDay() === 0 ? await composeSunday(tab, sun, tone, T, kd) : await composeDay(tab, sun, tone, T, kd)}</div></article>`;
     enter(listPane);
     mainPane.innerHTML = emptyMain();
     setMode("list");
@@ -9720,6 +10158,7 @@ function pickPhoto(it) {
       if (view === "dhiata-re") { viewNT(); return; }
       if (view === "libraria") { await viewLibraria(); return; }
       if (view === "kendi-lutjes") { await viewKendiLutjes(parts[1]); return; }
+      if (view === "kisha-lutjet") { await viewKendiLutjes(parts[1], true); return; }
       if (view === "sherbesat") { viewGroupHub("sherbesat"); return; }
       if (view === "art") { location.replace("#/lexo"); return; }   // «Shkrimi në Art» u hoq
       if (view === "lexo" || view === "sot") await viewLibrary();
@@ -9728,6 +10167,7 @@ function pickPhoto(it) {
       else if (view === "shpirti") viewSpirit();
       else if (view === "kalendari") await viewCalendar(parts[1], parts[2]);
       else if (view === "edjela") await viewSunday(parts[1], parts[2]);
+      else if (view === "sherbesa-dites") await viewSunday(parts[1], parts[2], true);
       else if (view === "kisha") await viewChurch();
       else if (view === "imazhet") await viewCredits();
       else if (view === "lutja") await viewPrayer();
@@ -9863,7 +10303,7 @@ function pickPhoto(it) {
       <div class="gzc-list">
         ${c("#/gazeta", "gzc-d", "Fjala e Shenjtë", "Fjala e Shenjtë", `Nr. ${gzNo(gzEdDay())} · lajmet orthodhokse të ditës`, store.get("gz.seen", "") !== gzEdIso())}
       </div>
-      <h2 class="hub-h">E javës · e diel 12:00</h2>
+      <h2 class="hub-h">E javës · e diel 20:00</h2>
       <div class="gzc-list">
         ${c("#/mitropolite", "gzc-m", "Mitropolitë", "Gazetat e Mitropolive", `Nr. ${mtNo(S)} · Korçë · Gjirokastër · Fier · Berat · Elbasan · Tiranë`, store.get("mt.seen", "") !== Si)}
         ${c("#/mitropolite/radio", "gzc-m", "Radio Ngjallja", "Radio Ngjallja", `Nr. ${mtNo(S)} · lajmet dhe njoftimet e javës`, false)}
@@ -9896,7 +10336,7 @@ function pickPhoto(it) {
     enter(slot);
     hydrateIcons(slot);
   }
-  // ---------- Njoftimet për versionin web: Gazeta 20:00, gazetat e javës të dielën 12:00, lajme të reja ----------
+  // ---------- Njoftimet për versionin web: Gazeta 20:00, gazetat e javës të dielën 20:00, lajme të reja ----------
   const WebNotify = (() => {
     const ok = () => !android && "Notification" in window && "serviceWorker" in navigator;
     const ping = () => navigator.serviceWorker.ready.then((r) => r.active && r.active.postMessage("fs-check")).catch(() => {});
@@ -10024,6 +10464,7 @@ function pickPhoto(it) {
     sherbesat: ["Shërbesat", [
       ["transmetime", "video", "Shërbesat live", "Transmetimet e Radio Ngjallja"],
       ["sherbesa", "candle", "Mbrëmësorja dhe Mëngjesorja", "Shërbesat e përditshme"],
+      ["sherbesa-dites", "candle", "Shërbesat e ditës", "Mbrëmësorja · Mëngjesorja · Liturgjia sipas Tipikosë"],
       ["edjela", "music", "Shërbesa e së Dielës", "Tipikoja + Tetëtingullshi i tingullit"],
       ["pasdarka", "candle", "Pasdarka", "E Vogël dhe e Madhe · me ose pa prift"],
       ["akathisti/0/0", "candle", "Himni Akathist", "Përshëndetjet e Hyjlindëses"],
@@ -10096,7 +10537,7 @@ function pickPhoto(it) {
       ["libraria", "scroll", "Libraria e Kishës", "Besimi · Predikime · Tekste liturgjike · Katekizmi"],
       ["harta", "globe", "Gjeografia e Shenjtë", "Globi 3D · Shqipëria 3D · shenjtorët në hartë"],
       ["kanonet", "scroll", "Kanonet e Kishës", "Apostujt · Sinodet · Pidalioni"],
-      ["biblioteka", "book", "Biblioteka", "Lutjet · Fjalori · Pyetje · Pagëzimi"],
+      ["biblioteka", "book", "Biblioteka", "Librat e shërbesave të Kishës · flipbook"],
       ["sherbesat", "candle", "Shërbesat", "Live · Mbrëmësorja · Mëngjesorja · e Diela · Pasdarka · Akathisti · Kungimi"],
       ["jerontikoni", "quote", "Jerondikon", "Fjalët e Etërve të Shkretëtirës"],
       ["eterit", "quote", "Thesari i Etërve", "836 fjalë · sipas temave · kërkim"],
@@ -10691,7 +11132,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.10";
+  const APP_VERSION = "3.2.16";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {

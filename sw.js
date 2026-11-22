@@ -1,8 +1,8 @@
 ﻿/* Punon pa internet: ruan aplikacionin dhe tekstet në telefon. */
-const VERSION = "fs-v130";
+const VERSION = "fs-v136";
 const SHELL = [
   "./", "index.html", "css/app.css", "css/glass.css", "js/app.js", "js/lexime.js", "js/share.js", "js/music.js",
-  "data/psaltiri.js", "data/kuizi.js", "data/eterit.js", "data/ungjilli.js", "data/apostulli.js", "data/profecite.js", "data/tipikoja.js", "data/sherbesa.js", "data/imazhet.js", "data/jerontikoni.js", "data/himnet.js", "data/pasdarka.js", "js/cross.js", "js/radio.js", "manifest.webmanifest",
+  "data/psaltiri.js", "data/kuizi.js", "data/eterit.js", "data/ungjilli.js", "data/apostulli.js", "data/profecite.js", "data/flipbooks.js", "data/tipikoja.js", "data/sherbesa.js", "data/imazhet.js", "data/jerontikoni.js", "data/himnet.js", "data/pasdarka.js", "js/cross.js", "js/radio.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",
 ];
 
@@ -30,6 +30,8 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(fetch(e.request, { cache: "no-store" }));
     return;
   }
+  // librat e Kishës (pdf/…): shfletuesi i merr vetë, me pjesë (Range); nuk ruhen në cache
+  if (/\/pdf\/.+\.pdf$/i.test(url.pathname)) return;
   // YouTube luhet gjithmonë drejtpërdrejt nga rrjeti
   if (/youtube|ytimg|googlevideo/.test(url.hostname)) return;
   // fotot e lajmeve (UGO.al, KOASH, Orthodox Times): zero cache, as në disk as në memorien e shërbyesit
@@ -53,7 +55,7 @@ self.addEventListener("fetch", (e) => {
   );
 });
 
-/* ---------- Njoftimet për versionin web (pa Android): Gazeta 20:00, Gazetat e javës të dielën 12:00, lajme të reja ---------- */
+/* ---------- Njoftimet për versionin web (pa Android): Gazeta 20:00, Gazetat e javës të dielën 20:00, lajme të reja ---------- */
 const NKEY = "fs-notify-state";
 async function nState(set) {
   const c = await caches.open("fs-notify");
@@ -79,7 +81,7 @@ async function notifyRun() {
   const on = (k) => !st.prefs || st.prefs[k] !== false;
   const show = (tag, title, body, route) => self.registration.showNotification(title, { body, tag, icon: "icons/icon-192.png", badge: "icons/icon-192.png", data: { route } });
   if (now.getHours() >= 20 && st.gz !== day) { st.gz = day; if (on("gazeta")) await show("gazeta", "🗞 Gazeta e ditës gati", "Fjala e Shenjtë · lajmet e sotme", "#/gazeta"); }
-  if (now.getDay() === 0 && now.getHours() >= 12 && st.wk !== day) { st.wk = day; if (on("javore")) await show("javore", "⛪ Gazetat e javës dolën", "Mitropolitë, Fanari dhe Vatikani · lajmet e kësaj jave", "#/gazetat"); }
+  if (now.getDay() === 0 && now.getHours() >= 20 && st.wk !== day) { st.wk = day; if (on("javore")) await show("javore", "⛪ Gazetat e javës dolën", "Mitropolitë, Fanari dhe Vatikani · lajmet e kësaj jave", "#/gazetat"); }
   const news = await getJson("data/lajme_bota.json");
   if (news) {
     const sq = (news.items || []).filter((n) => n && n.link && (n.lang || "sq") === "sq");

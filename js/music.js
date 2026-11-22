@@ -60,7 +60,11 @@
     if (sunday < thomas) thomas = new Date(atNoon(pascha(sunday.getFullYear() - 1)).getTime() + 7 * DAY);
     const weeks = Math.round((sunday - thomas) / (7 * DAY));
     const tone = (((weeks % 8) + 8) % 8) + 1;
-    return { period, tone, sunday: d.getDay() === 0 };
+    // Zbritësoret «Ja Krishti lind» nisin nga Hyrja në Tempull (21 nëntor, mbrëmë): 10% e himneve; nga 26 nëntori 50%; nga 20 dhjetori periudha e plotë
+    const t = date || real;
+    const pre = !period && t >= new Date(y, 10, 21, 17) && t < new Date(y, 11, 20) ? (t >= new Date(y, 10, 26) ? 0.5 : 0.1) : 0;
+    const para = !period && md >= 801 && md <= 813 && d.getDay() !== 0;   // Kreshma e Fjetjes: Paraklisi (jo të dielën)
+    return { period, tone, pre, para, sunday: d.getDay() === 0 };
   }
 
   /* ---------- Katalogu i himneve ---------- */
@@ -104,6 +108,18 @@
     if (off === -7) return "vaiet"; if (off === 39) return "ngjitja"; if (off === 49) return "pendikostia";
     return { 202: "ipapandia", 325: "ungjillezimi", 806: "shnderrimi", 815: "fjetja", 908: "lindjahyj", 914: "kryqi", 1121: "hyrja" }[md] || null;
   }
+  // Pas-kremtet: deri në dhënien e së kremtes, gjysma e himneve janë të së kremtes
+  function afterOf(date) {
+    const d = atNoon(date || new Date()), md = (d.getMonth() + 1) * 100 + d.getDate();
+    const off = Math.round((d - atNoon(pascha(d.getFullYear()))) / DAY);
+    if (off >= 40 && off <= 47) return "ngjitja"; if (off >= 50 && off <= 55) return "pendikostia";
+    const R = [[203, 209, "ipapandia"], [326, 326, "ungjillezimi"], [807, 813, "shnderrimi"], [816, 823, "fjetja"], [909, 912, "lindjahyj"], [915, 921, "kryqi"], [1122, 1125, "hyrja"]];
+    const r = R.find(([a, b]) => md >= a && md <= b);
+    return r ? r[2] : null;
+  }
+  const NATIV_RE = /Krishti lind|Krishtlindj|Lindja e Krishtit|Christ is born|Christos Genn|Nativity of (Christ|our Lord|the Lord)|Χριστός γεννάται|Χριστουγ|Γέννησίς σου Χριστέ|Η Παρθένος σήμερον|Βηθλεέμ|Рождество Христово|Nașterea Domnului/i;
+  const PARA_RE = /Paraklis|Παράκλησ|Παρακλητικ|Paraklesis|Paraclis|Πολλοίς συνεχόμενος|Υπερευλογημ/i;
+  const KATAV_RE = /zbritësor|katavas|καταβασ|Χριστός γεννάται|Krishti lind/i;
   // Rregulli i tingujve: gjatë javës (deri të shtunën në mbrëmje) 50% himne të tingullit të javës,
   // 50% të shtatë tingujve të tjerë. Në Mix, himnet me tingull merren nga kori shqip, grek dhe athonit.
   function candidates(lang) {
@@ -115,6 +131,15 @@
     // 1) e kremte Zotërore/Hyjlindësore: vetëm himnet e saj
     const F = feastOf();
     if (F) { const fh = pool.filter((v) => FEAST_RE[F].test(v.t)); if (fh.length >= 2) return fh; }
+    const A = afterOf();
+    if (A && Math.random() < 0.5) { const fh = pool.filter((v) => FEAST_RE[A].test(v.t)); if (fh.length >= 2) return fh; }
+    if (L.pre && Math.random() < L.pre) {
+      const ch = pool.filter((v) => v.p === "krishtlindje" || NATIV_RE.test(v.t));
+      const kat = ch.filter((v) => KATAV_RE.test(v.t));
+      if (kat.length >= 2 && Math.random() < 0.6) return kat;
+      if (ch.length >= 2) return ch;
+    }
+    if (L.para && Math.random() < 0.5) { const pk = pool.filter((v) => PARA_RE.test(v.t)); if (pk.length >= 2) return pk; }
     if (L.period) {
       const p = all.filter((v) => v.p === L.period || (L.period === "theofania" && v.p === "krishtlindje"));
       if (p.length >= 3 && (L.sunday || Math.random() < 0.7)) return p;
