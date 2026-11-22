@@ -1147,7 +1147,7 @@ function pickPhoto(it) {
   function churchTop(src, refId) {
     const radioOn = window.Radio && Radio.playing;
     return `
-      <header class="page-head"><h1>Kisha</h1></header>
+      <header class="page-head"><h1>Kisha</h1><button class="icon-btn" id="${refId}" aria-label="Rifresko">${icon("refresh")}</button></header>
       <section class="radio-card${radioOn ? " on" : ""}" id="radioCard">
         <div class="rc-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <div class="rc-info"><p class="rc-live"><span class="rp-dot"></span>LIVE</p><h2>Radio Ngjallja</h2><p class="rc-sub">Radioja e Kishës, drejtpërdrejt</p></div>
@@ -1157,9 +1157,10 @@ function pickPhoto(it) {
         <a class="ch-n mz mz-pill lv-pill" href="#/transmetime"><span>${icon("video")}</span><b>Shërbesat live<small>Liturgjia dhe shërbesat · Radio Ngjallja</small></b><i>›</i></a>
         <a class="ch-n mz mz-pill" href="#/shkolla"><span>${icon("music")}</span><b>Shkolla e Muzikës Bizantine<small>Kori «Shën Joan Kukuzeli»</small></b><i>›</i></a>
       </div>
-      <div class="seg news-seg" role="tablist">
+      <div class="seg news-seg seg3" role="tablist">
         <button role="tab" data-src="kisha" aria-checked="${src === "kisha"}">Kisha</button>
         <button role="tab" data-src="ngjallja" aria-checked="${src === "ngjallja"}">Radio Ngjallja</button>
+        <button role="tab" data-src="lajme" aria-checked="${src === "lajme"}">Lajme Orthodhokse</button>
       </div>`;
   }
   // postimet e Facebook-ut të ruajtura nga sinkronizimi (data/mitropolite.json → grupi i mitropolisë / «radio»)
@@ -1183,6 +1184,12 @@ function pickPhoto(it) {
     const d = await liveJson("mitropolite").catch(() => null);
     const all = [];
     ((d && d.groups) || []).forEach((g) => (g.items || []).forEach((n) => {
+      // predikimet e Kryepiskopit dhe të mitropolitëve (KOASh, Radio Ngjallja), me tekstin e plotë
+      if (n.cat === "predikim" && String(n.text || "").length > 800 && !/facebook\.com/.test(n.link || "")) {
+        all.push(Object.assign({}, n, { title: String(n.title || "").normalize("NFKC"), text: String(n.text || "").normalize("NFKC"), fb: false, sermon: true, g: g.id, id: n.link, cat: "Predikim",
+          excerpt: String(n.ex || n.text || "").normalize("NFKC"), by: FB_BY[g.id], source: n.source || (n.src === "ngj" ? "Radio Ngjallja · media.ngjallja.org" : KOASH_CITE) }));
+        return;
+      }
       if (/facebook\.com/.test(n.link || "")) all.push(Object.assign({}, n, { title: String(n.title || "").normalize("NFKC"), text: String(n.text || "").normalize("NFKC"), fb: true, g: g.id, id: n.id || n.link, cat: n.cat === "video" ? "Facebook · Video" : "Facebook", excerpt: String(n.text || n.ex || "").normalize("NFKC"), by: FB_BY[g.id] }));
     }));
     // i njëjti postim në dy faqe (p.sh. KOASh dhe Radio Ngjallja) del vetëm një herë: mbahet më i ploti, videoja bashkohet
@@ -1196,7 +1203,10 @@ function pickPhoto(it) {
       if (!keep.video && fbIsVideo(drop)) keep.video = fbVid(drop);
       best.set(k, keep);
     });
-    fbPosts = [...best.values()];
+    // kopja e një predikimi në Facebook (dy paragrafë të njëjtë) nuk del dy herë
+    const pf = (t) => String(t || "").split(/\n+/).filter((x) => x.length > 160).map((x) => x.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "").slice(0, 60));
+    const prf = new Set([...best.values()].filter((n) => n.sermon).flatMap((n) => pf(n.text)));
+    fbPosts = [...best.values()].filter((n) => n.sermon || pf(n.text).filter((x) => prf.has(x)).length < 2);
     return fbPosts;
   }
   const radioFb = async () => (await fbLoad()).filter((n) => n.g === "radio");
@@ -1244,19 +1254,32 @@ function pickPhoto(it) {
   async function viewFbPost(g, id) {
     const p = (await fbLoad()).find((n) => n.g === g && n.id === id);
     if (!p) { location.replace(g === "radio" ? "#/kisha" : "#/mitropolite/" + g); return; }
-    if (!listPane.querySelector(".page-head")) await viewGazeta();
+    if (!$("#newsList", listPane)) { if (g === "radio") churchTab = "ngjallja"; await viewChurch(); }
     mzOpenPost(p);
   }
 
   async function viewChurch() {
-    const src = churchTab === "ngjallja" ? "ngjallja" : "kisha";
+    const src = churchTab;
+    if (src === "lajme") return viewNews();
+    const cached = store.get(src === "kisha" ? "news" : "news.ngj", null);
     listPane.innerHTML = `${churchTop(src, "newsRefresh")}
       ${src === "kisha"
         ? `
           <div class="ks-cats">${SITE_GROUPS.map(([gt, ls], gi) => `<details class="ks-cat" data-g="${gi}"><summary>${icon(ls[0][2])}<span><b>${esc(gt)}</b><small>${ls.length} rubrika · ${esc(ls.slice(0, 3).map((l) => l[0]).join(" · "))}</small></span><i>›</i></summary><div class="site-links">${ls.map(([t, u, ic]) => `<button class="site-link" data-url="${SITE + u}">${icon(ic)}<span>${t}</span></button>`).join("")}</div></details>`).join("")}</div>`
         : `<div class="site-links">${NGJ_LINKS.map(([t, u, ic]) => `<button class="site-link" data-url="${u.startsWith("http") ? u : NGJ + u}">${icon(ic)}<span>${t}</span></button>`).join("")}</div>`}
-`;
+      ${src === "kisha" ? `<section class="mtf" id="mtFeed" hidden><button type="button" class="mtf-open" aria-expanded="false"></button><div class="mtf-in" hidden><div class="mtf-chips" role="tablist"></div><div class="mtf-list"></div></div></section>` : ""}
+      <h2 class="section-title">Lajmet e fundit</h2>
+      <div id="newsList" class="news-list">${cached ? newsHtml(cached.items) : `<p class="muted">Po ngarkohen lajmet…</p>`}</div>`;
     enter(listPane);
+    newsFold($("#newsList", listPane), ".news-card");
+    if (src === "kisha") fbLoad().then((all) => mtFeed(all.filter((n) => n.g !== "radio")));
+    if (src !== "kisha") radioFb().then((fb) => {
+      const box = $("#newsList", listPane);
+      if (!fb.length || !box || churchTab !== src) return;
+      const had = store.get("news.ngj", null);
+      box.innerHTML = newsHtml([...((had && had.items) || []), ...fb]);
+      newsFold(box, ".news-card");
+    });
     // vetëm një kategori e hapur njëherësh
     $$(".ks-cats", listPane).forEach((h) => h.addEventListener("toggle", (e) => { if (e.target.open) $$(".ks-cat[open]", h).forEach((d) => d !== e.target && (d.open = false)); }, true));
     // seksionet/faqet e reja që faqja e Kishës krijon: i zbulon vetë sinkronizimi → hapen te ne, me citim
@@ -1282,6 +1305,8 @@ function pickPhoto(it) {
         openSite(u);
       }
     };
+    $("#newsRefresh").addEventListener("click", () => refreshNews(true));
+    if (!cached || Date.now() - cached.at > 30 * 60 * 1000) refreshNews(false);
   }
   // karta e radios ndryshon menjëherë kur niset / ndalet
   if (window.Radio) Radio.onChange(({ playing }) => {
@@ -1976,7 +2001,6 @@ function pickPhoto(it) {
     }
     function start() {
       clearInterval(timer);
-      return;   // lajmet dhe postimet jetojnë vetëm te Lexo › Gazetat (numri i ri çdo ditë)
       timer = setInterval(() => { if (!document.hidden && navigator.onLine) check(); }, 5 * 60 * 1000);
       setTimeout(check, 8000);
       document.addEventListener("visibilitychange", () => { if (!document.hidden) check(); });
@@ -5407,7 +5431,7 @@ function pickPhoto(it) {
     if (!M) {
       const fbx = await fbLoad().catch(() => []);
       const have = new Set((docLive.items || []).map((n) => n.link));
-      const add = fbx.filter((n) => !have.has(n.link)).map((n) => ({ title: n.title, date: n.date, link: n.link, img: n.img || "", imgs: n.imgs || [], src: "fb", source: n.source || "Facebook",
+      const add = fbx.filter((n) => n.fb && !have.has(n.link)).map((n) => ({ title: n.title, date: n.date, link: n.link, img: n.img || "", imgs: n.imgs || [], src: "fb", source: n.source || "Facebook",
         grp: "mitro", lang: "sq", ex: shortText(String(n.text || n.title).replace(/\s+/g, " "), 300), sum: n.text || "", text: n.text || "", video: n.video || "", cat: n.cat, fb: true, g: n.g, id: n.id }));
       // predikimet e Kryepiskopit dhe të mitropolitëve (KOASh, Radio Ngjallja): gjithmonë me tekstin e plotë, në faqet e veta
       const md = await liveJson("mitropolite").catch(() => null);
@@ -6383,7 +6407,7 @@ function pickPhoto(it) {
         ${p.video ? `<p><button class="btn" data-out="${esc(p.link)}">▶ Shih videon e postimit</button></p>` : ""}
         ${p.kind === "r" ? `<p class="mz-play"><button class="btn primary" id="mzPlay">▶ Shiko emisionin</button></p>` : ""}
         ${p.fb ? `<p class="art-src art-cite">${icon("globe")}<span>Burimi: ${esc(by.name)} · Facebook</span></p>` : ""}
-        ${!p.fb && p.link && /^https?:/.test(p.link) ? `<p class="art-src art-cite">${icon("globe")}<span>Burimi: <a data-out="${esc(p.link)}">${p.kind === "r" ? "Radio Ngjallja · YouTube" : src ? `postimi ${by.of} në ${src}` : "postimi origjinal"} ↗</a></span></p>` : ""}
+        ${!p.fb && p.link && /^https?:/.test(p.link) ? `<p class="art-src art-cite">${icon("globe")}<span>Burimi: <a data-out="${esc(p.link)}">${p.kind === "r" ? "Radio Ngjallja · YouTube" : p.sermon ? esc(p.source || "") : src ? `postimi ${by.of} në ${src}` : "postimi origjinal"} ↗</a></span></p>` : ""}
         ${next ? `<button class="btn primary mz-next" id="mzNext">Postimi tjetër ›</button>` : ""}
       </article>`;
     mainPane.classList.add("art-open"); enter(mainPane); setMode("read"); mainPane.scrollTop = 0;
@@ -10280,7 +10304,7 @@ function pickPhoto(it) {
       else if (view === "kuiz") await viewQuiz();
       else if (view === "udhetimi") await viewJourney();
       else if (view === "superlibri") { location.replace("#/kinema/t/superlibri"); return; }
-      else if (view === "lajme") { location.replace("#/gazetat"); return; }
+      else if (view === "lajme") await viewNews();
       else if (view === "gazeta") await viewGazeta(parts[1]);
       else if (view === "mitropolite") await viewMitro(parts[1], parts[2]);
       else if (view === "fanari") { location.replace("#/kishat/fanar" + (parts[1] ? "/" + parts[1] : "")); return; }
@@ -11241,7 +11265,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.24";
+  const APP_VERSION = "3.2.25";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
