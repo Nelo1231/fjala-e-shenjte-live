@@ -1252,16 +1252,11 @@ function pickPhoto(it) {
     const src = churchTab === "ngjallja" ? "ngjallja" : "kisha";
     listPane.innerHTML = `${churchTop(src, "newsRefresh")}
       ${src === "kisha"
-        ? `<a class="kl-card" id="klCard" href="#/kisha-lutjet">${icon("candle")}<span><b>Këndi i Lutjes</b><small>Shërbesat e Kishës · ${esc(KOASH_CITE)}</small></span><i>›</i></a>
+        ? `
           <div class="ks-cats">${SITE_GROUPS.map(([gt, ls], gi) => `<details class="ks-cat" data-g="${gi}"><summary>${icon(ls[0][2])}<span><b>${esc(gt)}</b><small>${ls.length} rubrika · ${esc(ls.slice(0, 3).map((l) => l[0]).join(" · "))}</small></span><i>›</i></summary><div class="site-links">${ls.map(([t, u, ic]) => `<button class="site-link" data-url="${SITE + u}">${icon(ic)}<span>${t}</span></button>`).join("")}</div></details>`).join("")}</div>`
         : `<div class="site-links">${NGJ_LINKS.map(([t, u, ic]) => `<button class="site-link" data-url="${u.startsWith("http") ? u : NGJ + u}">${icon(ic)}<span>${t}</span></button>`).join("")}</div>`}
 `;
     enter(listPane);
-    if (src === "kisha") load("kendi_lutjes").then((K) => {
-      const L = klItems(K), c = $("#klCard small", listPane); if (!c || !L.length) return;
-      const n = klNew(L).size, ok = L.filter((x) => x.ok).length;
-      c.textContent = `${ok} shërbesa${n ? ` · ${n} të reja` : ""}`;
-    });
     // vetëm një kategori e hapur njëherësh
     $$(".ks-cats", listPane).forEach((h) => h.addEventListener("toggle", (e) => { if (e.target.open) $$(".ks-cat[open]", h).forEach((d) => d !== e.target && (d.open = false)); }, true));
     // seksionet/faqet e reja që faqja e Kishës krijon: i zbulon vetë sinkronizimi → hapen te ne, me citim
@@ -11246,7 +11241,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.23";
+  const APP_VERSION = "3.2.24";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
