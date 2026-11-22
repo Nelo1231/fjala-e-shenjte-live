@@ -7771,7 +7771,7 @@ function pickPhoto(it) {
       </div>
       <div id="knHead"></div>
       <div class="kn-list" id="knList"></div>
-      <details class="kn-about"><summary>ℹ Burimet</summary><p>${esc(kn.burimi)}</p>${kn.sections.filter((x) => x.pidNote).map((x) => `<p>${esc(x.pidNote)}</p>`).join("")}</details>
+      <details class="kn-about"><summary>ℹ Burimet</summary><p>${esc(kn.burimi)}</p>${[...new Set(kn.sections.filter((x) => x.pidNote).map((x) => x.pidNote))].map((t) => `<p>${esc(t)}</p>`).join("")}</details>
     </div>`;
   }
   function bindKanonet(kn) {
@@ -11362,7 +11362,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.31";
+  const APP_VERSION = "3.2.32";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
