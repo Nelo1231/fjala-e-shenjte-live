@@ -3142,3 +3142,382 @@ h1, h2, h3, h4 { text-wrap: balance; }
 /* PDF A4: faqet zmadhohen pa ndryshuar asnjë rresht (640 px → 210 mm) */
 @page gzA4 { size: A4 portrait; margin: 0; }
 #gzPrintRoot .gzd-page { page: gzA4; zoom: 1.240625; margin: 0 !important; box-shadow: none !important; break-after: page; page-break-after: always; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+
+/* =====================================================================
+   v3.2.34 — XHAM 3D: sipërfaqe xhami me shtresa, kufij me dritë, shkëlqim sipër,
+   thellësi me hije me ngjyrë, sfond me drita të buta sipas temës (çdo temë)
+   ===================================================================== */
+:root { --gt: var(--sig, var(--accent)); --gt2: var(--sig-2, var(--gold-2, var(--gold)));
+  --gl-1: rgba(255, 255, 255, .80); --gl-2: rgba(255, 255, 255, .48); --gl-b1: rgba(255, 255, 255, .98); --gl-b2: rgba(255, 255, 255, .40); --gl-hi: rgba(255, 255, 255, .95);
+  --gl-sh: 0 18px 40px -20px color-mix(in srgb, var(--gt) 50%, rgba(20, 20, 40, .5)), 0 3px 8px -3px rgba(20, 20, 40, .12); }
+:root[data-theme="dark"] { --gl-1: rgba(255, 255, 255, .095); --gl-2: rgba(255, 255, 255, .028); --gl-b1: rgba(255, 255, 255, .34); --gl-b2: rgba(255, 255, 255, .05); --gl-hi: rgba(255, 255, 255, .20);
+  --gl-sh: 0 24px 48px -22px rgba(0, 0, 0, .8), 0 3px 8px -3px rgba(0, 0, 0, .4); }
+:root[data-theme] body {
+  background:
+    radial-gradient(48% 36% at 6% 2%, color-mix(in srgb, var(--gt) 28%, transparent), transparent 70%) fixed,
+    radial-gradient(42% 32% at 98% 32%, color-mix(in srgb, var(--gt2) 24%, transparent), transparent 70%) fixed,
+    radial-gradient(55% 40% at 28% 102%, color-mix(in srgb, var(--gt) 18%, transparent), transparent 70%) fixed,
+    var(--bg) !important;
+}
+/* sipërfaqet e xhamit: mbushje e tejdukshme + kufi gradient me dritë + shkëlqim sipër + thellësi */
+:root[data-theme] :is(.btn:not(.primary), .chip, .seg, .glass, .list-item, .profile-chip, .card:not(.hero), .note-card, .news-card, .me-card, .set-link, .lj-card) {
+  background: linear-gradient(150deg, var(--gl-1), var(--gl-2)) padding-box,
+    linear-gradient(150deg, var(--gl-b1), var(--gl-b2) 42%, color-mix(in srgb, var(--gt2) 50%, transparent)) border-box !important;
+  border: 1px solid transparent !important;
+  -webkit-backdrop-filter: blur(22px) saturate(175%); backdrop-filter: blur(22px) saturate(175%);
+  box-shadow: inset 0 1px 0 var(--gl-hi), inset 0 -1px 0 rgba(0, 0, 0, .06), var(--gl-sh) !important;
+}
+:root[data-theme] .chip.on { background: linear-gradient(135deg, var(--gt2), var(--gt)) !important; color: #fff !important; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 8px 18px -8px var(--gt) !important; }
+:root[data-theme] :is(.tile, .site-link) {
+  background: radial-gradient(90% 80% at 0% 0%, color-mix(in srgb, var(--gt) 24%, transparent), transparent 62%) padding-box,
+    radial-gradient(70% 60% at 100% 100%, color-mix(in srgb, var(--gt2) 18%, transparent), transparent 65%) padding-box,
+    linear-gradient(150deg, var(--gl-1), var(--gl-2)) padding-box,
+    linear-gradient(150deg, var(--gl-b1), var(--gl-b2) 42%, color-mix(in srgb, var(--gt2) 60%, transparent)) border-box !important;
+  border: 1px solid transparent !important;
+  -webkit-backdrop-filter: blur(22px) saturate(175%); backdrop-filter: blur(22px) saturate(175%);
+  box-shadow: inset 0 1px 0 var(--gl-hi), var(--gl-sh) !important;
+}
+:root[data-theme] :is(.tile, .site-link):active { transform: perspective(700px) rotateX(3deg) scale(.975); }
+/* medaljonet: sfera 3D me dritë */
+:root[data-theme] :is(.tile, .site-link) > svg {
+  color: #fff !important;
+  background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, .75) 0%, var(--gt2) 22%, var(--gt) 58%, color-mix(in srgb, var(--gt) 55%, #000) 100%) !important;
+  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, .35), inset 0 2px 3px rgba(255, 255, 255, .45), 0 0 0 4px color-mix(in srgb, var(--gt) 14%, transparent), 0 8px 16px -6px color-mix(in srgb, var(--gt) 80%, transparent) !important;
+}
+/* butoni kryesor: kapsulë xhami me shkëlqim */
+:root[data-theme] .btn.primary {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .38) 0%, rgba(255, 255, 255, .08) 48%, rgba(0, 0, 0, 0) 52%, rgba(0, 0, 0, .14) 100%),
+    linear-gradient(135deg, var(--gt2), var(--gt) 55%, color-mix(in srgb, var(--gt) 62%, #000)) !important;
+  border: 1px solid color-mix(in srgb, var(--gt2) 55%, #fff) !important; color: #fff !important; text-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 -2px 5px rgba(0, 0, 0, .25), 0 12px 26px -10px color-mix(in srgb, var(--gt) 80%, transparent), 0 2px 4px rgba(0, 0, 0, .18) !important;
+}
+:root[data-theme] .btn.primary svg { color: #fff !important; }
+:root[data-theme] :is(.seg button[aria-checked="true"], .seg-a[aria-checked="true"]) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .35), rgba(255, 255, 255, 0) 55%), linear-gradient(135deg, var(--gt2), var(--gt)) !important; color: #fff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 8px 18px -8px color-mix(in srgb, var(--gt) 85%, transparent) !important;
+}
+:root[data-theme] .set-sw:checked { background: linear-gradient(135deg, var(--gt2), var(--gt)); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .25), 0 0 12px -2px color-mix(in srgb, var(--gt) 70%, transparent); }
+:root[data-theme] .nav { background: linear-gradient(180deg, var(--gl-1), var(--gl-2)) !important; -webkit-backdrop-filter: blur(28px) saturate(190%); backdrop-filter: blur(28px) saturate(190%);
+  box-shadow: inset 0 1px 0 var(--gl-hi), 0 -10px 30px -12px color-mix(in srgb, var(--gt) 35%, transparent) !important; }
+:root[data-theme] .nav-btn[aria-current="page"] svg {
+  background: radial-gradient(circle at 32% 24%, rgba(255, 255, 255, .7) 0%, var(--gt2) 24%, var(--gt) 62%, color-mix(in srgb, var(--gt) 55%, #000) 100%) !important; color: #fff !important;
+  box-shadow: inset 0 -2px 5px rgba(0, 0, 0, .3), inset 0 1px 2px rgba(255, 255, 255, .5), 0 8px 18px -6px color-mix(in srgb, var(--gt) 85%, transparent) !important;
+}
+
+/* karta «Sot në Kishë»: xham i errët me drita ngjyrash (njësoj e bukur në çdo temë) */
+:root[data-theme] .today-card, :root[data-theme][data-palette] .today-card {
+  background:
+    radial-gradient(60% 70% at 0% 0%, color-mix(in srgb, var(--gt) 72%, transparent) 0%, transparent 70%),
+    radial-gradient(55% 60% at 100% 100%, color-mix(in srgb, var(--gt2) 42%, transparent) 0%, transparent 72%),
+    radial-gradient(30% 28% at 88% 6%, rgba(255, 255, 255, .14), transparent 70%),
+    linear-gradient(160deg, color-mix(in srgb, var(--gt) 30%, #0a0c16) 0%, #08090f 100%) !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important; color: #f6f1e6 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), inset 0 -1px 0 rgba(0, 0, 0, .45), 0 34px 64px -30px color-mix(in srgb, var(--gt) 75%, #000), 0 12px 26px -14px rgba(0, 0, 0, .6) !important;
+}
+:root[data-theme] .today-card::after { background: radial-gradient(50% 40% at 85% 0%, color-mix(in srgb, var(--gt2) 30%, transparent), transparent 70%) !important; }
+:root[data-theme] .today-card :is(.fast-card, .today-read, .tc-quote, .today-svc, .tc-date, .fp-k, .today-geron) {
+  background: linear-gradient(145deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .035)) padding-box,
+    linear-gradient(145deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, .06) 45%, color-mix(in srgb, var(--gt2) 60%, transparent)) border-box !important;
+  border: 1px solid transparent !important; color: inherit !important;
+  -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), 0 14px 28px -16px rgba(0, 0, 0, .7) !important;
+}
+:root[data-theme] .today-card :is(.fast-card, .today-read, .tc-quote, .today-svc) { border-radius: 18px !important; }
+:root[data-theme] .today-card .fp-k { border-radius: 16px !important; }
+:root[data-theme] .today-card :is(.today-read, .today-svc, .fast-card) svg { color: var(--gt2) !important; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gt2) 60%, transparent)); }
+:root[data-theme] .today-card :is(.fp-c, .lit-chip) {
+  background: linear-gradient(145deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04)) !important; border: 1px solid rgba(255, 255, 255, .22) !important; color: #f6f1e6 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2) !important;
+}
+:root[data-theme] .today-card .fp-c.no { opacity: .55; }
+:root[data-theme] .today-card .lit-chip.great { background: linear-gradient(135deg, var(--gt2), var(--gt)) !important; color: #fff !important; }
+:root[data-theme] .today-card :is(.eyebrow, .fast-period, .fp-lab, .fp-k b, .fp-k small) { color: color-mix(in srgb, var(--gt2) 55%, #fff) !important; }
+:root[data-theme] .today-card :is(.fast-food, .fp-info, .fast-more, .today-comm) { color: rgba(246, 241, 230, .86) !important; }
+/* Shërbesat e ditës + Tipikoni: të shkurtra, në qendër */
+.today-svcs { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 12px 0 4px; position: relative; z-index: 1; }
+.today-svcs .today-svc { display: inline-flex !important; align-items: center; justify-content: center; gap: 8px; width: auto !important; min-width: 200px; margin: 0 !important; padding: 9px 22px !important; text-align: center; }
+.today-svcs .today-svc b { flex: none; }
+.tpk-note { text-align: center; color: var(--ink-2); font-size: 13px; margin: -6px 0 12px; }
+.tpk-day { margin: 0 0 6px; }
+.tpk-sep { text-align: center; color: var(--gold); font-size: 20px; margin: 18px 0; opacity: .8; }
+
+
+/* =====================================================================
+   v3.5 — GAZETA SI LIBËR: fletë A2 horizontale = dy faqe A3 krah për krah, me radhë;
+   kthimi i faqes me animacion 3D ose të gjitha fletët njëra pas tjetrës; gazeta nuk reagon ndaj klikimeve
+   ===================================================================== */
+.gz-pages.gzd { width: 1280px; }
+.gzd-spread { position: relative; display: flex; width: 1280px; height: 905px; margin: 0 0 30px; box-shadow: 0 18px 44px -10px #000a, 0 4px 10px #0005; background: #efe4c9; }
+.gzd-spread .gzd-page { margin: 0 !important; box-shadow: none; flex: none; }
+/* shpina e gazetës në mes */
+.gzd-spread::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 46px; transform: translateX(-50%); pointer-events: none; z-index: 2;
+  background: linear-gradient(90deg, transparent, #0000001a 38%, #0000003d 50%, #0000001a 62%, transparent); }
+.gz-pages.book .gzd-spread { display: none; margin: 0; }
+.gz-pages.book .gzd-spread.cur { display: flex; }
+.gz-pages.book { perspective: 2600px; }
+/* fleta që kthehet */
+.gzd-under { position: absolute !important; left: 0; top: 0; z-index: 1; }
+.gzd-leaf { position: absolute; top: 0; width: 640px; height: 905px; z-index: 3; transform-style: preserve-3d; transition: transform .9s cubic-bezier(.45, .05, .25, 1); }
+.gzd-leaf.r { left: 640px; transform-origin: 0 50%; }
+.gzd-leaf.l { left: 0; transform-origin: 100% 50%; }
+.gzd-leaf.r.go { transform: rotateY(-180deg); }
+.gzd-leaf.l.go { transform: rotateY(180deg); }
+.gzd-leaf > .gzd-page { position: absolute !important; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+.gzd-leaf > .gzd-page.b { transform: rotateY(180deg); }
+.gzd-leaf > .gzd-page::after { content: ""; position: absolute; inset: 0; pointer-events: none; transition: opacity .9s; opacity: 0;
+  background: linear-gradient(90deg, #0000, #0000002e); }
+.gzd-leaf.go > .gzd-page.f::after { opacity: 1; }
+/* gazeta e pandjeshme: pa lidhje, pa zmadhim fotosh, pa përzgjedhje */
+.gz-pages.gzd, .gz-pages.gzd * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.gz-pages.gzd img, .gz-pages.gzd a { pointer-events: none; }
+/* tituj në qendër, të gjithë me të njëjtën përmasë; kokat simetrike */
+.gzd-kick, .gzd-h, .gzd-src, .gzd-cont { text-align: center !important; }
+.gzd-h { font-size: 17px !important; }
+.gzd-lead h2 { font-size: 27px; }
+/* burimi: shumë i vogël, vetëm cituar */
+.gzd-src { margin: 2px 0 7px; font: italic 7px/1.2 "Old Standard TT", serif !important; letter-spacing: .06em; color: #7a6a56; opacity: .85; }
+/* komandat e shfletimit */
+.gzb-ctl { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px 0 4px; flex-wrap: wrap; }
+.gzb-ctl #gzInd { min-width: 150px; text-align: center; font: 600 .86rem/1.2 var(--font-ui, system-ui); letter-spacing: .04em; color: var(--ink-2, inherit); }
+.gzb-ctl .gzb-next svg { transform: scaleX(-1); }
+.gzb-ctl .icon-btn[disabled] { opacity: .35; pointer-events: none; }
+.gzb-ctl.all :is(#gzPrev, #gzNext, #gzInd) { display: none; }
+.gzb-ctl .gzb-mode { min-height: 36px; padding: 0 16px; }
+/* PDF: fletë A2 horizontale (594 × 420 mm), një për çdo dy faqe, me radhën e gazetës */
+@page gzA2L { size: 594mm 420mm; margin: 0; }
+#gzPrintRoot .gzd-spread { page: gzA2L; zoom: 1.75390625; display: flex !important; margin: 0 !important; box-shadow: none !important; break-after: page; page-break-after: always; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+#gzPrintRoot .gzd-spread .gzd-page { page: gzA2L; zoom: 1; break-after: auto; page-break-after: auto; }
+
+/* v3.5 — zbukurimet e gazetës: kënde me lule, ndarës me kryq, koka seksionesh me ornamente, korniza fotosh */
+.gzd-page { background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='46' viewBox='0 0 46 46' fill='none' stroke='%23a8822e' stroke-width='1.1'%3E%3Cpath d='M3 43V12C3 7 7 3 12 3h31'/%3E%3Cpath d='M8 43V16c0-5 3-8 8-8h27' opacity='.55'/%3E%3Cpath d='M13 13c5-1 8 2 7 6s-6 4-7 1 2-4 4-2' /%3E%3Ccircle cx='13' cy='13' r='2' fill='%237a1616' stroke='none'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='46' viewBox='0 0 46 46' fill='none' stroke='%23a8822e' stroke-width='1.1'%3E%3Cg transform='matrix(-1 0 0 1 46 0)'%3E%3Cpath d='M3 43V12C3 7 7 3 12 3h31'/%3E%3Cpath d='M8 43V16c0-5 3-8 8-8h27' opacity='.55'/%3E%3Cpath d='M13 13c5-1 8 2 7 6s-6 4-7 1 2-4 4-2' /%3E%3Ccircle cx='13' cy='13' r='2' fill='%237a1616' stroke='none'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='46' viewBox='0 0 46 46' fill='none' stroke='%23a8822e' stroke-width='1.1'%3E%3Cg transform='matrix(1 0 0 -1 0 46)'%3E%3Cpath d='M3 43V12C3 7 7 3 12 3h31'/%3E%3Cpath d='M8 43V16c0-5 3-8 8-8h27' opacity='.55'/%3E%3Cpath d='M13 13c5-1 8 2 7 6s-6 4-7 1 2-4 4-2' /%3E%3Ccircle cx='13' cy='13' r='2' fill='%237a1616' stroke='none'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='46' viewBox='0 0 46 46' fill='none' stroke='%23a8822e' stroke-width='1.1'%3E%3Cg transform='matrix(-1 0 0 -1 46 46)'%3E%3Cpath d='M3 43V12C3 7 7 3 12 3h31'/%3E%3Cpath d='M8 43V16c0-5 3-8 8-8h27' opacity='.55'/%3E%3Cpath d='M13 13c5-1 8 2 7 6s-6 4-7 1 2-4 4-2' /%3E%3Ccircle cx='13' cy='13' r='2' fill='%237a1616' stroke='none'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(130% 90% at 50% 0%, #fdf9ef 0%, #f6eedb 62%, #efe4c9 100%);
+  background-repeat: no-repeat; background-position: 4px 4px, calc(100% - 4px) 4px, 4px calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), 0 0; background-size: 46px 46px, 46px 46px, 46px 46px, 46px 46px, 100% 100%; }
+/* ndarësi midis shkrimeve: vija të arta me kryq në mes (e njëjta lartësi si më parë) */
+.gzd-rule { border: 0 !important; height: 12px; margin: 2px 0 6px !important; display: flex; align-items: center; gap: 8px; color: #a8822e; }
+.gzd-rule::before, .gzd-rule::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #a8822e 30%, #a8822e 70%, transparent); }
+.gzd-rule { background: radial-gradient(circle at 50% 50%, #7a1616 0 2.2px, transparent 2.6px) no-repeat center / 14px 12px; }
+.gzd-rule::before { margin-right: 9px; } .gzd-rule::after { margin-left: 9px; }
+/* koka e seksionit: ornamente në të dy anët, ngjyrë e thellë */
+.gzd-sh { position: relative; background: linear-gradient(180deg, #7a161610, transparent 70%); }
+.gzd-sh span::before, .gzd-sh span::after { content: "❧"; display: inline-block; font-size: 13px; color: #a8822e; margin: 0 8px; vertical-align: 2px; }
+.gzd-sh span::before { transform: scaleX(-1); }
+.gzd-sh span { color: #1c1611; }
+/* rreshti i sipërm i shkrimit: rombe të vogla */
+.gzd-kick::before, .gzd-kick::after { content: "◆"; font-size: 5px; vertical-align: 2px; color: #a8822e; margin: 0 5px; }
+/* fotot: kornizë e hollë e artë me hije */
+.gzd-ph { outline: 1px solid #a8822e99 !important; outline-offset: -1px; box-shadow: 0 1px 0 #fff8, 0 2px 6px -2px #0005; }
+/* kryeradha e parë: shkronja e madhe me vijë të artë */
+.gzd-dc { text-shadow: 1px 1px 0 #a8822e66; }
+/* koka e brendshme: shiritë të artë */
+.gzd-run b::before, .gzd-run b::after { content: "✠"; color: #a8822e; font-size: 9px; margin: 0 8px; vertical-align: 2px; }
+.gzd-index h4::before, .gzd-index h4::after { content: "—❖—"; color: #a8822e; margin: 0 8px; letter-spacing: 0; }
+/* faqja 1: nënlajmet dhe referencat e faqeve */
+.gzd-sub .gzd-h { font-size: 17px; }
+.gzd-pg { white-space: nowrap; font: italic 700 .82em/1 "Old Standard TT", serif; color: #7a1616; letter-spacing: .03em; }
+.gzd-pg b { font-family: "Playfair Display", serif; }
+/* vjershat e postimeve: vargje, pa hapësira mes tyre, në qendër */
+.mz-verse { text-align: center !important; text-indent: 0 !important; line-height: 1.75; font-style: italic; }
+.mz-verse::first-letter { float: none !important; font-size: inherit !important; color: inherit !important; margin: 0 !important; }
+
+
+/* =====================================================================
+   v3.5 — KOMBINIMET E REJA PREMIUM (tekst kryesor gjithmonë me kontrast të lartë)
+   ===================================================================== */
+:root[data-theme="light"][data-palette="mermer"] {
+  --bg: #f3f1ec; --bg-2: #e9e6de; --card: #fffdf8; --ink: #1b2233; --ink-2: #4d5568; --line: #dcd8cd;
+  --accent: #1e3557; --accent-ink: #ffffff; --gold: #a8822e; --rubric: #9a2b2b;
+  --glass: rgba(255, 253, 248, .92); --glass-2: rgba(246, 244, 238, .82); --glass-brd: rgba(30, 53, 87, .18);
+  --sig: #1e3557; --sig-2: #c9a24a; --sig-ink: #ffffff; --head: #1e3557; --tint: 10%; --radius: 18px; }
+:root[data-theme="light"][data-palette="agimi"] {
+  --bg: #f7efe6; --bg-2: #efe3d5; --card: #fffaf4; --ink: #2a1a12; --ink-2: #6a4e3e; --line: #e8d8c6;
+  --accent: #a5482a; --accent-ink: #ffffff; --gold: #b8892f; --rubric: #a5482a;
+  --glass: rgba(255, 250, 244, .92); --glass-2: rgba(248, 240, 230, .82); --glass-brd: rgba(165, 72, 42, .18);
+  --sig: #b4532a; --sig-2: #e3a15e; --sig-ink: #ffffff; --head: #8a3a1c; --tint: 11%; --radius: 22px; }
+:root[data-theme="light"][data-palette="perla"] {
+  --bg: #f1eff3; --bg-2: #e7e3ea; --card: #fcfbfd; --ink: #221a29; --ink-2: #5a4e63; --line: #ddd6e2;
+  --accent: #5b2a6e; --accent-ink: #ffffff; --gold: #a8822e; --rubric: #8a2a3a;
+  --glass: rgba(252, 251, 253, .92); --glass-2: rgba(243, 240, 245, .82); --glass-brd: rgba(91, 42, 110, .18);
+  --sig: #6b3482; --sig-2: #b58cc9; --sig-ink: #ffffff; --head: #4e2160; --tint: 11%; --radius: 20px; }
+:root[data-theme="dark"][data-palette="pashka"] {
+  --bg: #0d0f1a; --bg-2: #121524; --card: #181b2b; --ink: #eee6d6; --ink-2: #a9adc0; --line: #262a40;
+  --accent: #d0414f; --accent-ink: #ffffff; --gold: #e2c070; --gold-2: #f0d58f; --rubric: #f29a9a;
+  --glass: rgba(26, 30, 48, .92); --glass-2: rgba(20, 23, 38, .86); --glass-brd: rgba(226, 192, 112, .14);
+  --glass-hi: rgba(230, 220, 200, .08); --glass-lo: rgba(0, 0, 0, .35); --glass-sh: 0 10px 28px rgba(0, 0, 10, .45), 0 2px 6px rgba(0, 0, 10, .28); --shadow: 0 10px 30px rgba(0, 0, 15, .55);
+  --sig: #c8384a; --sig-2: #f0c06a; --sig-ink: #ffffff; --head: #f0cf7e; --tint: 16%; --radius: 18px; }
+:root[data-theme="dark"][data-palette="bizanti"] {
+  --bg: #0f0d0a; --bg-2: #15120e; --card: #1c1813; --ink: #f1e7d2; --ink-2: #bcae92; --line: #2e271d;
+  --accent: #c9a24a; --accent-ink: #140e04; --gold: #e8c879; --gold-2: #f5dc9a; --rubric: #f0b08a;
+  --glass: rgba(32, 27, 20, .92); --glass-2: rgba(24, 20, 15, .86); --glass-brd: rgba(232, 200, 121, .16);
+  --glass-hi: rgba(240, 225, 190, .08); --glass-lo: rgba(0, 0, 0, .4); --glass-sh: 0 10px 28px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .3); --shadow: 0 10px 30px rgba(0, 0, 0, .6);
+  --sig: #c9a24a; --sig-2: #f5dc9a; --sig-ink: #140e04; --head: #e8c879; --tint: 12%; --radius: 12px; }
+:root[data-palette] body { background-color: var(--bg); }
+
+/* ---------- zgjedhja e ngjyrave: grupe + pllaka si ekrane të vogla 3D ---------- */
+.th-grp + .th-grp { margin-top: 14px; }
+.th-grp h4 { display: flex; align-items: center; gap: 10px; margin: 0 2px 10px; font: 600 11px/1 "Cinzel", Georgia, serif; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-2); }
+.th-grp h4::before, .th-grp h4::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gt, var(--accent)) 45%, transparent), transparent); }
+.th-grp .th-mini { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 14px 8px; }
+.th-dot { gap: 7px !important; padding: 2px 0 !important; perspective: 500px; }
+.th-dot i.th-pv { position: relative; display: block; width: 62px; height: 80px; border-radius: 15px; overflow: hidden; background: var(--b); border: 1px solid rgba(0, 0, 0, .16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 4px 0 -1px color-mix(in srgb, var(--a) 55%, #000), 0 10px 18px -8px rgba(0, 0, 0, .45);
+  transform: rotateX(8deg); transform-origin: 50% 100%; transition: transform .35s cubic-bezier(.3, 1.6, .5, 1), box-shadow .3s; }
+.th-pv::before { content: ""; position: absolute; inset: 0 0 auto; height: 18px; background: linear-gradient(135deg, var(--a), color-mix(in srgb, var(--a) 65%, #000)); }
+.th-pv em { position: absolute; left: 7px; right: 7px; top: 25px; height: 26px; border-radius: 7px; background: var(--c); box-shadow: 0 2px 5px rgba(0, 0, 0, .2), inset 0 1px 0 rgba(255, 255, 255, .5); }
+.th-pv em::before { content: ""; position: absolute; left: 6px; right: 14px; top: 7px; height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--a) 70%, transparent); }
+.th-pv em::after { content: ""; position: absolute; left: 6px; right: 22px; top: 14px; height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--g) 80%, transparent); }
+.th-pv s { position: absolute; left: 7px; right: 7px; top: 57px; height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--a) 40%, transparent); }
+.th-dot i.th-pv u { position: absolute; left: auto; right: 7px; bottom: 7px; width: 14px; height: 14px; border: 0; border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #fff9 0, var(--g) 35%, color-mix(in srgb, var(--g) 55%, #000) 100%); box-shadow: 0 2px 4px rgba(0, 0, 0, .35); }
+.th-pv::after { content: ""; position: absolute; inset: 0; background: linear-gradient(125deg, rgba(255, 255, 255, .45) 0%, rgba(255, 255, 255, 0) 38%); pointer-events: none; }
+.th-pv.auto { background: linear-gradient(135deg, #f6efe2 50%, #2a221b 50%); }
+.th-pv.auto em { background: linear-gradient(135deg, #fffaf0 50%, #463b31 50%); }
+.th-dot:hover i.th-pv { transform: rotateX(0) translateY(-3px); }
+.th-dot[aria-checked="true"] i.th-pv { transform: rotateX(0) translateY(-5px) scale(1.04);
+  box-shadow: 0 0 0 2px var(--bg, #fff), 0 0 0 4.5px var(--gt2, var(--gold)), 0 6px 0 -1px color-mix(in srgb, var(--a) 55%, #000), 0 18px 26px -10px rgba(0, 0, 0, .55) !important; }
+.th-dot[aria-checked="true"] i.th-pv::after { background: linear-gradient(125deg, rgba(255, 255, 255, .55) 0%, rgba(255, 255, 255, 0) 40%), radial-gradient(circle at 50% 120%, color-mix(in srgb, var(--g) 45%, transparent), transparent 60%); }
+.th-dot:active i.th-pv { transform: translateY(1px) scale(.95); }
+.th-dot small { font-size: 11px !important; max-width: 78px !important; }
+
+/* =====================================================================
+   v3.5 — HARMONI: të gjitha kartat e errëta të aplikacionit (Shpirti, kalendari, kuizi, kanonet…)
+   janë i njëjti xham i errët me dritat e temës së zgjedhur, si karta «Sot në Kishë»
+   ===================================================================== */
+:root[data-theme] :is(.sp-hero, .card.hero, .kal-banner, .rr-hero, .qz-card, .name-hero, .ch-hero, .kg-hero, .cd-hero, .sun-hero, .bap-hero, .gr-card, .bap-invite, .nameday, .game-cta, .soul-ask),
+:root[data-theme][data-palette] :is(.sp-hero, .card.hero, .kal-banner, .rr-hero, .qz-card, .name-hero, .ch-hero, .kg-hero, .cd-hero, .sun-hero, .bap-hero, .gr-card, .bap-invite, .nameday, .game-cta, .soul-ask) {
+  background:
+    radial-gradient(60% 70% at 0% 0%, color-mix(in srgb, var(--gt) 70%, transparent) 0%, transparent 70%),
+    radial-gradient(55% 60% at 100% 100%, color-mix(in srgb, var(--gt2) 40%, transparent) 0%, transparent 72%),
+    radial-gradient(30% 28% at 88% 6%, rgba(255, 255, 255, .13), transparent 70%),
+    linear-gradient(160deg, color-mix(in srgb, var(--gt) 30%, #0a0c16) 0%, #08090f 100%) !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important; color: #f6f1e6 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), inset 0 -1px 0 rgba(0, 0, 0, .45), 0 6px 0 -2px color-mix(in srgb, var(--gt) 40%, #000), 0 30px 56px -28px color-mix(in srgb, var(--gt) 75%, #000), 0 12px 24px -14px rgba(0, 0, 0, .6) !important;
+}
+:root[data-theme] .ftile {
+  background:
+    radial-gradient(80% 70% at 0% 0%, color-mix(in srgb, var(--gt) 75%, transparent) 0%, transparent 72%),
+    radial-gradient(70% 60% at 100% 100%, color-mix(in srgb, var(--gt2) 38%, transparent) 0%, transparent 72%),
+    linear-gradient(160deg, color-mix(in srgb, var(--gt) 32%, #0a0c16) 0%, #090a10 100%) !important;
+  border: 1px solid rgba(255, 255, 255, .15) !important; color: #f6f1e6 !important;
+}
+:root[data-theme] .ftile:nth-child(3n+2) { background:
+    radial-gradient(80% 70% at 100% 0%, color-mix(in srgb, var(--gt) 70%, transparent) 0%, transparent 72%),
+    radial-gradient(70% 60% at 0% 100%, color-mix(in srgb, var(--gt2) 42%, transparent) 0%, transparent 72%),
+    linear-gradient(200deg, color-mix(in srgb, var(--gt) 28%, #0a0c16) 0%, #090a10 100%) !important; }
+:root[data-theme] .ftile:nth-child(3n) { background:
+    radial-gradient(90% 80% at 50% 0%, color-mix(in srgb, var(--gt2) 46%, transparent) 0%, transparent 70%),
+    radial-gradient(70% 60% at 50% 110%, color-mix(in srgb, var(--gt) 60%, transparent) 0%, transparent 72%),
+    linear-gradient(180deg, color-mix(in srgb, var(--gt) 26%, #0a0c16) 0%, #090a10 100%) !important; }
+:root[data-theme] .ftile > svg { color: color-mix(in srgb, var(--gt2) 60%, #fff) !important; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--gt2) 55%, transparent)); }
+:root[data-theme] :is(.sp-hero, .game-cta, .ftile, .kal-banner, .qz-card, .sun-hero) :is(small, .sp-verse small, .streak-sub) { color: rgba(246, 241, 230, .78) !important; }
+:root[data-theme] .sp-hero :is(.sp-greet, .eyebrow) { color: color-mix(in srgb, var(--gt2) 55%, #fff) !important; }
+:root[data-theme] .sp-aura i { background: var(--gt) !important; }
+:root[data-theme] .sp-aura i:nth-child(2) { background: var(--gt2) !important; }
+:root[data-theme] .streak-bar i { background: linear-gradient(90deg, var(--gt), var(--gt2)) !important; box-shadow: 0 0 10px color-mix(in srgb, var(--gt2) 60%, transparent); }
+:root[data-theme] .streak-n b { color: color-mix(in srgb, var(--gt2) 65%, #fff) !important; }
+:root[data-theme] .streak-dots i.on { background: linear-gradient(var(--gt2), var(--gt)) !important; box-shadow: 0 0 6px color-mix(in srgb, var(--gt2) 60%, transparent) !important; }
+:root[data-theme] .streak-dots i.now { outline-color: color-mix(in srgb, var(--gt2) 80%, transparent) !important; }
+:root[data-theme] .game-cta .gc-ic { background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, .7) 0%, var(--gt2) 24%, var(--gt) 60%, color-mix(in srgb, var(--gt) 55%, #000) 100%) !important; color: #fff !important; }
+:root[data-theme] .hub-h { color: var(--head, var(--accent)) !important; }
+
+/* =====================================================================
+   v3.5 — USHQIMET SI MOZAIK: pllaka me tesera ari, simbole paleokristiane, mbishkrime të gdhendura
+   ===================================================================== */
+.fs-ic { display: block; width: 46px; height: 46px; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .35)) drop-shadow(0 8px 10px rgba(0, 0, 0, .35)); }
+.fp-c .fs-ic { width: 22px; height: 22px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .4)); }
+.fp-k .fs-ic { margin: 2px 0 6px; transform: translateZ(0); transition: transform .4s cubic-bezier(.3, 1.6, .5, 1); }
+.fp-k:hover .fs-ic { transform: translateY(-3px) rotate(-3deg); }
+.fp-k.no .fs-ic, .fp-c.no .fs-ic { filter: grayscale(1) contrast(.9) brightness(.75) drop-shadow(0 2px 2px rgba(0, 0, 0, .35)); opacity: .55; }
+:root[data-theme] .today-card .fp-k, :root[data-theme] .fp-k {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, 0) 40%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, .035) 0 2px, transparent 2px 7px),
+    radial-gradient(120% 90% at 50% 0%, #3b3329 0%, #221c15 70%, #17130e 100%) padding-box,
+    linear-gradient(160deg, #f3d98a, #a8822e 45%, #f0d58f 60%, #6d4f17) border-box !important;
+  border: 2px solid transparent !important; border-radius: 14px !important; padding: 9px 4px 8px !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .55), inset 0 2px 6px rgba(0, 0, 0, .6), 0 5px 0 -1px #120d07, 0 14px 22px -12px rgba(0, 0, 0, .8) !important; }
+:root[data-theme] .fp-k small { font: 700 10px/1.1 "Cinzel", Georgia, serif !important; letter-spacing: .22em !important; color: #e8cd86 !important; opacity: 1 !important;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, .9), 0 1px 0 rgba(255, 230, 170, .25) !important; }
+:root[data-theme] .fp-k b { font: 600 15px/1.1 "Cinzel", Georgia, serif !important; letter-spacing: .04em; color: #f6ecd2 !important; text-shadow: 0 -1px 0 rgba(0, 0, 0, .9), 0 1px 0 rgba(255, 230, 170, .2) !important; }
+:root[data-theme] .fp-k.no b { color: #b9ae98 !important; opacity: .8; }
+:root[data-theme] .fp-k.no { filter: saturate(.6); }
+:root[data-theme] .today-card .fp-c, :root[data-theme] .fp-c {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px 4px 5px !important; border-radius: 999px !important;
+  background: radial-gradient(120% 120% at 50% 0%, #3a3128, #1c1712) padding-box, linear-gradient(160deg, #e9cf86, #8a6a24 60%, #d9b964) border-box !important;
+  border: 1.5px solid transparent !important; color: #f3e7cb !important; font: 600 13px/1.2 "Cinzel", Georgia, serif !important; letter-spacing: .03em;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .6), 0 3px 0 -1px #0e0a05, 0 8px 12px -8px rgba(0, 0, 0, .7) !important; text-shadow: 0 -1px 0 #000a; }
+:root[data-theme] .today-card .fp-c.no, :root[data-theme] .fp-c.no { color: #9d927e !important; text-decoration: line-through; text-decoration-color: #b3263a; opacity: .75; }
+:root[data-theme] .fp-lab { font: 700 10.5px/1 "Cinzel", Georgia, serif !important; letter-spacing: .24em !important; color: color-mix(in srgb, var(--gt2) 55%, #fff) !important; }
+/* shkëlqimi i arit që kalon ngadalë mbi pllakat */
+.fp-k { position: relative; overflow: hidden; }
+.fp-k::after { content: ""; position: absolute; top: -20%; bottom: -20%; width: 40%; left: -60%; transform: skewX(-18deg); pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 230, 160, .22), transparent); animation: fsGleam 6s ease-in-out infinite; }
+.fp-k:nth-child(2)::after { animation-delay: .5s; } .fp-k:nth-child(3)::after { animation-delay: 1s; }
+@keyframes fsGleam { 0%, 62% { left: -60%; } 86%, 100% { left: 130%; } }
+
+/* =====================================================================
+   v3.5 — BUTONA 3D: dalin nga ekrani (buzë poshtë, dritë sipër, hije e thellë), shtypen si butona të vërtetë
+   ===================================================================== */
+:root[data-theme] :is(.btn, .chip, .icon-btn, .today-svc, .today-read, .seg-a, .set-link, .ra-go, .profile-chip, .th-btn, .back-btn) {
+  transition: transform .28s cubic-bezier(.3, 1.6, .5, 1), box-shadow .25s ease, filter .25s ease !important; will-change: transform; }
+:root[data-theme] :is(.btn:not(.primary), .chip:not(.on), .icon-btn, .set-link, .ra-go, .th-btn, .back-btn, .profile-chip) {
+  box-shadow: inset 0 1px 0 var(--gl-hi), inset 0 -2px 0 rgba(0, 0, 0, .08), 0 3px 0 -1px color-mix(in srgb, var(--gt) 30%, rgba(0, 0, 0, .35)), 0 10px 18px -10px color-mix(in srgb, var(--gt) 60%, rgba(0, 0, 0, .6)) !important; }
+:root[data-theme] .btn.primary, :root[data-theme] .chip.on {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 -3px 6px rgba(0, 0, 0, .25), 0 4px 0 -1px color-mix(in srgb, var(--gt) 50%, #000), 0 16px 26px -12px color-mix(in srgb, var(--gt) 85%, transparent) !important; }
+@media (hover: hover) {
+  :root[data-theme] :is(.btn, .chip, .icon-btn, .today-svc, .today-read, .set-link, .ra-go, .th-btn, .back-btn, .profile-chip):hover { transform: translateY(-2px); filter: brightness(1.04); }
+}
+:root[data-theme] :is(.btn, .chip, .icon-btn, .today-svc, .today-read, .seg-a, .set-link, .ra-go, .th-btn, .back-btn, .profile-chip):active {
+  transform: translateY(3px) scale(.98) !important; filter: brightness(.97);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, .22), 0 0 0 -1px transparent, 0 4px 8px -6px rgba(0, 0, 0, .5) !important; transition-duration: .08s !important; }
+/* pllakat dhe kartat: thellësi me buzë dhe ngritje kur preken */
+:root[data-theme] :is(.tile, .site-link, .ftile) { transition: transform .35s cubic-bezier(.3, 1.6, .5, 1), box-shadow .3s !important; }
+:root[data-theme] :is(.tile, .site-link) { box-shadow: inset 0 1px 0 var(--gl-hi), 0 5px 0 -2px color-mix(in srgb, var(--gt) 35%, rgba(0, 0, 0, .3)), var(--gl-sh) !important; }
+:root[data-theme] .ftile { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), 0 6px 0 -2px color-mix(in srgb, var(--gt) 45%, #000), 0 20px 34px -16px color-mix(in srgb, var(--gt) 70%, #000) !important; }
+:root[data-theme] :is(.tile, .site-link, .ftile):active { transform: perspective(700px) rotateX(4deg) translateY(4px) scale(.97) !important; }
+/* butoni kryesor: shkëlqim që kalon */
+:root[data-theme] .btn.primary { position: relative; overflow: hidden; isolation: isolate; }
+:root[data-theme] .btn.primary::after { content: ""; position: absolute; top: 0; bottom: 0; left: -70%; width: 45%; transform: skewX(-20deg); z-index: -1; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .38), transparent); animation: btnSheen 4.5s ease-in-out infinite; }
+@keyframes btnSheen { 0%, 55% { left: -70%; } 85%, 100% { left: 140%; } }
+
+/* =====================================================================
+   v3.5 — ANIMACIONE: hyrja e kartave dhe pllakave një nga një, dritat e kartave që lëvizin, medaljonet që marrin frymë
+   ===================================================================== */
+@keyframes v35Rise { from { opacity: 0; transform: translateY(16px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes v35Pop { 0% { opacity: 0; transform: scale(.82) rotateX(18deg); } 70% { opacity: 1; transform: scale(1.03); } 100% { transform: none; } }
+@keyframes v35Glow { 0%, 100% { background-position: 0% 0%, 100% 100%, 88% 6%, 0 0; } 50% { background-position: 12% 8%, 86% 90%, 80% 12%, 0 0; } }
+@keyframes v35Breath { 0%, 100% { box-shadow: inset 0 -3px 6px rgba(0, 0, 0, .35), inset 0 2px 3px rgba(255, 255, 255, .45), 0 0 0 4px color-mix(in srgb, var(--gt) 14%, transparent), 0 8px 16px -6px color-mix(in srgb, var(--gt) 80%, transparent); }
+  50% { box-shadow: inset 0 -3px 6px rgba(0, 0, 0, .35), inset 0 2px 3px rgba(255, 255, 255, .45), 0 0 0 7px color-mix(in srgb, var(--gt) 8%, transparent), 0 10px 22px -6px color-mix(in srgb, var(--gt) 95%, transparent); } }
+@media (prefers-reduced-motion: no-preference) {
+  .pane.enter :is(.tile, .site-link, .ftile, .list-item, .news-card, .card, .set-link, .lj-card, .th-dot) { animation: v35Rise .55s cubic-bezier(.2, .9, .3, 1) both; }
+  .pane.enter :is(.tile, .site-link, .ftile, .th-dot):nth-child(1) { animation-delay: .02s; } .pane.enter :is(.tile, .site-link, .ftile, .th-dot):nth-child(2) { animation-delay: .06s; }
+  .pane.enter :is(.tile, .site-link, .ftile, .th-dot):nth-child(3) { animation-delay: .10s; } .pane.enter :is(.tile, .site-link, .ftile, .th-dot):nth-child(4) { animation-delay: .14s; }
+  .pane.enter :is(.tile, .site-link, .ftile, .th-dot):nth-child(5) { animation-delay: .18s; } .pane.enter :is(.tile, .site-link, .ftile, .th-dot):nth-child(6) { animation-delay: .22s; }
+  .pane.enter :is(.tile, .site-link, .ftile, .th-dot):nth-child(n+7) { animation-delay: .26s; }
+  .fp-k { animation: v35Pop .6s cubic-bezier(.2, .9, .3, 1) both; } .fp-k:nth-child(2) { animation-delay: .08s; } .fp-k:nth-child(3) { animation-delay: .16s; }
+  :root[data-theme] :is(.today-card, .sp-hero, .kal-banner, .qz-card, .sun-hero, .game-cta) { background-size: 150% 150%, 150% 150%, 120% 120%, 100% 100% !important; animation: v35Glow 12s ease-in-out infinite; }
+  :root[data-theme] :is(.tile, .site-link) > svg { animation: v35Breath 4.5s ease-in-out infinite; }
+  :root[data-theme] :is(.tile, .site-link):nth-child(2n) > svg { animation-delay: -1.5s; } :root[data-theme] :is(.tile, .site-link):nth-child(3n) > svg { animation-delay: -3s; }
+}
+/* banerat e Lexo (Ikona e ditës, Kalendari, Gazetat): i njëjti xham i errët me ngjyrat e temës */
+:root[data-theme] :is(.pb, .icon-banner), :root[data-theme][data-palette] :is(.pb, .icon-banner) {
+  background:
+    radial-gradient(70% 80% at 0% 0%, color-mix(in srgb, var(--gt) 68%, transparent) 0%, transparent 70%),
+    radial-gradient(60% 70% at 100% 100%, color-mix(in srgb, var(--gt2) 36%, transparent) 0%, transparent 72%),
+    linear-gradient(160deg, color-mix(in srgb, var(--gt) 30%, #0a0c16) 0%, #08090f 100%) !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important; color: #f6f1e6 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .24), 0 6px 0 -2px color-mix(in srgb, var(--gt) 40%, #000), 0 22px 40px -20px color-mix(in srgb, var(--gt) 70%, #000) !important;
+  transition: transform .35s cubic-bezier(.3, 1.6, .5, 1) !important; }
+:root[data-theme] .pb.pb-gz { background:
+    radial-gradient(70% 80% at 100% 0%, color-mix(in srgb, var(--gt2) 44%, transparent) 0%, transparent 70%),
+    radial-gradient(60% 70% at 0% 100%, color-mix(in srgb, var(--gt) 60%, transparent) 0%, transparent 72%),
+    linear-gradient(200deg, color-mix(in srgb, var(--gt) 26%, #0a0c16) 0%, #08090f 100%) !important; }
+:root[data-theme] :is(.pb, .icon-banner):active { transform: translateY(4px) scale(.98) !important; }
+:root[data-theme] :is(.pb, .icon-banner) :is(small, .ib-sub) { color: rgba(246, 241, 230, .8) !important; }
+.fp-k .fs-ic { width: 58px !important; height: 58px !important; }
+:root[data-theme] :is(.pb-kal, .pb-gz)::before { background: none !important; }

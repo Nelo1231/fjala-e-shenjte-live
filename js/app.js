@@ -435,6 +435,16 @@
 
     function makeQuote(et) {
       if (!et) return null;
+      // thëniet për psalmodinë dhe muzikën bizantine ndërthuren rregullisht me të tjerat (rreth 1 në 4), me fotot e Shkollës
+      makeQuote.n = (makeQuote.n || 0) + 1;
+      const mus = et.quotes.map((q, k) => (q.m ? k : -1)).filter((k) => k >= 0);
+      if (mus.length && makeQuote.n % 4 === 2) {
+        const recent = makeQuote.mr || (makeQuote.mr = []);
+        const fresh = mus.filter((k) => !recent.includes(k)), pool = fresh.length ? fresh : mus;
+        const i = pool[rand(pool.length)]; recent.push(i); if (recent.length > Math.min(8, mus.length - 1)) recent.shift();
+        const q = et.quotes[i];
+        return { kind: "eterit", id: `et:${i}`, text: q.t, ref: q.a, link: "#/eterit", music: true };
+      }
       let i = rand(et.quotes.length);
       for (let k = 0; k < 12 && et.quotes[i].t.length > 200; k++) i = rand(et.quotes.length);
       const q = et.quotes[i];
@@ -549,6 +559,12 @@
 })();
 function pickPhoto(it) {
       wideGuard();
+      // thëniet për këngën e Kishës: fotot e Shkollës së Muzikës Bizantine
+      if (it && it.music && data.shkolla) {
+        const sk = pickPhoto.sk || (pickPhoto.sk = [...new Set(JSON.stringify(data.shkolla).match(/img\/shkolla\/[^"\\]+?\.(?:webp|jpe?g|png)/g) || [])]);
+        const fr = sk.filter((f) => !usedPhotos.has(f) && f !== lastPhoto);
+        if (sk.length) { const l = fr.length ? fr : sk, f = l[rand(l.length)]; markUsed(f); it.photoCat = "shkolla"; lastPhoto = f; return f; }
+      }
       if (!photos) {
         photos = {};
         // ikonat e Sinaksarit (me datë) dalin VETËM te “Ikona e ditës”, kurrë te shprehjet
@@ -711,7 +727,7 @@ function pickPhoto(it) {
 
     async function init() {
       await Promise.all(["psaltiri", "imazhet"].map(load));
-      (window.requestIdleCallback || ((f) => setTimeout(f, 1200)))(() => ["eterit", "profecite", "apostulli", "ungjilli"].reduce((pr, n) => pr.then(() => load(n)), Promise.resolve()), { timeout: 3000 });
+      (window.requestIdleCallback || ((f) => setTimeout(f, 1200)))(() => ["eterit", "profecite", "apostulli", "ungjilli", "shkolla"].reduce((pr, n) => pr.then(() => load(n)), Promise.resolve()), { timeout: 3000 });
       const io = new IntersectionObserver((entries) => {
         entries.forEach((en) => { if (en.isIntersecting && en.intersectionRatio > 0.6) setActive(+en.target.dataset.idx); });
       }, { root: feedEl, threshold: [0.6] });
@@ -2130,6 +2146,34 @@ function pickPhoto(it) {
     oil: "deti vaj vere buke perime fruta bishtajore",
     strict: "buke perime fruta bishtajore", day: "buke perime fruta bishtajore", total: "",
   };
+  // ushqimet si simbole paleokristiane: pllaka mozaiku me tesera ari (si mozaikët e Shën Sofisë), në kornizë guri të gdhendur
+  const FS_SYM = {
+    vaj: `<path d="M24 8C24 8 12.5 21.5 12.5 29a11.5 11.5 0 0 0 23 0C35.5 21.5 24 8 24 8Z" fill="#7d8f24" stroke="#2a2410" stroke-width="1.3"/><path d="M24 12c-3 4-8 11-8 16" stroke="#c9d36a" stroke-width="1.6" fill="none" stroke-linecap="round"/><ellipse cx="19.5" cy="29" rx="2.4" ry="4" fill="#eef3b0" opacity=".75"/>`,
+    vere: `<path d="M14.5 10h19c0 8.5-3.5 13.5-9.5 14.5C18 23.5 14.5 18.5 14.5 10Z" fill="#8e1b26" stroke="#2a1508" stroke-width="1.3"/><ellipse cx="24" cy="10.5" rx="9.5" ry="2.2" fill="#c43a45" stroke="#2a1508" stroke-width="1"/><path d="M22.6 24.5h2.8v8h-2.8Z" fill="#6a4816" stroke="#2a1508" stroke-width=".9"/><path d="M16 38h16l-3-5H19Z" fill="#6a4816" stroke="#2a1508" stroke-width="1.1"/><circle cx="24" cy="17" r="1.7" fill="#3c8fb0"/><circle cx="19.5" cy="14.5" r="1.1" fill="#e8d9a6"/><circle cx="28.5" cy="14.5" r="1.1" fill="#e8d9a6"/>`,
+    peshk: `<path d="M7 24C14.5 13 29 12.5 36.5 24C29 35.5 14.5 35 7 24Z" fill="#2c5d8c" stroke="#10213a" stroke-width="1.3"/><path d="M36.5 24L44 16.5V31.5Z" fill="#2c5d8c" stroke="#10213a" stroke-width="1.3" stroke-linejoin="round"/><path d="M12 24c6-4 14-4 20 0" stroke="#8ab8dc" stroke-width="1.3" fill="none"/><circle cx="14" cy="21.5" r="1.7" fill="#f5ecd0"/>`,
+    deti: `<path d="M24 39L9.5 22.5a15 15 0 0 1 29 0Z" fill="#e7c2a0" stroke="#4a2c18" stroke-width="1.3" stroke-linejoin="round"/><path d="M24 39L13 17M24 39L18.5 12.5M24 39V11M24 39l5.5-26.5M24 39l11-22" stroke="#9a6340" stroke-width="1.1"/><path d="M19 39h10l-2 3h-6Z" fill="#c98f63" stroke="#4a2c18" stroke-width="1"/>`,
+    buke: `<circle cx="24" cy="24" r="14.5" fill="#c98d4a" stroke="#4a2a0e" stroke-width="1.3"/><circle cx="24" cy="24" r="10" fill="none" stroke="#7a4a1c" stroke-width="1.2"/><path d="M22 15.5h4v6.5h6.5v4H26v6.5h-4V26h-6.5v-4H22Z" fill="#7a4a1c"/><g fill="#e9c58c"><rect x="17.5" y="17.5" width="3" height="3"/><rect x="27.5" y="17.5" width="3" height="3"/><rect x="17.5" y="27.5" width="3" height="3"/><rect x="27.5" y="27.5" width="3" height="3"/></g>`,
+    perime: `<path d="M24 41C12 35 8.5 23 13.5 12.5C18.5 16 21.5 14 24 8.5C26.5 14 29.5 16 34.5 12.5C39.5 23 36 35 24 41Z" fill="#3f7a3a" stroke="#14301a" stroke-width="1.3" stroke-linejoin="round"/><path d="M24 41V13M24 30l-7-8M24 30l7-8M24 22l-4-5M24 22l4-5" stroke="#a9d07a" stroke-width="1.2" fill="none"/>`,
+    fruta: `<path d="M19.5 15l1.5-6 3 4 3-4 1.5 6Z" fill="#7a1426" stroke="#2a0810" stroke-width="1.1" stroke-linejoin="round"/><circle cx="24" cy="27" r="12.5" fill="#b3263a" stroke="#3a0a12" stroke-width="1.3"/><g fill="#f3c2b8"><circle cx="20" cy="26" r="1.4"/><circle cx="24" cy="29" r="1.4"/><circle cx="28" cy="25" r="1.4"/><circle cx="22" cy="32" r="1.4"/><circle cx="27" cy="31" r="1.4"/></g><path d="M16.5 22a8 8 0 0 1 5-5" stroke="#f0a0a8" stroke-width="1.6" fill="none" stroke-linecap="round"/>`,
+    bishtajore: `<path d="M9 31C15 18.5 29.5 14 40 16C35 27 22.5 33 9 31Z" fill="#6f8a2e" stroke="#1f2a0c" stroke-width="1.3" stroke-linejoin="round"/><g fill="#d6df8a" stroke="#4a5a18" stroke-width=".8"><circle cx="17" cy="27" r="2.8"/><circle cx="23.5" cy="24" r="2.8"/><circle cx="30.5" cy="21" r="2.8"/></g><path d="M40 16l3-3" stroke="#1f2a0c" stroke-width="1.6" stroke-linecap="round"/>`,
+    mish: `<path d="M11.5 27.5C9.5 17.5 22 9.5 32 13.5C40 16.5 38.5 29.5 28.5 32.5C22 34.5 13.5 34 11.5 27.5Z" fill="#a53a2e" stroke="#3a0e08" stroke-width="1.3"/><path d="M16 24c4-6 11-8 16-5M18 29c5-3 10-3 14-1" stroke="#e8b8a6" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M31 31l6 6" stroke="#f1e8d6" stroke-width="3.2" stroke-linecap="round"/><circle cx="38.5" cy="36" r="2" fill="#f1e8d6"/><circle cx="36" cy="38.5" r="2" fill="#f1e8d6"/>`,
+    bulmet: `<path d="M19 10h10v3.5c5 3 7.5 8 6.5 14.5-1 6-5 9.5-11.5 9.5s-10.5-3.5-11.5-9.5c-1-6.5 1.5-11.5 6.5-14.5Z" fill="#f1ede2" stroke="#3a2c18" stroke-width="1.3"/><path d="M19 15c-4 0-5 4-4 7M29 15c4 0 5 4 4 7" stroke="#3a2c18" stroke-width="1.4" fill="none"/><path d="M15.5 25h17M16 30h16" stroke="#b9a77e" stroke-width="1.2"/><path d="M18 9h12" stroke="#3a2c18" stroke-width="1.6" stroke-linecap="round"/>`,
+    veze: `<ellipse cx="24" cy="25" rx="10" ry="13" fill="#f4ead4" stroke="#3a2c18" stroke-width="1.3"/><path d="M14.5 27h19" stroke="#b3263a" stroke-width="1.6"/><path d="M15 23l3-3 3 3 3-3 3 3 3-3 3 3" stroke="#b3263a" stroke-width="1.2" fill="none"/><ellipse cx="20" cy="18" rx="2" ry="3.2" fill="#fff" opacity=".8"/>`,
+  };
+  function fsMosaic(k) {
+    // tesera ari me ngjyra që ndryshojnë pak + fuga e errët midis tyre, mbi simbol dhe sfond; korniza: gur i gdhendur
+    if (!document.getElementById("fsDefs")) {
+      const d = document.createElement("div"); d.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+      d.innerHTML = `<svg id="fsDefs" width="0" height="0" aria-hidden="true"><defs>
+        <linearGradient id="fsGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6df96"/><stop offset=".45" stop-color="#d9ac4c"/><stop offset="1" stop-color="#93681f"/></linearGradient>
+        <linearGradient id="fsStone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2ece0"/><stop offset=".5" stop-color="#c9bfa9"/><stop offset="1" stop-color="#7f7562"/></linearGradient>
+        <pattern id="fsTess" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#fff" opacity=".13"/><rect x="3" width="3" height="3" fill="#000" opacity=".09"/><rect y="3" width="3" height="3" fill="#000" opacity=".05"/><rect x="3" y="3" width="3" height="3" fill="#fff" opacity=".07"/><path d="M0 0H6M0 3H6M0 0V6M3 0V6" stroke="#2a1a08" stroke-width=".5" opacity=".42"/></pattern>
+        <radialGradient id="fsShine" cx=".3" cy=".2" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></radialGradient>
+      </defs></svg>`;
+      document.body.appendChild(d);
+    }
+    return `<svg class="fs-ic" viewBox="0 0 48 48" aria-hidden="true"><rect x="1" y="1" width="46" height="46" rx="9" fill="url(#fsGold)"/>${FS_SYM[k] || ""}<rect x="1" y="1" width="46" height="46" rx="9" fill="url(#fsTess)"/><rect x="1" y="1" width="46" height="46" rx="9" fill="url(#fsShine)"/><rect x="1.5" y="1.5" width="45" height="45" rx="8.5" fill="none" stroke="url(#fsStone)" stroke-width="2.6"/><rect x="3.6" y="3.6" width="40.8" height="40.8" rx="6.8" fill="none" stroke="#3a2a12" stroke-width=".7" opacity=".55"/></svg>`;
+  }
   // teksti i shkurtër i ditës: çfarë hahet dhe çfarë jo (nga rregulli i kreshmës së ditës)
   function fastPlateHtml(lv) {
     const ok = new Set((FOOD_OK[lv ? lv.k : "free"] || "").split(" "));
@@ -2141,7 +2185,7 @@ function pickPhoto(it) {
       : k === "total" ? "Kreshmë e plotë: sipas mundësisë asgjë deri në mbrëmje, pastaj ushqim i thjeshtë pa vaj."
       : `${lv.name}. Sot hahen ${list(yes)}. Nuk hahen ${list(no)}.`;
     const name = (k) => (FOODS.find((f) => f[0] === k) || [])[2];
-    const img = (k) => `<img src="img/ushqim/${k}.webp" alt="" width="56" height="56" loading="lazy" decoding="async">`;
+    const img = (k) => fsMosaic(k);
     const key = [["vaj", "Vaj"], ["vere", "Verë"], ["peshk", "Peshk"]];
     const yk = FOODS.filter((f) => ok.has(f[0])).map((f) => f[0]), nk = FOODS.filter((f) => !ok.has(f[0])).map((f) => f[0]);
     return `<div class="fast-plate" aria-label="Ushqimet e ditës"><div>
@@ -2643,7 +2687,7 @@ function pickPhoto(it) {
           const ds = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
           const lit = litDay(Fast.info(d0), null);
           const eve = new Date().getHours() >= 15, href = eve ? `#/sherbesa-dites/${ds(d0)}/mbr` : `#/sherbesa-dites/${ds(d0)}/${lit && new Date().getHours() >= 8 ? "lit" : "men"}`;
-          return `<a class="today-svc" href="${href}">${icon("candle")}<b>Shërbesat e ditës</b><small>Mëngjesorja${lit ? " · Liturgjia" : ""} · Mbrëmësorja</small><i>›</i></a>`; })()}
+          return `<div class="today-svcs"><a class="today-svc" href="${href}">${icon("candle")}<b>Shërbesat e ditës</b></a><a class="today-svc tpk-go" href="#/tipikoja-ditet">${icon("book")}<b>Tipikoja</b></a></div>`; })()}
         ${t.saints.length ? (() => { const chips = (clone) => t.saints.map((s) => `
           <a class="saint-chip"${clone ? ' data-clone aria-hidden="true" tabindex="-1"' : ""} href="#/lajm/shenjt/${encodeURIComponent((s.link.split("ods_saint=")[1] || "").split("&")[0])}">
             ${s.img ? `<span class="saint-img" style="background-image:url('${esc(s.img)}')"></span>` : ""}<span>${esc(s.title)}</span></a>`).join("");
@@ -4688,7 +4732,7 @@ function pickPhoto(it) {
         <p class="oz-next">Më pas: <b>${next.ic} ${next.n}</b></p>
         <details class="oz-help glass"><summary>Si e numëron Kisha kohën?</summary>
           <p>Në kohën e Shkrimit dita ndahej në 12 orë nga lindja deri në perëndimin e diellit, dhe nata në 12 orë të tjera. Prandaj në verë një orë e ditës është e gjatë, kurse në dimër e shkurtër. Ora e tretë, e gjashtë dhe e nëntë e Ungjijve janë këto orë.</p>
-          <p>Dita liturgjike nis me Mbrëmësoren, në perëndim të diellit: «u bë mbrëmje dhe u bë mëngjes». Orët e shërbesave në rreth janë afërsisht; në kishë ato mbahen sipas Tipikonit.</p></details>`;
+          <p>Dita liturgjike nis me Mbrëmësoren, në perëndim të diellit: «u bë mbrëmje dhe u bë mëngjes». Orët e shërbesave në rreth janë afërsisht; në kishë ato mbahen sipas Tipikojës.</p></details>`;
       $("#ozLoc").onclick = () => {
         if (!navigator.geolocation) return toast("Vendndodhja nuk është e mundur");
         toast("Po gjej vendin…");
@@ -5440,6 +5484,7 @@ function pickPhoto(it) {
     ["ugo", "Bota orthodhokse", "UGO.al"],
     ["ugos", "Besimi, historia, kultura", "UGO.al"],
     ["bota", "Kishat e botës", "Orthodox Times · OCA · Basilica.ro · anglisht"],
+    ["vat", "Nga Vatikani", "Vatican News · në shqip"],
     ["studime", "Studime, teologji dhe art", "Public Orthodoxy · Pemptousia · Orthodox Arts Journal · anglisht"],
   ];
   // balanca e lajmeve të kishave të botës: së pari Fanari dhe kishat greke, pastaj të tjerat, pak nga ato sllave/ruse;
@@ -5500,7 +5545,10 @@ function pickPhoto(it) {
       const dup = (t) => { const f = fp(t); return f.filter((x) => prFp.has(x)).length >= Math.min(2, f.length) && f.length > 0; };
       // postimi i Facebook-ut që është vetë predikimi (tekst i gjatë): predikim i plotë; kopja e një predikimi që kemi: jashtë
       const add2 = add.filter((n) => !dup(n.text)).map((n) => (n.text.length > 1500 && /predikim|fjala e fortlumturis/i.test(String(n.title) + " " + n.text.slice(0, 200)) ? Object.assign(n, { cat: "predikim" }) : n));
-      if (add2.length || prs.length) docLive = Object.assign({}, docLive, { items: [...(docLive.items || []), ...add2, ...prs] });
+      // lajmet e Vatikanit (Vatican News në shqip) hyjnë edhe në gazetën e ditës, në seksionin e vet
+      const vt = await liveJson("vatikan").catch(() => null);
+      const vtx = ((vt && vt.items) || []).filter((n) => n.link && !have.has(n.link)).map((n) => Object.assign({}, n, { grp: "vat", src: n.src || "vat", source: n.source || "Vatican News" }));
+      if (add2.length || prs.length || vtx.length) docLive = Object.assign({}, docLive, { items: [...(docLive.items || []), ...add2, ...prs, ...vtx] });
     }
     // seksionet: gazeta e ditës sipas burimit; gazeta e mitropolisë sipas muajve
     let SECS = GZ_SECS;
@@ -5607,7 +5655,7 @@ function pickPhoto(it) {
         ${frontPs(n, typeof r === "number" ? r : 1).map((x, j) => `<p>${j === 0 && cap ? dropcap(x) : esc(x)}</p>`).join("")}${srcLine(n)}</article>`;
     const sec = (g, arr) => { const S = SECS.find((x) => x[0] === g); return arr.length ? `<section class="gz-sec"><h3 class="gz-sh"><span>${S[1]}</span><small>${esc(S[2].split(" · ")[0])}</small></h3><div class="gz-flow">${arr.map((n, k) => art(n, k < 2, k === 0)).join("")}</div></section>` : ""; };
     if (day === today && !M) store.set("gz.seen", today);
-    if (!M) { await gzDaily(); return; }
+    { await gzDaily(); return; }
     // ---------- GAZETA E DITËS (v3.2.34): faqe A4 me dy kolona simetrike, tekstet e plota, shumë foto me përmasat e tyre
     // (asnjë foto nuk pritet), kolonat mbushen deri në fund (fjalë pas fjale), pa hapësira bosh dhe pa dalë nga korniza.
     // Kushti i parë: vetëm lajmet e 24 orëve të fundit (gzWindow). ----------
@@ -5615,7 +5663,7 @@ function pickPhoto(it) {
       const PW = 640, tmo = (ms) => new Promise((r) => setTimeout(r, ms));
       pages.classList.add("gzd");
       pages.innerHTML = `<div class="gzd-page gzd-wait"><p class="gz-load">Po faqoset gazeta…</p></div>`;
-      const pb = $("#gzPrint"); if (pb) pb.textContent = "⬇ Shkarko PDF (A4)";
+      const pb = $("#gzPrint"); if (pb) pb.textContent = "⬇ Shkarko PDF (A2 · e bashkuar)";
       const fitW = () => { const w = $("#gzWrap"); if (w) { const sc = w.clientWidth / PW; pages.style.transform = `scale(${sc})`; w.style.height = Math.ceil(pages.offsetHeight * sc) + "px"; } };
       fitW();
       try { await Promise.race([Promise.all(['400 15px "Old Standard TT"', 'italic 400 15px "Old Standard TT"', '700 15px "Old Standard TT"', '900 30px "Playfair Display"', '700 30px "Playfair Display"', '60px "UnifrakturMaguntia"'].map((f) => document.fonts.load(f))), tmo(3500)]); } catch (e) { /* */ }
@@ -5631,7 +5679,7 @@ function pickPhoto(it) {
         return ps.map((x) => ortho(x));
       };
       // seksionet: KOASh gjithmonë i pari, pastaj Mitropolitë, Patriarkanat, UGO.al…; predikimet në fund
-      const ORDER = ["koash", "mitro", "patr", "ugo", "ugos", "bota", "studime"], known = new Set(ORDER);
+      const ORDER = M ? SECS.map((x) => x[0]) : ["koash", "mitro", "patr", "ugo", "ugos", "bota", "vat", "studime"], known = new Set(ORDER);
       const secOf = (g) => (g === "pred" ? ["pred", "Predikime", "Kryepiskopi dhe mitropolitët"] : SECS.find((x) => x[0] === g) || [g, "Lajme të tjera", ""]);
       const groups = [...ORDER, "tjera"].map((g) => {
         let l = byDate(items.filter((n) => (g === "tjera" ? !known.has(n.grp) : n.grp === g)));
@@ -5652,7 +5700,7 @@ function pickPhoto(it) {
       const all = groups.flatMap(([, l]) => l);
       all.forEach((n) => { if (n._full) n.title = n._full; });
       const land = (n) => pics(n).some((u) => ratio.get(u) >= 1.15);
-      const lead = all.find((n) => n.grp === "koash" && land(n)) || all.find((n) => n.grp === "mitro" && land(n)) || all.find((n) => n.grp !== "pred" && land(n)) || all.find((n) => pics(n).length) || all[0];
+      const lead = all.find((n) => n.grp === ORDER[0] && land(n)) || all.find((n) => n.grp === ORDER[1] && land(n)) || all.find((n) => n.grp !== "pred" && land(n)) || all.find((n) => pics(n).length) || all[0];
 
       // ---------- motori i faqosjes ----------
       pages.innerHTML = "";
@@ -5748,7 +5796,7 @@ function pickPhoto(it) {
         return out;
       };
       const kick = (n) => `${esc(srcOf(n))}${when(n) ? " · " + esc(when(n)) : ""}`;
-      const srcLine = (n) => (n.src === "fb" ? `Burimi: ${esc(String(n.source || "Facebook"))}` : `Burimi: ${esc(NEWS_SRC[n.src] || n.src)} · <a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(domainOf(n.link))}</a>${n.tr ? " · përkthim automatik" : ""}`);
+      const srcLine = (n) => `Burimi: ${esc(srcOf(n).split(" · ")[0])}`;
       // një shkrim i plotë: titulli, fotot (vendosen ku ka vend, pa lënë bosh), teksti, burimi
       const placeArt = (n, opt) => {
         opt = opt || {};
@@ -5758,10 +5806,10 @@ function pickPhoto(it) {
         if (!opt.noHead) {
           if (opt.sh) head.push(opt.sh);
           if (cur.b.children.length && !opt.sh) head.push(el("div", "gzd-rule"));
-          head.push(el("p", "gzd-kick", kick(n)), el("h3", "gzd-h", `<a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a>`));
+          head.push(el("p", "gzd-kick", kick(n)), el("h3", "gzd-h", esc(n.title)));
           const box = el("div", "gzd-hd"); head.forEach((h) => box.appendChild(h));
           if (!tryBlock(box)) { const r = box.querySelector(".gzd-rule"); if (r) r.remove(); newPage(secNow); cur.b.appendChild(box); last = box; }
-          head = box;
+          head = box; n._pg = pgList.length;
         }
         flush();
         const ps = opt.ps || fullPs(n);
@@ -5785,8 +5833,7 @@ function pickPhoto(it) {
           flush();
         });
         while (pend.length) { forceBlock(pend.shift()); }
-        placeText(" ", "gzd-src", false);
-        cur.b.lastElementChild.innerHTML = srcLine(n);
+        cur.b.appendChild(el("p", "gzd-src", srcLine(n)));
         if (over()) { const s = cur.b.lastElementChild; s.remove(); newPage(secNow); cur.b.appendChild(s); }
         last = cur.b.lastElementChild;
       };
@@ -5799,10 +5846,10 @@ function pickPhoto(it) {
           <div class="gzd-ears"><div class="gzd-ear"><b>Sot në Kishë</b><span>${esc(feast || "Dita e Zotit")}</span><small>${esc(fast)}</small></div>
             <h1 class="gzd-title">Fjala e Shenjtë</h1>
             <div class="gzd-ear"><b>Vargu i ditës</b><span>${verse ? `“${esc(verse.t)}”` : ""}</span><small>${verse ? esc(verse.r) : ""}</small></div></div>
-          <p class="gzd-tag">Gazetë e përditshme orthodhokse · Lajmet e 24 orëve të fundit</p>
-          <div class="gzd-bar"><span>Nr. ${doy}</span><span>${esc(dateTxt)}</span><span>${esc(hm(A))} – ${esc(hm(D))}</span></div>
+          <p class="gzd-tag">${M ? M.tag || `Botim javor · ${esc(M.name || "")} · ${esc(M.range || "")}` : "Gazetë e përditshme orthodhokse · Lajmet e 24 orëve të fundit"}</p>
+          <div class="gzd-bar"><span>Nr. ${doy}</span><span>${esc(dateTxt)}</span><span>${M ? esc(M.range || M.bar || "") : esc(hm(A)) + " – " + esc(hm(D))}</span></div>
         </header>
-        ${lead ? `<div class="gzd-lead"><p class="gzd-kick">${kick(lead)}</p><h2><a href="${esc(lead.link)}" target="_blank" rel="noopener">${esc(lead.title)}</a></h2></div>` : ""}
+        ${lead ? `<div class="gzd-lead"><p class="gzd-kick">${kick(lead)}</p><h2>${esc(lead.title)}</h2></div>` : ""}
         <div class="gzd-body"></div>
         <nav class="gzd-index"><h4>Në këtë numër</h4><ol></ol></nav>
         ${foot()}`;
@@ -5813,12 +5860,46 @@ function pickPhoto(it) {
         cur.b.appendChild(el("p", "gzd-p f", "Në 24 orët e fundit nuk ka lajme të reja. Numri tjetër del sapo burimet të publikojnë."));
       } else {
         secNow = secOf(lead.grp)[1];
-        placeArt(lead, { noHead: true });
+        const ref = (n) => `<span class="gzd-pg">→ faqe <b class="gzd-ref" data-i="${all.indexOf(n)}">00</b></span>`;
+        // paragraf vetëm në këtë faqe: po s'zë i gjithë, shkurtohet me «…» (pa kaluar në faqen tjetër)
+        const fitP = (cls, text, suf, dc) => {
+          const words = hy(text).split(/\s+/).filter(Boolean), p = el("p", cls);
+          const put = (k, cut) => { setP(p, words.slice(0, k), dc); if (cut) p.insertAdjacentText("beforeend", " …"); if (suf) p.insertAdjacentHTML("beforeend", " " + suf); };
+          put(words.length, false); cur.b.appendChild(p);
+          if (!over()) { last = p; return 2; }
+          let lo = 0, hi = words.length;
+          while (lo < hi) { const mid = (lo + hi + 1) >> 1; put(mid, true); if (over()) hi = mid - 1; else lo = mid; }
+          if (lo < 8) { p.remove(); return 0; }
+          put(lo, true); last = p; return 1;
+        };
+        const lp = photoBlocks(lead)[0]; if (lp) tryBlock(lp);
+        // hyrja e shkurtër e lajmit kryesor (deri në ~380 shkronja, te fundi i një fjale), pastaj «→ faqe N»
+        const cut = (t, n) => (t.length <= n ? t : t.slice(0, t.lastIndexOf(" ", n)).replace(/[,;:–-]+$/, "") + " …");
+        const lps = []; let len = 0;
+        for (const x of fullPs(lead)) { if (len > 260 && lps.length) break; lps.push(cut(x, 380 - len)); len += Math.min(x.length, 380); }
+        lps.forEach((x, i) => { if (cur.b.dataset.full) return; const r = fitP("gzd-p" + (i === 0 ? " f" : ""), x, i === lps.length - 1 ? ref(lead) : "", i === 0); if (r !== 2) cur.b.dataset.full = r === 1 ? "1" : ""; });
+        // nënlajmet: shkrimi i parë i çdo seksioni, pastaj të dytët…, me radhën e gazetës
+        const subs = [];
+        for (let r = 0; r < 4; r++) groups.forEach(([g, l]) => { const x = l.filter((n) => n !== lead)[r]; if (x && g !== "pred") subs.push(x); });
+        let si = 0;
+        for (const n of subs) {
+          if (cur.b.dataset.full) break;
+          const box = el("div", "gzd-hd gzd-sub", `<div class="gzd-rule"></div><p class="gzd-kick">${kick(n)}</p><h3 class="gzd-h">${esc(n.title)}</h3>`);
+          // në faqen 1 titulli mund të kalojë në kolonën tjetër: hapësira që mbetet ndahet në fund nga justify()
+          cur.b.appendChild(box); if (over()) { box.remove(); break; } last = box;
+          const ex = cut(String(fullPs(n)[0] || n.ex || ""), 210);
+          const r = ex ? fitP("gzd-p f", ex, ref(n)) : (tryBlock(el("p", "gzd-p f", ref(n))) ? 2 : 0);
+          if (r === 0) { box.remove(); $$(".gzd-gal", cur.b).forEach((g) => { if (g.previousElementSibling === box) g.remove(); }); break; }
+          if (r === 1) break;
+          si++;
+        }
+        delete cur.b.dataset.full;
       }
       await tmo(0);
+      if (lead) newPage(secOf(groups[0][0])[1]);
       // ---------- seksionet ----------
       for (const [g, l] of groups) {
-        const list = l.filter((n) => n !== lead);
+        const list = lead && g === lead.grp ? [lead, ...l.filter((n) => n !== lead)] : l;
         if (!list.length) continue;
         const S = secOf(g);
         secNow = S[1];
@@ -5838,11 +5919,11 @@ function pickPhoto(it) {
         const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + k); let f = {}; try { f = Fast.info(d) || {}; } catch (e) { /* */ }
         const fs = f.level && f.level.cls !== "free" ? f.level.name : "";
         return `<li><b>${DITs[d.getDay()]} ${d.getDate()}</b><span>${esc(f.feast || "")}</span>${fs ? `<small>${esc(fs)}</small>` : ""}</li>`; }).join("")}</ul>`);
-      forceBlock(cal);
-      secPg.cal = pgList.indexOf(cal.closest(".gzd-page")) + 1;
-      if (ps && ps.psalms && ps.psalms.length) {
-        const di = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 864e5);
-        let pi = (di * 31) % ps.psalms.length, guard = 0, full = false;
+      if (!M || (M.kind !== "vatikan" && M.kind !== "shkolla")) { forceBlock(cal); secPg.cal = pgList.indexOf(cal.closest(".gzd-page")) + 1; }
+      const di0 = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 864e5);
+      let pi = ps && ps.psalms && ps.psalms.length ? (di0 * 31) % ps.psalms.length : 0;
+      const fillPsalms = () => { if (ps && ps.psalms && ps.psalms.length) {
+        let guard = 0, full = false;
         while (!full && guard++ < 6) {
           const P = ps.psalms[pi];
           const h = el("div", "gzd-hd", `<p class="gzd-kick">Psalltiri · KOASh</p><h3 class="gzd-h">Psalmi ${esc(String(P.n))}</h3>`);
@@ -5856,17 +5937,80 @@ function pickPhoto(it) {
           if (cur.b.lastElementChild === h) { h.remove(); break; }
           pi = (pi + 1) % ps.psalms.length;
         }
-      }
+      } };
+      fillPsalms();
+      if (pgList.length % 2) { justify(); secNow = "Psalltiri"; newPage("Psalltiri"); fillPsalms(); }
       justify();
       // nënshkrimi në fund të numrit
       { const lf = $(".gzd-foot span:last-child", cur.pg); if (lf) { lf.textContent = "Minuel Çollaku"; lf.className = "gz-sign"; } }
-      // përmbajtja e faqes 1
+      // përmbajtja e faqes 1 dhe faqet ku vijojnë shkrimet
+      $$(".gzd-ref", cover).forEach((r) => { const n = all[+r.dataset.i]; r.textContent = (n && n._pg) || ""; });
       const ix = $(".gzd-index ol", cover);
       ix.innerHTML = [...groups.filter(([g]) => secPg[g]).map(([g]) => [secOf(g)[1], secPg[g]]), ...(secPg.cal ? [["Java që vjen · Psalmi i ditës", secPg.cal]] : [])]
         .map(([t, p]) => `<li><span>${esc(t)}</span><i></i><b>${p}</b></li>`).join("");
       const tot = pgList.length;
-      $("#gzPc").textContent = `${tot} faqe · ${all.length} shkrime · lajmet nga ${hm(A)} deri ${hm(D)}`;
-      wire(PW);
+      $("#gzPc").textContent = M ? `${tot} faqe · ${all.length} shkrime${M.range ? " · " + M.range : ""}` : `${tot} faqe · ${all.length} shkrime · lajmet nga ${hm(A)} deri ${hm(D)}`;
+      // ---------- fletët A2 horizontale: dy faqe A3 krah për krah, me radhë ----------
+      const sheets = [];
+      for (let k = 0; k < pgList.length; k += 2) { const sp = el("div", "gzd-spread"); sp.appendChild(pgList[k]); if (pgList[k + 1]) sp.appendChild(pgList[k + 1]); pages.appendChild(sp); sheets.push(sp); }
+      wire(1280, true);
+      gzBook(sheets);
+    }
+    // shfletimi si gazetë: një fletë A2 në ekran, kthimi i faqes me animacion (rrëshqit ose shigjetat); ose të gjitha fletët njëra pas tjetrës
+    function gzBook(sheets) {
+      const wrap = $("#gzWrap"); if (!wrap || !sheets.length) return;
+      const total = $$(".gzd-page", pages).length;
+      let at = 0, busy = false, zoom = 0, mode = store.get("gz.mode", "book");
+      const ctl = document.createElement("div"); ctl.className = "gzb-ctl";
+      ctl.innerHTML = `<button class="icon-btn" id="gzPrev" aria-label="Fleta e mëparshme">${icon("back")}</button><span id="gzInd"></span><button class="icon-btn gzb-next" id="gzNext" aria-label="Fleta tjetër">${icon("back")}</button><button class="btn gzb-mode" id="gzMode" type="button"></button>`;
+      wrap.after(ctl);
+      const fitB = () => {
+        if (!wrap.isConnected) return removeEventListener("resize", fitB);
+        const sc = (wrap.clientWidth / 1280) * [1, 1.8, 3][zoom];
+        pages.style.transform = `scale(${sc})`;
+        wrap.style.height = Math.ceil((mode === "book" ? 905 : pages.offsetHeight) * sc) + "px";
+        wrap.classList.toggle("zoomed", !!zoom);
+      };
+      const show = (k) => {
+        at = Math.max(0, Math.min(sheets.length - 1, k));
+        sheets.forEach((x, n) => x.classList.toggle("cur", n === at));
+        $("#gzInd", ctl).textContent = `Faqet ${at * 2 + 1}–${Math.min(total, at * 2 + 2)} nga ${total}`;
+        $("#gzPrev", ctl).disabled = at === 0; $("#gzNext", ctl).disabled = at === sheets.length - 1;
+        fitB();
+      };
+      const setMode = (m) => {
+        mode = m; store.set("gz.mode", m);
+        pages.classList.toggle("book", m === "book"); pages.classList.toggle("scroll", m !== "book");
+        $("#gzMode", ctl).textContent = m === "book" ? "Të gjitha fletët" : "Si gazetë";
+        ctl.classList.toggle("all", m !== "book"); show(at);
+      };
+      const flip = (dir) => {
+        if (mode !== "book" || busy) return;
+        const j = at + dir; if (j < 0 || j >= sheets.length) return;
+        busy = true; haptic(6);
+        const A = sheets[at], B = sheets[j], pick = (X, n) => (X.children[n] || X.children[0]).cloneNode(true);
+        const under = document.createElement("div"); under.className = "gzd-spread cur gzd-under";
+        under.append(dir > 0 ? pick(A, 0) : pick(B, 0), dir > 0 ? pick(B, 1) : pick(A, 1));
+        const leaf = document.createElement("div"); leaf.className = "gzd-leaf " + (dir > 0 ? "r" : "l");
+        const f = dir > 0 ? pick(A, 1) : pick(A, 0), b = dir > 0 ? pick(B, 0) : pick(B, 1);
+        f.classList.add("f"); b.classList.add("b"); leaf.append(f, b);
+        A.classList.remove("cur"); pages.append(under, leaf);
+        let done = false;
+        const end = () => { if (done) return; done = true; under.remove(); leaf.remove(); show(j); busy = false; };
+        requestAnimationFrame(() => requestAnimationFrame(() => leaf.classList.add("go")));
+        leaf.addEventListener("transitionend", end, { once: true }); setTimeout(end, 1500);
+      };
+      $("#gzPrev", ctl).onclick = () => flip(-1);
+      $("#gzNext", ctl).onclick = () => flip(1);
+      $("#gzMode", ctl).onclick = () => { haptic(6); setMode(mode === "book" ? "scroll" : "book"); };
+      $("#gzZoom").onclick = () => { zoom = (zoom + 1) % 3; haptic(6); fitB(); };
+      let x0 = null;
+      wrap.addEventListener("touchstart", (e) => { x0 = zoom ? null : e.touches[0].clientX; }, { passive: true });
+      wrap.addEventListener("touchend", (e) => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) flip(dx < 0 ? 1 : -1); }, { passive: true });
+      const key = (e) => { if (!wrap.isConnected) return removeEventListener("keydown", key); if (e.key === "ArrowRight") flip(1); else if (e.key === "ArrowLeft") flip(-1); };
+      addEventListener("keydown", key);
+      addEventListener("resize", fitB, { passive: true });
+      setMode(mode);
     }
 
     // ---------- Faqja 1 ----------
@@ -5880,7 +6024,7 @@ function pickPhoto(it) {
         <div class="gz-bar"><span>Nr. ${doy}</span><span>${dateTxt}</span><span>${M ? M.bar : "Botim i aplikacionit «Fjala e Shenjtë»"}</span><span id="gzPgs">Faqe 1</span></div>
       </header>
       <div class="gz-top">
-        ${lead ? `<article class="gz-lead" data-i="${lead._i}"><p class="gz-kick">${esc(NEWS_SRC[lead.src] || "")} · ${esc(fmtDate(lead.date || now))}</p><h2><a href="${esc(lead.link)}" target="_blank" rel="noopener">${esc(lead.title)}</a></h2>
+        ${lead ? `<article class="gz-lead" data-i="${lead._i}"><p class="gz-kick">${esc(NEWS_SRC[lead.src] || "")} · ${esc(fmtDate(lead.date || now))}</p><h2>${esc(lead.title)}</h2>
           ${lead.img ? `<div class="gz-ph big"><img data-ns="${esc(lead.img)}" alt="" decoding="async" referrerpolicy="no-referrer"></div>` : ""}
           <div class="gz-lead-tx${parasOf(lead).join(" ").length < 420 ? " short" : ""}">${parasOf(lead).map((x, j) => `<p>${j === 0 ? dropcap(x) : esc(x)}</p>`).join("")}${srcLine(lead)}</div></article>` : ""}
         <aside class="gz-side">
@@ -6357,7 +6501,7 @@ function pickPhoto(it) {
     $("#gzPc").textContent = `${total} faqe · ${items.length} shkrime · ${dateTxt}`;
 
     wire(GZ_W);
-    function wire(PW) {
+    function wire(PW, own) {
       NewsImg.watch(pages);
       let zoom = 0;
       const fit = () => {
@@ -6366,8 +6510,7 @@ function pickPhoto(it) {
         pages.style.transform = `scale(${sc})`; w.style.height = Math.ceil(pages.offsetHeight * sc) + "px";
         w.classList.toggle("zoomed", !!zoom);
       };
-      fit(); addEventListener("resize", fit, { passive: true });
-      $("#gzZoom").onclick = () => { zoom = (zoom + 1) % 3; haptic(6); fit(); };
+      if (!own) { fit(); addEventListener("resize", fit, { passive: true }); $("#gzZoom").onclick = () => { zoom = (zoom + 1) % 3; haptic(6); fit(); }; }
       listPane.onclick = (e) => {
         const a = e.target.closest(".gz-sheet a[href], .gzd-page a[href]");
         if (a) { e.preventDefault(); openSite(a.href); }
@@ -6426,7 +6569,7 @@ function pickPhoto(it) {
         const done = () => { document.body.classList.remove("gz-printing"); root.remove(); btn.innerHTML = lbl; btn.title = ""; delete btn.dataset.busy; };
         const name = "Gazeta Fjala e Shenjte " + (M ? M.id + " " : "") + day;
         await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 250)));
-        if (android && android.savePdf) { window.__pdfDone = () => { window.__pdfDone = null; done(); }; if (PW !== GZ_W && android.savePdfA4) android.savePdfA4(name); else android.savePdf(name); setTimeout(() => window.__pdfDone && window.__pdfDone(), 90000); }
+        if (android && android.savePdf) { window.__pdfDone = () => { window.__pdfDone = null; done(); }; if (own && android.savePdfA2L) android.savePdfA2L(name); else if (PW !== GZ_W && android.savePdfA4) android.savePdfA4(name); else android.savePdf(name); setTimeout(() => window.__pdfDone && window.__pdfDone(), 90000); }
         else if (android) { toast("Përditëso aplikacionin për ruajtjen direkte të PDF-së"); done(); }
         else { addEventListener("afterprint", done, { once: true }); window.print(); }
       };
@@ -6719,7 +6862,9 @@ function pickPhoto(it) {
         ${p.fb && fbIsVideo(p) ? fbVideoHtml(p) : ""}
         ${imgs.length && !(p.fb && fbIsVideo(p) && imgs.length < 2) ? `<div class="mzd" aria-label="Fotot e postimit">${imgs.map((u, k) => `<figure class="mzd-c" data-k="${k}"><img src="${esc(u)}" alt="" decoding="async" ${k > 2 ? 'loading="lazy"' : ""}><button class="mzd-full" data-k="${k}" aria-label="Ekran i plotë">⛶</button></figure>`).join("")}
           <p class="mzd-n"></p></div>` : ""}
-        ${paras.map((l, i) => `<p${i === 0 ? ' class="ar-first"' : ""}>${esc(l)}</p>`).join("")}
+        ${paras.length >= 4 && paras.filter((l) => l.length < 70).length >= paras.length * 0.7
+          ? `<p class="ar-first mz-verse">${paras.map(esc).join("<br>")}</p>`
+          : paras.map((l, i) => `<p${i === 0 ? ' class="ar-first"' : ""}>${esc(l)}</p>`).join("")}
         ${p.video ? `<p><button class="btn" data-out="${esc(p.link)}">▶ Shih videon e postimit</button></p>` : ""}
         ${p.kind === "r" ? `<p class="mz-play"><button class="btn primary" id="mzPlay">▶ Shiko emisionin</button></p>` : ""}
         ${p.fb ? `<p class="art-src art-cite">${icon("globe")}<span>Burimi: ${esc(by.name)} · Facebook</span></p>` : ""}
@@ -6820,7 +6965,9 @@ function pickPhoto(it) {
       if (nf(ex).length < 4) ex = "";
       const img = x.kind === "v" ? x.img || `https://i.ytimg.com/vi/${x.id}/mqdefault.jpg` : x.img;
       const link = x.kind === "k" ? x.link || `#/lajm/kisha/${x.id}` : x.kind === "v" || x.kind === "r" ? `https://www.youtube.com/watch?v=${x.id}` : x.link;
-      return title ? { title, ex, img, link, src: srcOf(x), grp: grpOf(x), date: x.date, lang: "sq" } : null;
+      const body = lines(x.text || x.ex); if (body.length && nf(body[0]).startsWith(nf(title))) body[0] = body[0].slice(title.length).replace(/^[\s|·:–-]+/, "").trim();
+      const imgs = [img, ...(Array.isArray(x.imgs) ? x.imgs : []), ...(Array.isArray(x.images) ? x.images : [])].filter(Boolean);
+      return title ? { title, ex, text: body.filter((l) => nf(l).length > 3).join("\n"), img, imgs, link, src: srcOf(x), grp: grpOf(x), date: x.date, lang: "sq" } : null;
     }).filter(Boolean);
     const [y, m] = cur.ym.split("-").map(Number);
     const last = new Date(y, m, 0, 20);
@@ -7699,7 +7846,7 @@ function pickPhoto(it) {
     ["Ikona", "Pikturë e shenjtë e Krishtit, Hyjlindëses ose e shenjtorëve; nderimi i saj i kalon atij që paraqitet."],
     ["Ikonostasi", "Muri me ikona që ndan Altarin nga pjesa e popullit në kishë."],
     ["Hyjlindësja", "Virgjëresha Mari, Nëna e Perëndisë (Theotokos), sepse lindi Birin e Perëndisë të trupëzuar."],
-    ["Tipikoni", "Rregullorja që tregon si kryhen shërbesat për çdo ditë të vitit kishtar."],
+    ["Tipikoja", "Rregullorja që tregon si kryhen shërbesat për çdo ditë të vitit kishtar."],
     ["Sinaksari", "Përmbledhja e jetëve dhe kujtimeve të shenjtorëve për çdo ditë të vitit."],
     ["Triodi", "Libri dhe periudha e shërbesave nga e Diela e Tagrambledhësit deri të Shtunën e Madhe."],
     ["Pentikostari", "Libri dhe periudha nga Pashka deri në të Dielën e të Gjithë Shenjtorëve."],
@@ -10725,6 +10872,7 @@ function pickPhoto(it) {
       else if (view === "lajm") await viewArticle(parts[1] === "kisha" ? "kisha" : parts[1] === "shenjt" ? "shenjt" : "ngj", parts[2]);
       else if (view === "psaltiri") await viewPsaltiri(parts[1]);
       else if (view === "eterit") await viewFathers();
+      else if (view === "tipikoja-ditet") await viewTipikoni();
       else if (view === "tipikoja") {
         const tp = await load("tipikoja");
         let m = null, d = null;
@@ -11518,6 +11666,21 @@ function pickPhoto(it) {
     heads.forEach(([b, i]) => { const m = TP_SVC.find(([rx]) => rx.test(b.x)); if (m && !svc.some((x) => x[2].startsWith(m[2]))) svc.push([i, m[1], m[2] + (/· sonte/.test(b.x) ? " · sonte" : "")]); });
     return svc.length ? `<nav class="tp-flow" aria-label="Shërbesat e ditës">${svc.map(([i, ic, t], k) => `<button data-jump="${i}" style="--k:${k}"><span>${ic}</span><b>${t}</b></button>`).join('<i class="tp-dot"></i>')}</nav>` : "";
   }
+  // TIPIKONI: ditët nga sot deri më 31 dhjetor, njëra pas tjetrës, të faqosura si në libër
+  async function viewTipikoni() {
+    const tp = await load("tipikoja");
+    const t = tipikonToday(tp) || [0, 0], days = [];
+    tp.sections.forEach((sec, si) => sec.items.forEach((it, ii) => { if (si > t[0] || (si === t[0] && ii >= t[1])) days.push([si, ii, it]); }));
+    listPane.innerHTML = `
+      <header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>Tipikoja</h1></header>
+      <div class="tpk-list">${days.map(([si, ii, it], k) => {
+        const vb = tpDayBlocks(tp, si, ii), heads = vb.map((b, i) => [b, i]).filter(([b]) => b.t === "h" && !/^Urata\b/.test(b.x));
+        return `<article class="reader tp-reader tpk-day" id="tpk-${si}-${ii}">${tpHero(si, it, heads, k === 0)}<div class="verses" lang="sq">${blocksHtml("tipikoja", vb, { priest: true })}</div></article>`;
+      }).join('<div class="tpk-sep" aria-hidden="true">☩</div>')}</div>`;
+    enter(listPane);
+    mainPane.innerHTML = emptyMain();
+    setMode("list");
+  }
   function tpHero(si, it, heads, today) {
     const day = parseInt(it.title, 10) || 1, d = new Date(2026, si, day), f = Fast.info(d);
     const WD = ["E diel", "E hënë", "E martë", "E mërkurë", "E enjte", "E premte", "E shtunë"];
@@ -11697,7 +11860,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.33";
+  const APP_VERSION = "3.5.0";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
@@ -11788,13 +11951,17 @@ function pickPhoto(it) {
   const rootEl = document.documentElement;
   // 3 ngjyra: Pergamenë (e çelët), Kafe (e errët), Blu bizantine (e errët ndryshe) — ose sipas telefonit
   // ngjyrat e aplikacionit: [çelësi, emri, përshkrimi, e errët, shiriti i sistemit, mostra]
-  function themeList() { return [["auto", "Sipas telefonit", "Ndërrohet vetë ditë/natë", null, null, ["#f6efe2", "linear-gradient(90deg,#f6efe2,#362d25)", "#362d25"]], ["light", "Pergamenë", "E çelët, si letra e vjetër", 0, "#F6EFE2", ["#f6efe2", "#fffaf0", "#842320"]], ["fildish", "Fildish e ar", "E bardhë e ngrohtë me ar", 0, "#FBF8F1", ["#fbf8f1", "#ffffff", "#b08a35"]], ["qielli", "Qiell", "E çelët, blu e butë e Hyjlindëses", 0, "#EDF2F8", ["#edf2f8", "#f8fbfe", "#1f4f8a"]], ["ulliri", "Ulliri", "E çelët, jeshile ulliri", 0, "#F1F0E4", ["#f1f0e4", "#fbfaf1", "#5a6b26"]], ["trendafil", "Trëndafil", "E çelët, rozë e butë", 0, "#F8EEEE", ["#f8eeee", "#fff8f7", "#9a2b3c"]], ["dark", "Kafe", "E errët e ngrohtë", 1, "#362D25", ["#362d25", "#463b31", "#d9ba78"]], ["blu", "Blu bizantine", "E errët, blu e thellë me ar", 1, "#141C2E", ["#121a2b", "#1f2b45", "#dcb866"]], ["athos", "Mali i Shenjtë", "E errët, jeshile e thellë me ar", 1, "#0E1A15", ["#0e1a15", "#1a2e25", "#d6b55e"]], ["vjollce", "Kreshma", "E errët, vjollcë me ar", 1, "#17111F", ["#17111f", "#281d36", "#d9b866"]], ["bordo", "Bordo", "E errët, e kuqe vere me ar", 1, "#1E0E0D", ["#1e0e0d", "#341a18", "#dcb866"]], ["grafit", "Grafit", "E errët, gri me argjend", 1, "#17191C", ["#17191c", "#25292e", "#c9c4b8"]], ["oled", "OLED", "E zezë e plotë, kursen baterinë", 1, "#000000", ["#000000", "#0d0d0d", "#d8b56a"]]]; }
+  function themeList() { return [["auto", "Sipas telefonit", "Ndërrohet vetë ditë/natë", null, null, ["#f6efe2", "linear-gradient(90deg,#f6efe2,#362d25)", "#362d25"]], ["light", "Pergamenë", "E çelët, si letra e vjetër", 0, "#F6EFE2", ["#f6efe2", "#fffaf0", "#842320"]], ["fildish", "Fildish e ar", "E bardhë e ngrohtë me ar", 0, "#FBF8F1", ["#fbf8f1", "#ffffff", "#b08a35"]], ["qielli", "Qiell", "E çelët, blu e butë e Hyjlindëses", 0, "#EDF2F8", ["#edf2f8", "#f8fbfe", "#1f4f8a"]], ["ulliri", "Ulliri", "E çelët, jeshile ulliri", 0, "#F1F0E4", ["#f1f0e4", "#fbfaf1", "#5a6b26"]], ["trendafil", "Trëndafil", "E çelët, rozë e butë", 0, "#F8EEEE", ["#f8eeee", "#fff8f7", "#9a2b3c"]], ["mermer", "Mermer", "E bardhë mermeri, blu e thellë me ar", 0, "#F3F1EC", ["#f3f1ec", "#fffdf8", "#1e3557", "#b08a35"]], ["agimi", "Agimi", "E çelët e ngrohtë, terrakota me ar", 0, "#F7EFE6", ["#f7efe6", "#fffaf4", "#a5482a", "#b8892f"]], ["perla", "Perla", "Gri perle me vjollcë mbretërore", 0, "#F1EFF3", ["#f1eff3", "#fcfbfd", "#5b2a6e", "#a8822e"]], ["dark", "Kafe", "E errët e ngrohtë", 1, "#362D25", ["#362d25", "#463b31", "#d9ba78", "#9c6b3a"]], ["blu", "Blu bizantine", "E errët, blu e thellë me ar", 1, "#141C2E", ["#121a2b", "#1f2b45", "#dcb866", "#3d6fc4"]], ["athos", "Mali i Shenjtë", "E errët, jeshile e thellë me ar", 1, "#0E1A15", ["#0e1a15", "#1a2e25", "#d6b55e", "#2f8a5e"]], ["vjollce", "Kreshma", "E errët, vjollcë me ar", 1, "#17111F", ["#17111f", "#281d36", "#d9b866", "#8a4fc0"]], ["bordo", "Bordo", "E errët, e kuqe vere me ar", 1, "#1E0E0D", ["#1e0e0d", "#341a18", "#dcb866", "#a82b35"]], ["grafit", "Grafit", "E errët, gri me argjend", 1, "#17191C", ["#17191c", "#25292e", "#c9c4b8", "#5f6b7c"]], ["pashka", "Nata e Pashkës", "E errët, blu nate me të kuqe të ndezur dhe ar", 1, "#0D0F1A", ["#0d0f1a", "#181b2b", "#e2c070", "#c8384a"]], ["bizanti", "Ari bizantin", "E zezë e ngrohtë me ar mbretëror", 1, "#0F0D0A", ["#0f0d0a", "#1c1813", "#e8c879", "#c9a24a"]], ["oled", "OLED", "E zezë e plotë, kursen baterinë", 1, "#000000", ["#000000", "#0d0d0d", "#d8b56a", "#262626"]]]; }
   const APP_THEMES = Object.fromEntries(themeList().map(([k, , , d, bar]) => [k, d === null ? null : { d, bar }]));
   // pllakat e zgjedhjes (Cilësimet dhe fleta e ngjyrave)
   const themeOptsHtml = (cur) => {
     const L = themeList(), now = L.find((x) => x[0] === cur) || L[0];
-    const dot = (k, sw) => (k === "auto" ? "linear-gradient(135deg,#f6efe2 50%,#362d25 50%)" : sw[0]);
-    return `<div class="th-mini">${L.map(([k, n, d, , , sw]) => `<button type="button" class="th-dot th-${k}" data-th="${k}" data-d="${esc(n + " · " + d)}" aria-checked="${cur === k}" aria-label="${esc(n)}" title="${esc(d)}"><i style="background:${dot(k, sw)}"><u style="background:${sw[2]}"></u></i><small>${n}</small></button>`).join("")}</div>
+    // çdo pllakë është një ekran i vogël i aplikacionit me atë kombinim: sfondi, karta, shiriti me ngjyrën kryesore dhe ari
+    const tile = ([k, n, d, dk, , sw]) => `<button type="button" class="th-dot th-${k}" data-th="${k}" data-d="${esc(n + " · " + d)}" aria-checked="${cur === k}" aria-label="${esc(n)}" title="${esc(d)}">`
+      + `<i class="th-pv${k === "auto" ? " auto" : ""}" style="--b:${sw[0]};--c:${sw[1]};--a:${dk ? sw[3] || sw[2] : sw[2]};--g:${dk ? sw[2] : sw[3] || "#b08a35"}"><em></em><s></s><u></u></i><small>${n}</small></button>`;
+    const grp = (h, l) => (l.length ? `<div class="th-grp"><h4>${h}</h4><div class="th-mini">${l.map(tile).join("")}</div></div>` : "");
+    return grp("Sipas telefonit", L.filter((x) => x[3] === null)) + grp("Të çelëta", L.filter((x) => x[3] === 0)) + grp("Të errëta", L.filter((x) => x[3] === 1))
+      + `
       <p class="th-desc">${esc(now[1] + " · " + now[2])}</p>`;
   };
   const themePick = (scope, b) => { $$("[data-th]", scope).forEach((x) => x.setAttribute("aria-checked", x === b)); const dd = $(".th-desc", scope); if (dd) dd.textContent = b.dataset.d || ""; };

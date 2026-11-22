@@ -32,12 +32,32 @@ def _save(url, rel):
 
 
 def _split(cap):
+    import re
     lines = [l.strip() for l in (cap or "").splitlines() if l.strip()]
     if not lines:
         return "", ""
     first = lines[0]
-    if len(first) > 110:
-        import re
+    # citat ose vjershë: rreshti i parë hap thonjëza pa i mbyllur, ose rreshti tjetër vijon me shkronjë të vogël.
+    # Atëherë teksti mbetet i plotë dhe titull bëhet autori i citatit (rreshti i fundit i shkurtër), kurrë një varg i prerë.
+    opens = first[:1] in "\"“„«'" and not re.search(r"[\"”»]", first[1:])
+    cont = len(lines) > 1 and lines[1][:1].islower()
+    if cont and not opens:
+        # fjalia e parë vazhdon në rreshtat pasues: titulli është e gjithë fjalia (deri te pika), jo gjysma e saj
+        k, t = 0, first
+        while k + 1 < len(lines) and not re.search(r"[.!?…]$", t) and len(t) + len(lines[k + 1]) < 120:
+            k += 1; t += " " + lines[k]
+        if re.search(r"[.!?…]$", t):
+            return t, chr(10).join(lines[k + 1:])
+    if opens or cont:
+        body = list(lines)
+        title = ""
+        if len(body) > 2 and len(body[-1]) <= 60 and not re.search(r"[.,;:!?…\"”»]$", body[-1]):
+            title = body.pop()
+        txt = "\n".join(body)
+        txt = re.sub(r"^[\"“„]", "«", txt)
+        txt = re.sub(r"[\"”]$", "»", txt)
+        return (title or re.sub(r"^[\"“„«]", "", first) + " …"), txt
+    if len(first) > 110:                                    # rreshti i parë shumë i gjatë → titull deri te fjalia e parë
         m = re.match(r"(.{20,110}?[.!?»])\s", first)
         if m:
             return m.group(1), "\n".join([first[len(m.group(1)):].strip()] + lines[1:]).strip()
