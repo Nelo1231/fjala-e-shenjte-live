@@ -1,0 +1,76 @@
+name: Sinkronizimi i të dhënave (automatik)
+
+# Punon vetë në GitHub, edhe kur PC-ja është e fikur: lajmet dhe gazetat, mitropolitë, Shkolla, transmetimet,
+# Kinemaja dhe titrat shqip, Kërkim, tekstet liturgjike, Këndi i Lutjes, librat e Kishës, faqet e reja të Kishës.
+# Çdo orë në minutën 35 (ikonat e ditës kanë workflow-n e vet në minutën 20).
+on:
+  schedule:
+    - cron: '35 * * * *'
+  workflow_dispatch:
+    inputs:
+      apify:
+        description: 'Përdor Apify-n edhe jashtë orarit (1 = po)'
+        required: false
+        default: '0'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sinkronizimi
+  cancel-in-progress: false
+
+jobs:
+  sinkronizo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: cloud/requirements.txt
+
+      - name: Instalo paketat (torch pa GPU, për përkthimin offline)
+        run: |
+          pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet -r cloud/requirements.txt
+
+      - name: Modeli i përkthimit anglisht → shqip (ruhet në cache)
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/argos-translate
+          key: argos-en-sq-v1
+
+      - name: Instalo modelin kur mungon
+        run: |
+          python - <<'PY'
+          import argostranslate.package as p, argostranslate.translate as t
+          have = {l.code for l in t.get_installed_languages()}
+          if not {"en", "sq"} <= have:
+              p.update_package_index()
+              pk = next(x for x in p.get_available_packages() if x.from_code == "en" and x.to_code == "sq")
+              p.install_from_path(pk.download())
+          print("përkthimi:", sorted({l.code for l in t.get_installed_languages()}))
+          PY
+
+      - name: Sinkronizo
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          FS_APIFY: ${{ github.event.inputs.apify }}
+        run: python -X utf8 cloud/sinkronizo.py
+
+      - name: Ruaj në GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data img subtitles pdf tools cloud 2>/dev/null || true
+          if git diff --cached --quiet; then echo "Asnjë ndryshim"; exit 0; fi
+          git commit -q -m "Sinkronizimi i të dhënave (automatik)"
+          for i in 1 2 3; do
+            git pull -q --rebase -X theirs origin main && git push -q origin HEAD:main && exit 0
+            sleep 20
+          done
+          exit 1
