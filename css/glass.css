@@ -2802,3 +2802,5 @@ section.ra-now { padding: 4px 6px; }
 .mz-art-by .mz-art-ic { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, var(--accent, #8e2a2a), #3a0d0d); color: #fff6e3; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(142, 42, 42, .35); }
 .mz-art-by .mz-art-ic svg { width: 20px; height: 20px; }
 .fb-card .news-cat { background: #1f4f9a; color: #fff; }
+/* kuverta e fotove: kartat e pasme dalin sipër, ndaj titulli ka hapësirë */
+.mz-art h1 + .mzd { margin-top: 64px; }
