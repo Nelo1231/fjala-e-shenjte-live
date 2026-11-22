@@ -184,6 +184,47 @@ def to_webp(src, dst):
         q -= 8
 
 
+def dedupe_posts(posts):
+    """Çdo postim vetëm një herë: i njëjti id (Facebook-u i jep lidhje «pfbid» të re çdo herë) dhe i njëjti postim
+    i ndarë në Facebook dhe Instagram (i njëjti titull, brenda 90 minutave; pa titull: brenda 3 minutave).
+    Mbahet më i ploti (tekst, pastaj fotot)."""
+    import unicodedata
+
+    def norm(t):
+        return re.sub(r"\W+", " ", unicodedata.normalize("NFKC", str(t or "")).lower()).strip()
+
+    def score(p):
+        return (bool(p.get("text")), len(p.get("imgs") or []), len(p.get("text") or ""))
+
+    def when(p):
+        try:
+            return datetime.datetime.fromisoformat(str(p.get("date", ""))[:19])
+        except ValueError:
+            return None
+
+    by_id = {}
+    for p in posts:
+        k = p.get("id") or p.get("link")
+        if k not in by_id or score(p) > score(by_id[k]):
+            by_id[k] = p
+    keep = []
+    for p in sorted(by_id.values(), key=lambda x: x.get("date", ""), reverse=True):
+        tp, wp = norm(p.get("title"))[:30], when(p)
+        twin = None
+        for i, q in enumerate(keep):
+            wq = when(q)
+            if not wp or not wq or tp != norm(q.get("title"))[:30]:
+                continue
+            if abs((wp - wq).total_seconds()) <= (5400 if tp else 180):
+                twin = i
+                break
+        if twin is None:
+            keep.append(p)
+        elif score(p) > score(keep[twin]):
+            keep[twin] = dict(p, video=p.get("video") or keep[twin].get("video"))
+    return keep
+
+
 def inbox(posts):
     if not os.path.isdir(INBOX):
         os.makedirs(INBOX, exist_ok=True)
@@ -267,7 +308,7 @@ def main():
         have = {x.get("link") for x in doc["posts"] if x.get("link")}
         ig_old = min((x.get("date", "") for x in doc["posts"] if "instagram" in (x.get("link") or "")), default="")
         fb_new = max((x.get("date", "") for x in doc["posts"] if "facebook.com" in (x.get("link") or "")), default="")
-        ig, _st = merr_ig_shkolla.fetch(have, ig_old, fb_new)
+        ig, _st = merr_ig_shkolla.fetch(have, ig_old, fb_new, {x.get("id") for x in doc["posts"] if x.get("id")})
         doc["posts"] = ig + doc["posts"]
         rep.append(f"Instagram {len(ig)} postime të reja")
     except LookupError:
@@ -278,7 +319,7 @@ def main():
         rep.append(f"botime të reja {inbox(doc['posts'])}")
     except Exception as e:
         rep.append(f"dosja GABIM ({e})")
-    doc["posts"] = sorted(doc["posts"], key=lambda p: p.get("date", ""), reverse=True)[:200]
+    doc["posts"] = dedupe_posts(doc["posts"])[:200]
     doc["updated"] = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
     __import__("merr_lajmet").scrub_hidden(doc)
     json.dump(doc, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)

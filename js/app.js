@@ -6191,8 +6191,25 @@ function pickPhoto(it) {
       return id ? { id, title: g("title"), date: g("published"), ex: shortText(g("media:description"), 200) } : null;
     }).filter(Boolean);
   }
+  // çdo postim i Shkollës vetëm një herë: i njëjti id (Facebook-u jep lidhje «pfbid» të re çdo herë) dhe i njëjti postim
+  // në Facebook dhe Instagram (i njëjti titull brenda 90 minutave; pa titull brenda 3 minutave); mbahet më i ploti
+  function mzDedupe(posts) {
+    const nrmT = (t) => String(t || "").normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().slice(0, 30);
+    const score = (p) => (p.text ? 1e6 : 0) + 1e3 * (p.imgs || []).length + String(p.text || "").length;
+    const byId = new Map();
+    (posts || []).forEach((p) => { const k = p.id || p.link; const o = byId.get(k); if (!o || score(p) > score(o)) byId.set(k, p); });
+    const keep = [];
+    [...byId.values()].sort((x, y) => String(y.date).localeCompare(String(x.date))).forEach((p) => {
+      const t = nrmT(p.title), w = Date.parse(p.date);
+      const i = keep.findIndex((q) => nrmT(q.title) === t && Math.abs(Date.parse(q.date) - w) <= (t ? 5400e3 : 180e3));
+      if (i < 0) keep.push(p);
+      else if (score(p) > score(keep[i])) keep[i] = Object.assign({}, p, { video: p.video || keep[i].video });
+    });
+    return keep;
+  }
   async function shkollaLoad() {
     const doc = (await liveJson("shkolla")) || { videos: [], posts: [] };
+    doc.posts = mzDedupe(doc.posts);
     // në Android: lista e freskët direkt nga YouTube (pa CORS)
     if (android && android.fetchText) {
       try { const v = parseYtRss(await fetchHtml(SHKOLLA.rss)); if (v.length) doc.videos = v; } catch (e) { /* */ }
@@ -10172,12 +10189,13 @@ function pickPhoto(it) {
   }
   // roja e nisjes: po aplikacioni mbetet bosh (cache e vjetër / skedar i dëmtuar), pastrohet cache-i dhe rinis një herë
   setTimeout(async () => {
+    // vetëm kur faqja shihet dhe mbetet bosh edhe pas 25 sekondash (telefonat e ngadaltë nuk rinisen kot)
     const empty = !(listPane && listPane.textContent.trim()) && !(mainPane && mainPane.textContent.trim());
-    if (!empty || sessionStorage.getItem("fs.healed")) return;
+    if (!empty || document.visibilityState !== "visible" || sessionStorage.getItem("fs.healed")) return;
     sessionStorage.setItem("fs.healed", "1");
     try { for (const k of await caches.keys()) await caches.delete(k); } catch (_) { /* */ }
     location.reload();
-  }, 12000);
+  }, 25000);
   async function routeRaw() {
     const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
     const view = parts[0] || "kreu";
@@ -11175,7 +11193,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.2.20";
+  const APP_VERSION = "3.2.21";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
@@ -11617,7 +11635,10 @@ function pickPhoto(it) {
 
   // kursimi i baterisë: bateri ≤ 20% pa karikues, ose “Data Saver” → efektet dekorative fiken
   (async () => {
-    const setEco = (on) => rootEl.classList.toggle("eco", !!on);
+    // telefonat me pak kujtesë / procesor: pa turbullimet e xhamit (prekjet dhe lëvizja mbeten të shpejta)
+    const weak = (() => { try { return (navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4); } catch (e) { return false; } })();
+    const setEco = (on) => rootEl.classList.toggle("eco", !!(on || weak));
+    setEco(false);
     try { if (navigator.connection && navigator.connection.saveData) setEco(true); } catch (e) { /* */ }
     try {
       if (!navigator.getBattery) return;

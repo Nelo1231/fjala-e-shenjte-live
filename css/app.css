@@ -127,7 +127,7 @@ svg { width: 22px; height: 22px; flex: none; }
 }
 .rail-btn svg {
   width: 30px; height: 30px; padding: 9px; box-sizing: content-box; border-radius: 50%;
-  background: rgba(0, 0, 0, .32); backdrop-filter: blur(4px); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5));
+  background: rgba(0, 0, 0, .42); box-shadow: 0 1px 3px rgba(0, 0, 0, .35);   /* pa blur/drop-shadow: 24 ikona të turbullta ngadalësonin çdo prekje */
 }
 .rail-btn.on svg { color: #ff3b5c; animation: pop .35s; }
 @keyframes pop { 40% { transform: scale(1.3); } }

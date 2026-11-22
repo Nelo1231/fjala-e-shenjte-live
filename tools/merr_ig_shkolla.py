@@ -72,7 +72,7 @@ def _extract_imgs(it):
     return urls
 
 
-def fetch(known_links=(), oldest_known="", newest=""):
+def fetch(known_links=(), oldest_known="", newest="", known_ids=()):
     os.makedirs(IMG, exist_ok=True)
     limit = 20 if not known_links else 8
     url = f"https://api.apify.com/v2/acts/apify~facebook-posts-scraper/run-sync-get-dataset-items?token={APIFY_TOKEN}"
@@ -80,14 +80,15 @@ def fetch(known_links=(), oldest_known="", newest=""):
         "startUrls": [{"url": FB_URL}],
         "resultsLimit": limit,
         # Apify paguhet për postim: merren vetëm postimet pas të fundit që kemi
-        **({"onlyPostsNewerThan": newest[:10]} if newest else {}),
+        # deri në orë (UTC; 2 orë mbrapa për ndryshimin e orës), jo gjithë ditën: postimet e njohura nuk paguhen sërish
+        **({"onlyPostsNewerThan": (datetime.datetime.fromisoformat(newest[:19]) - datetime.timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S")} if newest else {}),
     }).encode("utf-8")
 
     req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
     with urllib.request.urlopen(req, timeout=180) as resp:
         items = json.loads(resp.read().decode("utf-8"))
 
-    known, posts = set(known_links), []
+    known, ids, posts = set(known_links), set(known_ids), []
     for it in items:
         when = _parse_time(it)
         link = it.get("url") or it.get("topLevelUrl") or ""
@@ -95,6 +96,9 @@ def fetch(known_links=(), oldest_known="", newest=""):
             continue
 
         pid = str(it.get("postId") or hashlib.md5(link.encode("utf-8")).hexdigest()[:12])
+        if "fb_" + pid in ids:
+            continue
+        ids.add("fb_" + pid)
         urls = _extract_imgs(it)
         imgs = []
         for k, u in enumerate(urls[:20]):
