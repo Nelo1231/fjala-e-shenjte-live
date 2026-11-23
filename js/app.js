@@ -7709,7 +7709,7 @@ function pickPhoto(it) {
           <div class="py-rc"><b id="pyD">–</b><small id="pyDl">ditë</small></div></div>
         <div class="py-ht"><p class="py-k">15 nëntor – 25 dhjetor · 40 ditë</p><h2>Lindja trupore e Zotit dhe Perëndisë sonë Jisu Krisht</h2>
           <p class="py-clock" id="pyClock"></p></div>
-      </section>
+      </section>${jxRemindHtml(JR_DEFS[0])}${jxBarHtml(JR_DEFS[0])}
       <div class="py-sky"><svg viewBox="0 0 360 640" id="pySky" role="group" aria-label="Udha e yjeve deri në Betlehem">
         <defs><radialGradient id="pyGlow"><stop offset="0" stop-color="#fff6d8" stop-opacity=".95"/><stop offset=".35" stop-color="#f4d58a" stop-opacity=".45"/><stop offset="1" stop-color="#f4d58a" stop-opacity="0"/></radialGradient>
           <radialGradient id="pyCave" cx=".5" cy=".85" r=".7"><stop offset="0" stop-color="#ffcf73" stop-opacity=".9"/><stop offset=".5" stop-color="#b8661f" stop-opacity=".35"/><stop offset="1" stop-color="#1a0f08" stop-opacity="0"/></radialGradient>
@@ -7747,6 +7747,8 @@ function pickPhoto(it) {
       cl.innerHTML = `<span>${String(H).padStart(2, "0")}<small>orë</small></span><i>:</i><span>${String(M).padStart(2, "0")}<small>min</small></span><i>:</i><span>${String(X).padStart(2, "0")}<small>sek</small></span>`;
     };
     const ti = setInterval(tick, 1000); tick();
+    const JY = JR_DEFS[0], OY = { start: new Date(S.xmas.getFullYear(), 10, 15), end: S.xmas, N: 41, k: S.on ? Math.min(S.k, 41) : 41 };
+    jxRemindWire(listPane); jxLiveSky($(".py-sky", listPane));
     const openStar = async (g) => {
       const i = +g.dataset.btl;
       if (!g.classList.contains("on")) { haptic([20, 30, 20]); toast(i === 40 ? "Ky yll ndizet më 25 dhjetor" : `Ky yll ndizet më ${btlDate(i)}`); return; }
@@ -7756,9 +7758,14 @@ function pickPhoto(it) {
       opened.add(i); store.set(KEY, [...opened]);
       const box = $("#btlRead"); box.hidden = false; box.classList.remove("unroll"); box.innerHTML = `<p class="muted">Po hapet…</p>`;
       box.innerHTML = await btlDoor(i);
+      const dB = BTL[i]; JX_TRACKS.list = i < 40 && dB && dB[0] !== "P" && ReadAloud.audioId(dB[0]) ? [{ b: ReadAloud.audioId(dB[0]), code: dB[0], parts: [{ c: dB[1], v: dB[2], c2: dB[3], v2: dB[4] }], label: "Leximi" }] : [];
+      const h2 = $("h2", box);
+      jxTools(box, JY, OY, i, { star: g, title: h2 ? h2.textContent : "", canOpen: (x) => x <= 40 && isOpen(x),
+        go: (x) => { const t = $(`#pyStars [data-btl="${x}"]`, listPane); if (t) openStar(t); } });
       void box.offsetWidth; box.classList.add("unroll");
       box.scrollIntoView({ behavior: "smooth", block: "start" });
     };
+    jxBarWire(listPane, JY, OY, isOpen, (x) => { const t = $(`#pyStars [data-btl="${x}"]`, listPane); if (t) openStar(t); });
     listPane.onclick = (e) => { const g = e.target.closest("[data-btl]"); if (g) openStar(g); };
     listPane.onkeydown = (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.closest && e.target.closest("[data-btl]")) { e.preventDefault(); openStar(e.target.closest("[data-btl]")); } };
     if (S.on) { const t = $(".py-s.today", listPane); if (t) setTimeout(() => t.scrollIntoView({ block: "center", behavior: "smooth" }), 500); }
@@ -7771,7 +7778,7 @@ function pickPhoto(it) {
   //  Çdo ditë: leximet sipas Tipikosë (kur janë në të dhënat tona) dhe kujtimet e Sinaksarit për atë datë.
   // =====================================================================
   const JR_DEFS = [
-    { id: "ylli", name: "Kreshma e Krishtlindjes", feast: "Krishtlindja", sym: "star", range: (Y) => [new Date(Y, 10, 15), new Date(Y, 11, 25)] },
+    { id: "ylli", name: "Kreshma e Krishtlindjes", feast: "Krishtlindja", sym: "star", a: "#f4d58a", c: ["#0b1230", "#140d28", "#07060d"], range: (Y) => [new Date(Y, 10, 15), new Date(Y, 11, 25)] },
     { id: "vula", name: "Rrethprerja e Zotit", feast: "Rrethprerja e Zotit", sym: "lamp", lay: "ring", emb: "seal", k: "Nga Krishtlindja te Rrethprerja · 8 ditë", c: ["#14102a", "#2a1638", "#0b0812"], a: "#f4d58a", range: (Y) => [new Date(Y - 1, 11, 25), new Date(Y, 0, 1)] },
     { id: "pellumbi", name: "Theofania", feast: "Theofania", sym: "drop", emb: "dove", path: "M60 34C300 60 300 140 180 172S48 262 180 300S312 380 180 420S92 468 180 500", e: [180, 572], k: "Nga Rrethprerja te Theofania · 2–6 janar", c: ["#06202e", "#0a3346", "#041018"], a: "#9fe3ff", range: (Y) => [new Date(Y, 0, 2), new Date(Y, 0, 6)] },
     { id: "qiriri", name: "Ipapandia", feast: "Ipapandia", sym: "candle", emb: "temple", path: "M40 600L110 560L70 512L150 472L112 424L200 386L160 336L250 298L212 248L292 210L254 162L180 130", e: [180, 70], k: "Nga Theofania te Paraqitja e Zotit në Tempull", c: ["#1f1408", "#2e1d0c", "#0d0904"], a: "#ffcf73", range: (Y) => [new Date(Y, 0, 7), new Date(Y, 1, 2)] },
@@ -7858,6 +7865,7 @@ function pickPhoto(it) {
   }
   async function jrDayHtml(o, i) {
     const dt = jrAdd(o.start, i), fi = Fast.info(dt);
+    jrDayHtml.refs = [];
     if (o.J.akathist && i < o.N - 1) {
       const { st } = await akStanzas(), s = st[i];
       if (s) return `<p class="py-day">Dita ${i + 1} nga ${o.N} · ${esc(jrDayLbl(dt))}</p><h2>Stanca ${i + 1} nga 24</h2>
@@ -7869,6 +7877,7 @@ function pickPhoto(it) {
     let reads = "";
     for (const [lbl, arr, g] of [["Apostulli", (r && r.apostle) || [], false], ["Ungjilli", (r && r.gospel) || [], true]]) {
       for (const x of arr) {
+        jrDayHtml.refs.push([x, g, lbl]);
         let txt = "";
         try { const vs = await Vargjet.get(Vargjet.segs(x, g)); if (vs && vs.length) txt = vs.map((v) => `<sup>${v.v}</sup>${esc(v.t)}`).join(" "); } catch (e) { /* pa internet */ }
         if (!txt && x.item && x.item.v) txt = esc(x.item.v.join(" "));
@@ -7925,8 +7934,8 @@ function pickPhoto(it) {
       <section class="py-hero" style="--jr-a:${J.a}">
         <div class="py-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="py-rt"/><circle cx="60" cy="60" r="52" class="py-rp" style="stroke-dasharray:${(2 * Math.PI * 52 * prog).toFixed(1)} ${(2 * Math.PI * 52).toFixed(1)}"/></svg>
           <div class="py-rc"><b>${k ? Math.max(0, Math.round((o.end - jrT0()) / 864e5)) : Math.round((o.start - jrT0()) / 864e5)}</b><small>${k ? "ditë" : "ditë deri në nisje"}</small></div></div>
-        <div class="py-ht"><p class="py-k">${esc(J.k)}</p><h2>${esc(J.feast)}</h2><p class="py-when">${esc(jrDayLbl(o.start))} – ${esc(jrDayLbl(o.end))} ${o.end.getFullYear()}${k ? ` · dita ${k} nga ${N}` : ""}</p></div>
-      </section>
+        <div class="py-ht"><p class="py-k">${esc(J.k)}</p><h2>${esc(J.feast)}</h2><p class="py-when">${esc(jrDayLbl(o.start))} – ${esc(jrDayLbl(o.end))} ${o.end.getFullYear()}${k ? ` · dita ${k} nga ${N}` : ""}</p><p class="py-clock" id="jrClock"></p></div>
+      </section>${jxRemindHtml(J)}${jxBarHtml(J)}
       <div class="py-sky jr-${J.id}" style="--jr-a:${J.a};background:radial-gradient(90% 50% at 50% 0, ${J.c[1]}, transparent 70%), linear-gradient(180deg, ${J.c[0]}, ${J.c[1]} 55%, ${J.c[2]})"><svg viewBox="0 0 360 ${H}" role="group" aria-label="${esc(J.name)}">
         <defs><radialGradient id="jrGlow"><stop offset="0" stop-color="${J.a}" stop-opacity=".55"/><stop offset="1" stop-color="${J.a}" stop-opacity="0"/></radialGradient>
           <radialGradient id="pyGlow"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".35" stop-color="${J.a}" stop-opacity=".45"/><stop offset="1" stop-color="${J.a}" stop-opacity="0"/></radialGradient></defs>
@@ -7949,6 +7958,7 @@ function pickPhoto(it) {
       return `<g class="py-s${on ? " on" : ""}${today ? " today" : ""}${opened.has(i) ? " read" : ""}${fe ? " fe" : ""}" data-jr="${i}" transform="translate(${pt.x.toFixed(1)} ${pt.y.toFixed(1)})" tabindex="0" role="button" aria-label="Dita ${i + 1}, ${jrDayLbl(dt)}${fe ? ", " + esc(fe) : ""}">
         <${lay === "ladder" ? "rect x=\"-66\" y=\"-6\" width=\"132\" height=\"12\"" : "circle r=\"17\""} class="py-hit"/>${body}</g>`;
     }).join("");
+    jxClock($("#jrClock"), o, J); jxRemindWire(listPane); jxLiveSky($(".py-sky", listPane));
     const openDay = async (g) => {
       const i = +g.dataset.jr;
       if (!g.classList.contains("on")) { haptic([20, 30, 20]); toast(`Kjo ditë hapet më ${jrDayLbl(jrAdd(o.start, i))}`); return; }
@@ -7957,12 +7967,214 @@ function pickPhoto(it) {
       g.classList.add("read", "cur"); opened.add(i); store.set(KEY, [...opened]);
       const box = $("#btlRead"); box.hidden = false; box.classList.remove("unroll"); box.innerHTML = `<p class="muted">Po hapet…</p>`;
       box.innerHTML = await jrDayHtml(o, i);
+      JX_TRACKS.list = jxTracksFrom(jrDayHtml.refs || []);
+      const h2 = $("h2", box);
+      jxTools(box, J, o, i, { star: g, title: h2 ? h2.textContent : "", canOpen: (x) => x < N && isOpen(x),
+        go: (x) => { const t = $(`#jrStars [data-jr="${x}"]`, listPane); if (t) openDay(t); } });
       void box.offsetWidth; box.classList.add("unroll");
       box.scrollIntoView({ behavior: "smooth", block: "start" });
     };
+    jxBarWire(listPane, J, o, isOpen, (x) => { const t = $(`#jrStars [data-jr="${x}"]`, listPane); if (t) openDay(t); });
     listPane.onclick = (e) => { const g = e.target.closest("[data-jr]"); if (g) openDay(g); };
     listPane.onkeydown = (e) => { const g = e.target.closest && e.target.closest("[data-jr]"); if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openDay(g); } };
     if (k) { const t = $(".py-s.today", listPane); if (t) setTimeout(() => t.scrollIntoView({ block: "center", behavior: "smooth" }), 500); }
+  }
+  // =====================================================================
+  //  UDHËTIMET · veçoritë premium, të përbashkëta për të gjitha udhëtimet:
+  //  kandili i ditës (ditët e mbajtura dhe radhazi), ditari im, ndarja e ditës si kartë, kalimi ‹ › mes ditëve,
+  //  kujtesa e përditshme (Android), ora e gjallë deri te festa, medaljonet e fituara, qielli i gjallë (yje që bien, lëvizje).
+  // =====================================================================
+  const jxNoteKey = (id, y, i) => `jr.note.${id}.${y}.${i}`;
+  const JX_TRACKS = { list: [] };   // zëri i leximeve të ditës që sapo u hap (KOASh, varg pas vargu)
+  // ngjyrat e emblemës për imazhin (pa CSS): klasat kthehen në ngjyra
+  function jxPaint(svg, a) {
+    return svg.replace(/class="py-sp"/g, `fill="${a}"`).replace(/class="py-fl"/g, `fill="#fff6d8"`).replace(/class="py-vein"/g, `stroke="rgba(0,0,0,.3)" fill="none"`)
+      .replace(/class="em-l"/g, `fill="none" stroke="${a}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"`)
+      .replace(/class="em-l2"/g, `fill="none" stroke="${a}" stroke-opacity=".7" stroke-width="1.3"`)
+      .replace(/class="em-f"/g, `fill="${a}"`).replace(/class="em-w"/g, `fill="none" stroke="${a}" stroke-width="1.7" stroke-linecap="round"`)
+      .replace(/class="em-t em-big"/g, `fill="${a}" font-size="22" font-family="Cinzel, Georgia, serif" text-anchor="middle"`)
+      .replace(/class="em-t"/g, `fill="${a}" font-size="12" font-family="Cinzel, Georgia, serif" text-anchor="middle"`)
+      .replace(/<g class="py-rays">/g, `<g stroke="${a}" stroke-opacity=".55" stroke-width="1">`).replace(/class="[^"]*"/g, "");
+  }
+  const jxEmbSvg = (J) => { const a = J.a || "#f4d58a"; const inner = J.emb ? jrEmb(J.emb) : `<circle r="70" fill="url(#jrGlow)"/>${jrSym(J.sym === "rung" ? "star" : J.sym, 46)}`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-100 -100 200 200" width="600" height="600"><defs><radialGradient id="jrGlow"><stop offset="0" stop-color="${a}" stop-opacity=".55"/><stop offset="1" stop-color="${a}" stop-opacity="0"/></radialGradient></defs>${jxPaint(inner, a)}</svg>`; };
+  // karta e ditës për ndarje (1080×1350)
+  async function jxShare(J, o, i, title) {
+    const W = 1080, H = 1350, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    const g = cv.getContext("2d"), C = J.c || ["#0b1230", "#140d28", "#07060d"], A = J.a || "#f4d58a";
+    const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, C[0]); gr.addColorStop(0.55, C[1]); gr.addColorStop(1, C[2]); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    let sd = 17; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    for (let k = 0; k < 170; k++) { g.globalAlpha = 0.25 + rn() * 0.6; g.fillStyle = "#fff"; g.beginPath(); g.arc(rn() * W, rn() * H, rn() * 2.2 + 0.4, 0, 7); g.fill(); }
+    g.globalAlpha = 1;
+    try {
+      const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(jxEmbSvg(J));
+      await im.decode(); g.drawImage(im, W / 2 - 300, 120, 600, 600);
+    } catch (e) { /* pa emblemë */ }
+    try { await document.fonts.ready; } catch (e) { /* */ }
+    g.textAlign = "center"; g.fillStyle = A;
+    g.font = "600 30px Cinzel, Georgia, serif"; g.fillText("FJALA E SHENJTË", W / 2, 90);
+    g.font = "700 64px Cinzel, Georgia, serif"; g.fillStyle = "#fff6e6"; g.fillText(J.name, W / 2, 800, W - 120);
+    g.font = "600 34px Cinzel, Georgia, serif"; g.fillStyle = A;
+    const dt = jrAdd(o.start, i); g.fillText(`DITA ${i + 1} NGA ${J.id === "ylli" ? 40 : o.N} · ${jrDayLbl(dt).toUpperCase()}`, W / 2, 870, W - 120);
+    g.font = "italic 44px 'EB Garamond', Georgia, serif"; g.fillStyle = "rgba(255,246,230,.92)";
+    const words = String(title || "").split(/\s+/); let line = "", y = 960;
+    for (const w of words) { const t = line ? line + " " + w : w; if (g.measureText(t).width > W - 180 && line) { g.fillText(line, W / 2, y); line = w; y += 58; if (y > 1140) { line += "…"; break; } } else line = t; }
+    if (line) g.fillText(line, W / 2, y);
+    const left = Math.round((o.end - jrT0()) / 864e5);
+    g.font = "500 30px system-ui, sans-serif"; g.fillStyle = "rgba(255,246,230,.7)";
+    g.fillText(left > 0 ? `${left} ${left === 1 ? "ditë" : "ditë"} deri në: ${J.feast}` : J.feast, W / 2, H - 120, W - 120);
+    g.strokeStyle = A; g.globalAlpha = 0.5; g.lineWidth = 2; g.strokeRect(36, 36, W - 72, H - 72); g.globalAlpha = 1;
+    const blob = await Share.canvasBlob(cv);
+    return Share.shareBlob(blob, { text: title || J.name, ref: `${J.name} · Dita ${i + 1} nga ${J.id === "ylli" ? 40 : o.N}` }, `udhetimi-${J.id}-dita-${i + 1}`);
+  }
+  // agjërimi i ditës: rregulli i Kishës për atë datë dhe ushqimet
+  function jxFastHtml(dt) {
+    let f = null; try { f = Fast.info(dt); } catch (e) { return ""; }
+    const lv = f && f.level, k = lv ? lv.k : "free", ok = new Set((FOOD_OK[k] || "").split(" "));
+    const yes = FOODS.filter((x) => ok.has(x[0])), no = FOODS.filter((x) => !ok.has(x[0]));
+    const name = k === "free" ? "Pa kreshmë" : lv.name;
+    return `<div class="jx-fast"><p class="jx-fh">${icon("candle")}<b>Agjërimi i ditës</b><span>${esc(name)}${f.period ? " · " + esc(f.period) : ""}</span></p>
+      ${k === "total" ? `<p class="jx-ft">Kreshmë e plotë: sipas mundësisë asgjë deri në mbrëmje.</p>` : `<p class="jx-chips">${yes.map((x) => `<span class="ok">${fsMosaic(x[0])}${esc(x[2])}</span>`).join("")}${no.map((x) => `<span class="no">${fsMosaic(x[0])}${esc(x[2])}</span>`).join("")}</p>`}</div>`;
+  }
+  // ikona e festës, në ditën e fundit të udhëtimit: ikonat e asaj date (Krishti dhe festa të parat)
+  async function jxFeastIcon(box, J, dt) {
+    const mm = pad2(dt.getMonth() + 1), key = isoDay2(dt);
+    let list = [];
+    try { const { groups } = await monthIcons(mm); list = groups[key] || []; } catch (e) { /* pa internet */ }
+    if (!box.isConnected) return;
+    const slot = $(".jx-icon-slot", box); if (!slot) return;
+    if (!list.length) { slot.innerHTML = `<p class="jx-ic-wait">${icon("image")}<span>Ikona e festës shfaqet këtu sapo të shtohet në ikonat e ditës.</span></p>`; return; }
+    const im = list[0];
+    slot.innerHTML = `<figure class="jx-icon"><button type="button" class="jx-ic-img" data-ic="${esc(im.file)}" aria-label="Hap ikonën e festës"></button>
+      <figcaption><b>${esc(im.title || im.shenjtori || J.feast)}</b>${list.length > 1 ? `<a href="#/ikona/datat/${mm}">+${list.length - 1} ikona të tjera të ditës ›</a>` : ""}</figcaption></figure>`;
+    hydrateIcons(slot);
+    $(".jx-ic-img", slot).addEventListener("click", (e) => { const u = (e.currentTarget.style.backgroundImage.match(/url\(["']?(.*?)["']?\)/) || [])[1]; if (u) photoViewer([u], 0, im.title || J.feast); });
+  }
+  // zëri: Apostulli / Ungjilli i ditës me zërin e KOASh
+  function jxTracksFrom(refs) {
+    const out = [];
+    refs.forEach(([r, g, label]) => { try { Vargjet.segs(r, g).forEach((sg) => { const b = ReadAloud.audioId(sg.code); if (b) out.push({ b, code: sg.code, parts: sg.parts, label }); }); } catch (e) { /* */ } });
+    return out;
+  }
+  // skedari i kalendarit (.ics): udhëtimi dhe dita e festës, me kujtesë një ditë më parë
+  function jxIcs(J, o) {
+    const d8 = (d) => `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`;
+    const esc2 = (t) => String(t).replace(/[\\,;]/g, (m) => "\\" + m).replace(/\n/g, "\\n");
+    const uid = (x) => `${J.id}-${x}-${d8(o.end)}@fjalaeshenjte`;
+    const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+    const ev = (id, a, b, sum, desc, alarm) => ["BEGIN:VEVENT", `UID:${uid(id)}`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${d8(a)}`, `DTEND;VALUE=DATE:${d8(jrAdd(b, 1))}`, `SUMMARY:${esc2(sum)}`, `DESCRIPTION:${esc2(desc)}`, "TRANSP:TRANSPARENT",
+      ...(alarm ? ["BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${esc2(sum)}`, "TRIGGER:-PT15H", "END:VALARM"] : []), "END:VEVENT"];
+    return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Fjala e Shenjte//Udhetimet//SQ", "CALSCALE:GREGORIAN",
+      ...ev("udha", o.start, jrAdd(o.end, -1), J.name, `${J.k || ""}\nFjala e Shenjtë`, false),
+      ...ev("festa", o.end, o.end, J.feast, "Fjala e Shenjtë", true), "END:VCALENDAR"].join("\r\n");
+  }
+  function jxIcsSave(J, o) {
+    const blob = new Blob([jxIcs(J, o)], { type: "text/calendar" });
+    Share.download(blob, `${J.id}-${o.end.getFullYear()}.ics`);
+    toast("Skedari i kalendarit u ruajt: hape që ta shtosh te kalendari");
+  }
+  // shiriti i veglave poshtë leximit të ditës: dëgjo · agjërimi · (ikona e festës) · ditari · ‹ ndaj ›
+  function jxTools(box, J, o, i, opts) {
+    const y = o.end.getFullYear(), dt = jrAdd(o.start, i), last = i === o.N - 1;
+    const note = store.get(jxNoteKey(J.id, y, i), "");
+    const tracks = JX_TRACKS.list;
+    if (last) box.insertAdjacentHTML("afterbegin", `<div class="jx-icon-slot"><p class="jx-ic-wait"><span class="icv-spin"></span></p></div>`);
+    box.insertAdjacentHTML("beforeend", `<div class="jx" style="--jr-a:${J.a || "#f4d58a"}">
+      ${tracks.length ? `<button type="button" class="jx-listen" data-jx="listen">${icon("play")}<span>Dëgjo leximin</span><small>zëri i KOASh</small></button>` : ""}
+      ${jxFastHtml(dt)}
+      <details class="jx-note"${note ? " open" : ""}><summary>${icon("pen")}<span>Ditari im për këtë ditë</span></summary><textarea rows="3" placeholder="Një mendim, një lutje, një emër për ta kujtuar…">${esc(note)}</textarea><small>Ruhet vetëm në këtë pajisje.</small></details>
+      <div class="jx-row"><button type="button" data-jx="prev"${i > 0 ? "" : " disabled"}>‹ Dita ${i}</button><button type="button" data-jx="share">${icon("send")}<span>Ndaj</span></button><button type="button" data-jx="next"${opts.canOpen(i + 1) ? "" : " disabled"}>Dita ${i + 2} ›</button></div>
+    </div>`);
+    const tools = box.lastElementChild, ta = $("textarea", tools);
+    let tmo = 0; ta.addEventListener("input", () => { clearTimeout(tmo); tmo = setTimeout(() => { const v = ta.value.trim(); if (v) store.set(jxNoteKey(J.id, y, i), v); else localStorage.removeItem("fs." + jxNoteKey(J.id, y, i)); }, 400); });
+    tools.addEventListener("click", async (e) => {
+      const b = e.target.closest("[data-jx]"); if (!b) return;
+      const a = b.dataset.jx;
+      if (a === "listen") { haptic(8); if (ReadAloud.on) { ReadAloud.stop(); return; } ReadAloud.start(tracks, `${J.name} · Dita ${i + 1}`); }
+      else if (a === "prev" || a === "next") opts.go(i + (a === "next" ? 1 : -1));
+      else if (a === "share") { b.disabled = true; try { await jxShare(J, o, i, opts.title || ""); } catch (er) { toast("Karta nuk u krijua"); } b.disabled = false; }
+    });
+    if (last) jxFeastIcon(box, J, dt);
+  }
+  // ditët e udhëtimit, si listë: data, kujtimi i ditës (Sinaksari), agjërimi; prek për ta hapur
+  async function jxDaysList(host, J, o, isOpen, open) {
+    if (host.firstChild) { host.innerHTML = ""; host.hidden = true; return; }
+    host.hidden = false; host.innerHTML = `<p class="jx-ic-wait"><span class="icv-spin"></span></p>`;
+    const DIT = ["E diel", "E hënë", "E martë", "E mërkurë", "E enjte", "E premte", "E shtunë"];
+    const rows = await Promise.all(Array.from({ length: o.N }, async (_, i) => {
+      const dt = jrAdd(o.start, i); let f = {}; try { f = Fast.info(dt) || {}; } catch (e) { /* */ }
+      const sx = await sxDay(dt.getMonth() + 1, dt.getDate()).catch(() => null);
+      const t = f.feast || (sx ? capFirst(sxTitleOf(sx)) : "");
+      const lv = f.level && f.level.k !== "free" ? f.level.name : "";
+      const today = o.k > 0 && i === o.k - 1;
+      return `<li class="${isOpen(i) ? "on" : ""}${today ? " today" : ""}${f.feast ? " fe" : ""}" data-jd="${i}"><span class="jx-dn">${i + 1}</span><span class="jx-dd"><b>${DIT[dt.getDay()]}, ${esc(jrDayLbl(dt))}</b><small>${esc(t)}</small></span>${lv ? `<em>${esc(lv)}</em>` : ""}</li>`;
+    }));
+    if (!host.isConnected) return;
+    host.innerHTML = `<ol class="jx-days" style="--jr-a:${J.a || "#f4d58a"}">${rows.join("")}</ol>`;
+    host.onclick = (e) => { const li = e.target.closest("[data-jd]"); if (li) open(+li.dataset.jd); };
+  }
+  const jxBarHtml = (J) => `<div class="jx-bar" style="--jr-a:${J.a || "#f4d58a"}"><button type="button" data-jxb="days">${icon("list")}<span>Ditët e udhëtimit</span></button><button type="button" data-jxb="ics">${icon("calendar")}<span>Shto në kalendar</span></button></div><div class="jx-days-host" hidden></div>`;
+  function jxBarWire(root, J, o, isOpen, open) {
+    root.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-jxb]"); if (!b) return;
+      haptic(8);
+      if (b.dataset.jxb === "ics") jxIcsSave(J, o);
+      else jxDaysList($(".jx-days-host", root), J, o, isOpen, open);
+    });
+  }
+  // qielli i gjallë: yje që bien dhe lëvizje e lehtë sipas gishtit ose telefonit
+  function jxLiveSky(sky) {
+    if (!sky) return;
+    const svg = $("svg", sky), vb = svg.viewBox.baseVal;
+    svg.insertAdjacentHTML("afterbegin", `<g class="jx-meteors">${[0, 1, 2].map((k) => `<path d="M0 0L-46 -18" style="--mx:${40 + k * 110}px;--my:${30 + k * 70}px;animation-delay:${3 + k * 5.5}s"/>`).join("")}</g>`);
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const set = (x, y) => { sky.style.setProperty("--px", x.toFixed(3)); sky.style.setProperty("--py", y.toFixed(3)); };
+    sky.addEventListener("pointermove", (e) => { const r = sky.getBoundingClientRect(); set((e.clientX - r.left) / r.width - 0.5, (e.clientY - r.top) / r.height - 0.5); });
+    sky.addEventListener("pointerleave", () => set(0, 0));
+    const ori = (e) => { if (!sky.isConnected) { removeEventListener("deviceorientation", ori); return; } if (e.gamma == null) return; set(Math.max(-1, Math.min(1, e.gamma / 30)) / 2, Math.max(-1, Math.min(1, (e.beta - 45) / 30)) / 2); };
+    addEventListener("deviceorientation", ori);
+    void vb;
+  }
+  // kujtesa e përditshme e udhëtimit (Android): ora ruhet për çdo udhëtim
+  function jxRemindHtml(J) {
+    if (!(window.FSAndroid && FSAndroid.scheduleReminders)) return "";
+    const r = store.get("jr.remind", {})[J.id] || "";
+    return `<div class="jx-rem" style="--jr-a:${J.a || "#f4d58a"}"><label><input type="checkbox" data-jxr="${J.id}"${r ? " checked" : ""}><span>${icon("bell")}Më kujto çdo ditë</span></label><input type="time" value="${esc(r || "07:30")}" data-jxt="${J.id}"${r ? "" : " disabled"} aria-label="Ora e kujtesës"></div>`;
+  }
+  function jxRemindWire(root) {
+    const cb = $("[data-jxr]", root), tm = $("[data-jxt]", root); if (!cb) return;
+    const save = () => { const all = store.get("jr.remind", {}); if (cb.checked) all[cb.dataset.jxr] = tm.value || "07:30"; else delete all[cb.dataset.jxr]; store.set("jr.remind", all); tm.disabled = !cb.checked; try { Persons.schedule(); } catch (e) { /* */ } toast(cb.checked ? `Kujtesa çdo ditë në ${tm.value || "07:30"}` : "Kujtesa u hoq"); };
+    cb.addEventListener("change", save); tm.addEventListener("change", () => { if (cb.checked) save(); });
+  }
+  // njoftimet e udhëtimeve për Persons.schedule(): 14 ditët e ardhshme të çdo udhëtimi me kujtesë
+  function jxReminders() {
+    const out = [], R = store.get("jr.remind", {});
+    JR_DEFS.forEach((J, n) => {
+      const t = R[J.id]; if (!t) return;
+      const o = jrOcc(J); if (!o) return;
+      const [hh, mi] = String(t).split(":").map(Number);
+      let c = 0;
+      for (let i = 0; i < o.N && c < 14; i++) {
+        const d = jrAdd(o.start, i); d.setHours(hh || 0, mi || 0, 0, 0);
+        if (d <= Date.now()) continue;
+        out.push({ id: 3300 + n * 14 + c, at: d.getTime(), route: "/ylli" + (J.id === "ylli" ? "" : "/" + J.id),
+          title: `✦ ${J.name} · Dita ${i + 1} nga ${o.N}`, text: i === o.N - 1 ? `Sot: ${J.feast}. Hapi i fundit të pret.` : `Hapi i sotëm drejt festës: ${J.feast}. Ndiz kandilin e ditës.` });
+        c++;
+      }
+    });
+    return out;
+  }
+  // ora e gjallë deri te festa (ose deri në nisje)
+  function jxClock(el, o, J) {
+    const goal = (o.k ? o.end : o.start).getTime();
+    const tick = () => {
+      if (!el.isConnected) { clearInterval(ti); return; }
+      let x = Math.max(0, Math.floor((goal - Date.now()) / 1000));
+      if (!x) { el.textContent = o.k ? `Sot: ${J.feast}` : "Udhëtimi nis sot"; clearInterval(ti); return; }
+      const D = Math.floor(x / 86400); x %= 86400; const Hh = Math.floor(x / 3600); x %= 3600; const M = Math.floor(x / 60), X = x % 60;
+      el.innerHTML = `<span>${D}<small>ditë</small></span><i>·</i><span>${String(Hh).padStart(2, "0")}<small>orë</small></span><i>:</i><span>${String(M).padStart(2, "0")}<small>min</small></span><i>:</i><span>${String(X).padStart(2, "0")}<small>sek</small></span>`;
+    };
+    const ti = setInterval(tick, 1000); tick();
   }
   // të gjitha udhëtimet e vitit
   function viewFeastJourneys() {
@@ -7973,7 +8185,8 @@ function pickPhoto(it) {
         return `<a class="jr-card${o.k ? " now" : ""}" href="#/ylli${J.id === "ylli" ? "" : "/" + J.id}" style="--jr-a:${J.a || "#f4d58a"};--jr-b:${(J.c || ["#0b1230", "#140d28"])[0]};--jr-c:${(J.c || ["#0b1230", "#140d28"])[1]}">
           <svg viewBox="-30 -30 60 60" class="jr-ic" aria-hidden="true">${jrSym(J.sym === "rung" ? "star" : J.sym, 14)}</svg>
           <span><b>${esc(J.name)}</b><small>${J.name === J.feast ? "" : esc(J.feast) + " · "}${esc(jrDayLbl(o.start))} – ${esc(jrDayLbl(o.end))}</small>
-            <em>${o.k ? `Tani · dita ${Math.min(o.k, o.J.id === "ylli" ? 40 : o.N)} nga ${o.J.id === "ylli" ? 40 : o.N}` : `Nis pas ${left} ${left === 1 ? "dite" : "ditësh"}`}</em></span><i>›</i></a>`; }).join("")}</div>`;
+            <em>${o.k ? `Tani · dita ${Math.min(o.k, o.J.id === "ylli" ? 40 : o.N)} nga ${o.J.id === "ylli" ? 40 : o.N}` : `Nis pas ${left} ${left === 1 ? "dite" : "ditësh"}`}</em></span><i>›</i></a>`; }).join("")}</div>
+`;
     enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
   }
 
@@ -11434,6 +11647,7 @@ function pickPhoto(it) {
       if (notifOn("live")) store.get("live.sched", []).slice(0, 6).forEach((x, k) => {
         if (x.at > Date.now()) out.push({ id: 3750 + k, at: x.at, route: "/transmetime", title: "🔴 LIVE · Shërbesa po nis", text: x.title || "Radio Ngjallja" });
       });
+      try { out.push(...jxReminders()); } catch (e) { /* */ }
       try { android.scheduleReminders(JSON.stringify(out)); } catch (e) { /* */ }
     }
     return { all, add, remove, main, feasts, schedule };
@@ -12660,7 +12874,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.5.3";
+  const APP_VERSION = "3.5.4";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
