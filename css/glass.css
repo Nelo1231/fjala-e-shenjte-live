@@ -3527,3 +3527,224 @@ h1, h2, h3, h4 { text-wrap: balance; }
 :root[data-theme] .nav-btn svg { transition: transform .35s cubic-bezier(.3, 1.6, .5, 1), background .25s, box-shadow .25s; }
 :root[data-theme] .nav-btn[aria-current="page"] svg { transform: translateY(-2px); }
 :root[data-theme] .nav-btn:active svg { transform: translateY(2px) scale(.94); }
+.tpk-nav { display: flex; justify-content: space-between; gap: 10px; margin: 10px 16px; }
+.tpk-nav .btn { min-height: 38px; padding: 0 14px; font-size: 13.5px; }
+/* gazeta në ekran të plotë: libër me fletë që kthehen */
+.gzfs { position: fixed; inset: 0; z-index: 9000; display: flex; flex-direction: column; color: #f6f1e6;
+  background: radial-gradient(80% 60% at 50% 0%, color-mix(in srgb, var(--gt, #7a1616) 35%, #0b0a09), #050505 75%); animation: gzfsIn .3s ease both; }
+.gzfs.out { animation: gzfsOut .25s ease both; }
+@keyframes gzfsIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes gzfsOut { to { opacity: 0; transform: scale(.97); } }
+.gzfs-top, .gzfs-ctl { display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; padding: max(8px, env(safe-area-inset-top)) 12px 6px; }
+.gzfs-ctl { grid-template-columns: 48px auto 48px; justify-content: center; gap: 14px; padding: 6px 12px max(10px, env(safe-area-inset-bottom)); }
+.gzfs-top b { text-align: center; font: 600 13px/1.2 "Cinzel", Georgia, serif; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+.gzfs-ind { min-width: 150px; text-align: center; font: 600 13px/1 system-ui, sans-serif; letter-spacing: .04em; opacity: .9; }
+.gzfs-next svg { transform: scaleX(-1); }
+.gzfs .icon-btn { color: #f6f1e6 !important; }
+.gzfs .icon-btn[disabled] { opacity: .3; pointer-events: none; }
+.gzfs-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.gzfs-stage .gz-pages { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.gzfs-stage .gzd-spread { box-shadow: 0 30px 70px -20px #000, 0 8px 20px #0009; }
+html.gzfs-on, html.gzfs-on body { overflow: hidden; }
+
+/* =====================================================================
+   v3.5 — HARMONI E PLOTË: ngjyra kryesore (--accent) e temave të errëta ndjek ngjyrën «nënshkrim» të temës
+   (Blu → blu, Mali i Shenjtë → jeshile, Kreshma → vjollcë…), që butonat «Kthehu», titujt, ikonat, lidhjet,
+   medaljonet dhe shigjetat të jenë në harmoni me njëra-tjetrën. Teksti liturgjik i kuq (--rubric) mbetet si në libër.
+   ===================================================================== */
+:root[data-theme="dark"][data-palette]:not([data-palette="bizanti"]):not([data-palette="oled"]):not([data-palette="pashka"]):not([data-palette="bordo"]) {
+  --accent: color-mix(in srgb, var(--sig) 60%, var(--sig-2)); --accent-ink: #ffffff; }
+/* Kisha: rubrikat (Kisha jonë, Kujdesi baritor, Arkivi…) dhe Mitropolitë */
+:root[data-theme] .ks-cat > summary > svg, :root[data-theme] .mtf-open > svg, :root[data-theme] .mtf-ic svg {
+  background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, .6) 0%, var(--gt2) 22%, var(--gt) 60%, color-mix(in srgb, var(--gt) 50%, #000) 100%) !important;
+  color: #fff !important; box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--gt2) 70%, #fff), inset 0 -3px 6px rgba(0, 0, 0, .3), 0 8px 16px -8px color-mix(in srgb, var(--gt) 80%, transparent) !important; }
+:root[data-theme] :is(.ks-cat > summary i, .ks-link i, .mtf-open > i, .set-link i, .list-item > i) { color: var(--gt2) !important; }
+:root[data-theme="light"] :is(.ks-cat > summary i, .ks-link i, .mtf-open > i) { color: var(--gt) !important; }
+:root[data-theme] .ks-cat { box-shadow: 0 0 0 1px color-mix(in srgb, var(--gt2) 40%, transparent) inset, var(--gl-sh) !important; }
+:root[data-theme] .mtf-tx b { color: var(--head, var(--accent)) !important; }
+:root[data-theme] .ft-card { color: color-mix(in srgb, var(--gt2) 65%, #fff) !important; }
+:root[data-theme] :is(.section-title, .lib-h, .mzw-year) { color: var(--head, var(--accent)) !important; }
+:root[data-theme] :is(.kn-badge.new, .kn-pos, .kn-dot, .mzw-ring.fresh) { background: linear-gradient(135deg, var(--gt2), var(--gt)) !important; }
+/* mbetjet: kuizi, kanonet, Shkolla, Kinemaja, Biblioteka, Etërit, skedat e Mitropolive, pllakat e Shpirtit */
+:root[data-theme] :is(.qz-daily, .mzg-cta, .ch-n.mz:not(.lv-pill)) {
+  background: radial-gradient(70% 90% at 0% 0%, color-mix(in srgb, var(--gt) 70%, transparent), transparent 72%),
+    radial-gradient(60% 80% at 100% 100%, color-mix(in srgb, var(--gt2) 38%, transparent), transparent 72%),
+    linear-gradient(160deg, color-mix(in srgb, var(--gt) 30%, #0a0c16), #08090f) !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important; color: #f6f1e6 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), 0 5px 0 -2px color-mix(in srgb, var(--gt) 40%, #000), 0 18px 30px -16px color-mix(in srgb, var(--gt) 70%, #000) !important; }
+:root[data-theme] .qz-daily b { color: color-mix(in srgb, var(--gt2) 60%, #fff) !important; }
+:root[data-theme] .qz-medal i { background: linear-gradient(90deg, var(--gt) 0 33%, var(--gt2) 33% 66%, var(--gt) 66%) !important; }
+:root[data-theme] .qz-medal b { background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, .7) 0%, var(--gt2) 26%, var(--gt) 70%, color-mix(in srgb, var(--gt) 55%, #000) 100%) !important; color: #fff !important; }
+:root[data-theme] :is(.kn-badge, .kn-lang) { background: linear-gradient(135deg, var(--gt2), var(--gt)) !important; color: #fff !important; }
+:root[data-theme] .ks-sum > svg, :root[data-theme] .ks-sum svg:first-child {
+  background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, .6) 0%, var(--gt2) 22%, var(--gt) 60%, color-mix(in srgb, var(--gt) 50%, #000) 100%) !important; color: #fff !important;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--gt2) 70%, #fff) !important; }
+:root[data-theme] .ft-card { background: linear-gradient(160deg, color-mix(in srgb, var(--gt) 80%, #fff 0%), color-mix(in srgb, var(--gt) 55%, #000)) !important; box-shadow: 0 0 0 1px color-mix(in srgb, var(--gt2) 60%, transparent), 0 4px 10px rgba(0, 0, 0, .4) !important; }
+:root[data-theme] .sr-author { color: var(--head, var(--accent)) !important; }
+:root[data-theme] .lj-tabs a[aria-selected="true"], :root[data-theme] .lj-tabs [role="tab"][aria-selected="true"] {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 55%), linear-gradient(135deg, var(--gt2), var(--gt)) !important; color: #fff !important; border-color: transparent !important; }
+:root[data-theme] :is(.mzw-vth, .mzw-ph) i { background: color-mix(in srgb, var(--gt) 85%, #000) !important; }
+/* lajmet: lajmi kryesor, kategoritë, kartat e theksuara dhe të shkurtra */
+.lj-lead { position: relative; margin: 6px 0 18px; border-radius: 24px; overflow: hidden; cursor: pointer; isolation: isolate;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--gt, var(--accent)) 30%, #0a0c16), #08090f); color: #f6f1e6;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 6px 0 -2px color-mix(in srgb, var(--gt, var(--accent)) 40%, #000), 0 26px 46px -22px color-mix(in srgb, var(--gt, var(--accent)) 70%, #000); }
+.lj-lead-ph { aspect-ratio: 16 / 9; overflow: hidden; }
+.lj-lead-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lj-lead-b { padding: 14px 18px 18px; text-align: center; }
+.lj-badge { display: inline-block; margin: 0 0 8px; padding: 4px 12px; border-radius: 999px; font: 700 10.5px/1 "Cinzel", Georgia, serif; letter-spacing: .16em; text-transform: uppercase;
+  background: linear-gradient(135deg, var(--gt2, var(--gold)), var(--gt, var(--accent))); color: #fff; }
+.lj-lead h2 { margin: 0 0 8px; font: 700 22px/1.2 "Playfair Display", Georgia, serif; text-wrap: balance; }
+.lj-dek { margin: 0 0 8px; font-size: 15px; line-height: 1.45; color: rgba(246, 241, 230, .86); }
+.lj-dl { margin: 4px 0 0; font-size: 12.5px; letter-spacing: .02em; opacity: .75; }
+.lj-lead .lj-dl { margin-bottom: 12px; }
+.lj-lead-go { pointer-events: none; }
+.lj-cat { margin: 0 0 18px; }
+.lj-cat-h { display: flex; align-items: center; gap: 10px; margin: 6px 2px 10px; font: 600 15px/1.2 "Cinzel", Georgia, serif; letter-spacing: .1em; text-transform: uppercase; color: var(--head, var(--accent)); }
+.lj-cat-h::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, color-mix(in srgb, var(--gt2, var(--gold)) 60%, transparent), transparent); order: 1; }
+.lj-cat-h button { order: 2; border: 0; background: none; font: 600 12.5px/1 inherit; letter-spacing: .04em; text-transform: none; color: var(--gt2, var(--gold)); cursor: pointer; }
+.lj-compact { display: grid !important; grid-template-columns: 92px 1fr; gap: 12px; align-items: center; padding: 8px !important; }
+.lj-compact .lj-ph { width: 92px; height: 70px; border-radius: 12px; overflow: hidden; margin: 0 !important; aspect-ratio: auto !important; }
+.lj-compact .lj-ph img { width: 100%; height: 100%; object-fit: cover; }
+.lj-compact:not(:has(.lj-ph)) { grid-template-columns: 1fr; }
+.lj-compact .lj-b { padding: 0 !important; }
+.lj-compact h3 { margin: 0 0 4px; font-size: 15px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.lj-feat h3 { font-size: 19px; }
+/* albumi i shkrimeve si ikona e ditës */
+.ar-deck { text-align: center; }
+.ar-deck .ar-ics { width: min(320px, 80vw); aspect-ratio: 4 / 3; margin: 22px auto 10px; }
+.ar-deck .ics-card { background-size: cover; background-position: center; }
+
+/* v3.5 · videot e Shkollës brenda app-it (luajtësi zyrtar i Instagram / Facebook) */
+.mz-vid { width: 100%; max-width: 540px; margin: 14px auto 18px; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: var(--sh-lift); }
+.mz-vid iframe { display: block; width: 100%; border: 0; }
+.mz-vid.ig iframe { height: min(150vw, 760px); }
+.mz-vid.fbp iframe { aspect-ratio: 4 / 5; height: auto; min-height: 420px; }
+.mzw-ph.vid i { pointer-events: none; }
+
+/* v3.5 · «Shërbesat e ditës» dhe «Tipikoja» krah për krah, sa gjithë rreshti i leximeve (pa hapësira bosh) */
+.today-svcs { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; align-items: stretch; margin: 0 0 10px !important; }
+.today-svcs .today-svc { display: flex !important; width: 100% !important; min-width: 0 !important; min-height: 48px; padding: 10px 12px !important; border-radius: 16px !important; box-sizing: border-box; }
+.today-svcs .today-svc b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 340px) { .today-svcs { grid-template-columns: 1fr; } }
+
+/* v3.5 · NË KOHË REALE: karta e transmetimit (Drejtpërdrejt / Transmetimi i fundit) */
+.lvx-wrap:empty { display: none; }
+.lvx-wrap { margin: 4px 0 14px; }
+.lvx { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: minmax(120px, 42%) 1fr; gap: 12px; align-items: center; width: 100%; padding: 10px; border-radius: 18px;
+  background: radial-gradient(120% 140% at 0 0, color-mix(in srgb, var(--gt, var(--sig, #8a5a2b)) 70%, transparent), transparent 60%), radial-gradient(80% 120% at 100% 100%, color-mix(in srgb, var(--gt2, var(--sig-2, #b08a35)) 40%, transparent), transparent 70%), linear-gradient(160deg, color-mix(in srgb, var(--gt, #3a2a1a) 30%, #0a0c16), #08090f);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 6px 0 -2px rgba(0,0,0,.35), 0 14px 30px rgba(0,0,0,.28); color: #fff; }
+.lvx-th { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #000; }
+.lvx-th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lvx-th .lv-play { position: absolute; inset: 0; margin: auto; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); }
+.lvx-th .lv-play svg { width: 18px; height: 18px; fill: #fff; color: #fff; }
+.lvx-tx { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.lvx-b { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font: 700 10.5px/1.2 Cinzel, serif; letter-spacing: .08em; text-transform: uppercase; background: rgba(255,255,255,.12); color: var(--gt2, #e2c070); }
+.lvx-b.live { background: #c4202b; color: #fff; }
+.lvx-tx b { font-family: Cinzel, "EB Garamond", serif; font-size: 15px; line-height: 1.25; color: #fff4d6; }
+.lvx-tx small { font-size: 12.5px; color: rgba(255,244,214,.86); line-height: 1.35; }
+.lvx-tx em { font-style: normal; font-size: 11.5px; color: rgba(255,244,214,.6); }
+.lvx.on { box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 0 0 2px rgba(196,32,43,.6), 0 14px 30px rgba(0,0,0,.28); }
+@media (max-width: 420px) { .lvx { grid-template-columns: 1fr; } }
+
+/* tërhiq poshtë për rifreskim */
+.ptr { position: fixed; top: calc(var(--safe-t, 0px) + 6px); left: 50%; z-index: 120; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; pointer-events: none; opacity: 0;
+  transform: translate(-50%, -50px); background: color-mix(in srgb, var(--bg, #111) 80%, transparent); backdrop-filter: blur(10px); box-shadow: 0 6px 18px rgba(0,0,0,.25); transition: transform .25s, opacity .25s; color: var(--accent, #c9a24a); }
+.ptr svg { width: 20px; height: 20px; }
+.ptr.ready { color: var(--gt2, var(--accent)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent), 0 6px 18px rgba(0,0,0,.25); }
+.ptr.spin svg { animation: ptrSpin .8s linear infinite; }
+@keyframes ptrSpin { to { transform: rotate(360deg); } }
+
+/* numri i fotove te lajmet */
+.lj-ph { position: relative; }
+.lj-pc { position: absolute; right: 6px; bottom: 6px; padding: 2px 7px; border-radius: 999px; background: rgba(0,0,0,.6); color: #fff; font: 600 10.5px/1.4 system-ui, sans-serif; font-style: normal; backdrop-filter: blur(4px); }
+
+/* njoftimet e shërbesave */
+.lj-ev-h { margin: 10px 0 6px; font: 700 11px/1.2 Cinzel, serif; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.lj-evc { display: flex; gap: 12px; align-items: center; padding: 10px; margin: 0 0 8px; border-radius: 14px; background: color-mix(in srgb, var(--card, #fff) 70%, transparent); border: 1px solid var(--line); cursor: pointer; }
+.lj-evc.up { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.lj-evc .name-d { flex: none; }
+.lj-evt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.lj-evt b { font-size: 14px; line-height: 1.3; }
+.lj-evt small { font-size: 12px; color: var(--muted); }
+.lj-ev-none { margin: 0 0 6px; font-size: 13px; }
+
+/* Pas Yllit · qielli i natës me udhën e 40 yjeve deri në Betlehem (Kreshma e Krishtlindjes) */
+.py-go { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; padding: 8px 14px 8px 8px; border-radius: 18px; text-decoration: none; position: relative; z-index: 1; overflow: hidden; color: #fff4d6;
+  background: radial-gradient(60% 120% at 12% 0, rgba(120,140,255,.22), transparent 70%), radial-gradient(50% 120% at 90% 100%, rgba(255,190,110,.18), transparent 70%), linear-gradient(175deg, #0b1230, #120c24 60%, #07060d);
+  border: 1px solid rgba(244,213,138,.35); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 6px 0 -2px rgba(0,0,0,.4), 0 14px 26px rgba(8,6,20,.35); }
+.py-go::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(1px 1px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 60% 20%, #fff, transparent), radial-gradient(1px 1px at 80% 60%, #fff, transparent), radial-gradient(1px 1px at 40% 75%, #fff, transparent), radial-gradient(1.5px 1.5px at 70% 40%, #ffe9b0, transparent); opacity: .55; pointer-events: none; }
+.py-mini { flex: none; width: 132px; height: 34px; overflow: visible; }
+.py-mini .py-mt { fill: none; stroke: rgba(244,213,138,.22); stroke-width: .8; stroke-dasharray: 1.5 2.5; }
+.py-mini circle { fill: rgba(255,255,255,.35); }
+.py-mini circle.on { fill: #f4d58a; }
+.py-mini .py-mh { fill: rgba(255,233,170,.28); animation: pyPulse 2.2s ease-in-out infinite; }
+.py-mini .py-ms { fill: #fff6d8; filter: drop-shadow(0 0 3px #ffd77a); }
+.py-mini .py-mc { fill: #1b1426; stroke: rgba(244,213,138,.5); stroke-width: .6; }
+.py-gt { display: flex; flex-direction: column; min-width: 0; position: relative; }
+.py-gt b { font-family: Cinzel, serif; font-size: 15px; letter-spacing: .04em; color: #f4d58a; }
+.py-gt small { font-size: 12px; color: rgba(255,244,214,.78); }
+.py-go > i { margin-left: auto; font-style: normal; color: #f4d58a; font-size: 20px; position: relative; }
+
+.py-hero { display: flex; align-items: center; gap: 16px; padding: 16px; margin: 4px 0 12px; border-radius: 22px; color: #fff4d6;
+  background: radial-gradient(70% 90% at 0 0, rgba(120,140,255,.2), transparent 70%), linear-gradient(170deg, #0b1230, #140d28 70%, #07060d); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 14px 30px rgba(8,6,20,.35); }
+.py-ring { position: relative; flex: none; width: 112px; height: 112px; }
+.py-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.py-rt { fill: none; stroke: rgba(255,255,255,.1); stroke-width: 6; }
+.py-rp { fill: none; stroke: #f4d58a; stroke-width: 6; stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(244,213,138,.7)); transition: stroke-dasharray 1.2s ease; }
+.py-rc { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.py-rc b { font: 700 34px/1 Cinzel, serif; color: #fff; }
+.py-rc small { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,244,214,.7); }
+.py-ht { min-width: 0; }
+.py-k { margin: 0; font: 700 10.5px/1.3 Cinzel, serif; letter-spacing: .12em; text-transform: uppercase; color: #9fb0ff; }
+.py-ht h2 { margin: 6px 0 8px; font-family: Cinzel, serif; font-size: 16px; line-height: 1.3; color: #f4d58a; }
+.py-clock { display: flex; align-items: baseline; gap: 4px; margin: 0; font: 600 18px/1 Cinzel, serif; color: #fff; font-variant-numeric: tabular-nums; }
+.py-clock span { display: inline-flex; align-items: baseline; gap: 2px; }
+.py-clock small { font-size: 9.5px; color: rgba(255,244,214,.6); font-family: system-ui, sans-serif; }
+.py-clock i { font-style: normal; color: rgba(244,213,138,.6); }
+
+.py-sky { border-radius: 24px; overflow: hidden; margin: 0 0 14px; background: radial-gradient(90% 50% at 50% 0, #1c2350, transparent 70%), linear-gradient(180deg, #0a0f2a, #120b26 55%, #07060d); box-shadow: inset 0 0 0 1px rgba(244,213,138,.18), 0 18px 40px rgba(8,6,20,.4); }
+.py-sky svg { display: block; width: 100%; height: auto; }
+.py-dust circle { fill: #fff; opacity: .7; animation: pyTw 4.5s ease-in-out infinite; }
+.py-milky { fill: none; stroke: rgba(170,180,255,.08); stroke-width: 70; stroke-linecap: round; filter: blur(6px); }
+.py-road { fill: none; stroke: rgba(244,213,138,.22); stroke-width: 1.4; stroke-dasharray: 2 6; stroke-linecap: round; }
+.py-trail { fill: none; stroke: #f4d58a; stroke-width: 2.2; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(244,213,138,.8)); animation: pyDraw 2.4s ease-out both; }
+.py-cave { fill: #24180f; stroke: rgba(244,213,138,.35); stroke-width: 1; }
+.py-cave-in { fill: #3b220f; }
+.py-manger { fill: #c58b3a; }
+.py-bt { fill: rgba(244,213,138,.75); font: 600 10px Cinzel, serif; letter-spacing: .14em; text-anchor: middle; text-transform: uppercase; }
+.py-s { cursor: pointer; outline: none; }
+.py-hit { fill: transparent; }
+.py-sp { fill: rgba(255,255,255,.28); transition: transform .3s; }
+.py-s.on .py-sp { fill: #f4d58a; filter: drop-shadow(0 0 3px #ffd77a); }
+.py-s.read .py-sp { fill: #fff6d8; }
+.py-s.today .py-sp { fill: #fff6d8; filter: drop-shadow(0 0 6px #ffd77a) drop-shadow(0 0 14px #f4b84a); }
+.py-s.xmas .py-sp { fill: rgba(255,255,255,.4); }
+.py-s.xmas.on .py-sp { fill: #fff6d8; filter: drop-shadow(0 0 10px #ffd77a); }
+.py-halo { opacity: .55; }
+.py-s.today .py-halo { opacity: 1; animation: pyPulse 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.py-rays path { stroke: rgba(255,240,200,.55); stroke-width: .9; stroke-linecap: round; }
+.py-rays { animation: pyRot 18s linear infinite; }
+.py-n { fill: rgba(255,244,214,.75); font: 600 8.5px system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
+.py-s.cur .py-sp, .py-s:focus-visible .py-sp { transform: scale(1.35); }
+.py-scroll { position: relative; margin: 0 6px 22px; padding: 22px 20px 18px; border-radius: 6px; color: #3a2a14;
+  background: radial-gradient(120% 80% at 50% 0, #fbf1d8, #f1e0b8 70%, #e6cf9c); box-shadow: 0 16px 30px rgba(0,0,0,.25), inset 0 0 40px rgba(150,110,40,.25); transform-origin: top; }
+.py-scroll::before, .py-scroll::after { content: ""; position: absolute; left: -8px; right: -8px; height: 14px; border-radius: 8px; background: linear-gradient(180deg, #c89b52, #8a6224 60%, #6b4a17); box-shadow: 0 3px 6px rgba(0,0,0,.3); }
+.py-scroll::before { top: -7px; }
+.py-scroll::after { bottom: -7px; }
+.py-scroll.unroll { animation: pyUnroll .6s cubic-bezier(.2, .8, .25, 1) both; }
+.py-scroll h2 { font-family: Cinzel, serif; font-size: 18px; margin: 4px 0 10px; color: #5a3a10; }
+.py-scroll p { line-height: 1.65; text-align: justify; font-family: "EB Garamond", Georgia, serif; font-size: 16.5px; }
+.py-scroll sup { font-size: 10px; color: #a0702a; margin: 0 2px; }
+.py-day { margin: 0; font: 700 11px/1.2 Cinzel, serif; letter-spacing: .12em; text-transform: uppercase; color: #9a6b22; text-align: left !important; }
+.py-scroll .btl-hymn { font-style: italic; }
+.py-scroll .btl-src { font-size: 11px; color: #8a6a3a; text-align: right !important; }
+@keyframes pyTw { 50% { opacity: .2; } }
+@keyframes pyPulse { 50% { opacity: .45; transform: scale(1.18); } }
+@keyframes pyRot { to { transform: rotate(360deg); } }
+@keyframes pyDraw { from { stroke-dashoffset: 600; } }
+@keyframes pyUnroll { from { transform: scaleY(.05); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (max-width: 380px) { .py-ring { width: 92px; height: 92px; } .py-rc b { font-size: 28px; } .py-mini { width: 100px; } }
+@media (prefers-reduced-motion: reduce) { .py-dust circle, .py-rays, .py-s.today .py-halo, .py-trail, .py-scroll.unroll, .py-mini .py-mh { animation: none; } }
+
+
+.py-sky, .py-scroll { max-width: 520px; margin-left: auto; margin-right: auto; }
