@@ -7630,7 +7630,7 @@ function pickPhoto(it) {
     const [sx, sy] = pt(Math.min(k - 1, 40));
     return `<a class="py-go" href="#/ylli"><svg class="py-mini" viewBox="0 0 160 34" aria-hidden="true"><path d="M8 26 Q80 -6 152 26" class="py-mt"/>${dots}
         <g transform="translate(${sx} ${sy})"><circle r="7" class="py-mh"/><path d="M0-6C1-1 1-1 6 0C1 1 1 1 0 6C-1 1-1 1-6 0C-1-1-1-1 0-6Z" class="py-ms"/></g><path d="M146 34v-6q6-7 12 0v6Z" class="py-mc"/></svg>
-      <span class="py-gt"><b>Pas Yllit</b><small>${S.k > 40 ? "Sot: Krishtlindja" : `Dita ${S.k} nga 40 · ${left} ditë deri në Krishtlindje`}</small></span><i>›</i></a>`;
+      <span class="py-gt"><b>Kreshma e Krishtlindjes</b><small>${S.k > 40 ? "Sot: Krishtlindja" : `Dita ${S.k} nga 40 · ${left} ditë deri në Krishtlindje`}</small></span><i>›</i></a>`;
   }
   const btlBook = (c) => (BIBLE_BOOKS.find((b) => b[0] === c) || [])[1] || c;
   const btlLbl = (d) => d[0] === "P" ? d[1] : `${btlBook(d[0])} ${d[1]}:${d[2]}–${d[3] !== d[1] ? d[3] + ":" : ""}${d[4]}`;
@@ -7674,11 +7674,11 @@ function pickPhoto(it) {
     const spark = (r) => `M0 ${-r}C${r * 0.16} ${-r * 0.16} ${r * 0.16} ${-r * 0.16} ${r} 0C${r * 0.16} ${r * 0.16} ${r * 0.16} ${r * 0.16} 0 ${r}C${-r * 0.16} ${r * 0.16} ${-r * 0.16} ${r * 0.16} ${-r} 0C${-r * 0.16} ${-r * 0.16} ${-r * 0.16} ${-r * 0.16} 0 ${-r}Z`;
     const PATH = "M40 34C250 20 330 100 220 146S36 214 110 286S332 344 258 414S96 452 180 520";
     const C = 2 * Math.PI * 52;
-    listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/udhet" aria-label="Kthehu">${icon("back")}</a><h1>Pas Yllit</h1></header>
+    listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/udhet" aria-label="Kthehu">${icon("back")}</a><h1>Kreshma e Krishtlindjes</h1></header>
       <section class="py-hero">
         <div class="py-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="py-rt"/><circle cx="60" cy="60" r="52" class="py-rp" style="stroke-dasharray:${(C * prog).toFixed(1)} ${C.toFixed(1)}"/></svg>
           <div class="py-rc"><b id="pyD">–</b><small id="pyDl">ditë</small></div></div>
-        <div class="py-ht"><p class="py-k">Kreshma e Krishtlindjes · 40 ditë</p><h2>Lindja trupore e Zotit dhe Perëndisë sonë Jisu Krisht</h2>
+        <div class="py-ht"><p class="py-k">15 nëntor – 25 dhjetor · 40 ditë</p><h2>Lindja trupore e Zotit dhe Perëndisë sonë Jisu Krisht</h2>
           <p class="py-clock" id="pyClock"></p></div>
       </section>
       <div class="py-sky"><svg viewBox="0 0 360 640" id="pySky" role="group" aria-label="Udha e yjeve deri në Betlehem">
@@ -7738,23 +7738,23 @@ function pickPhoto(it) {
   // =====================================================================
   //  UDHËTIMET E FESTAVE · çdo e kremte me simbolin dhe udhën e vet të përgatitjes:
   //  Krishtlindja ylli · Rrethprerja vula · Theofania pëllumbi mbi ujëra · Ipapandia qiriri · Triodi shkalla ·
-  //  Pashka drita · Rrëshajët flaka · Apostujt rrjeta · Fjetja zambaku · Lindja e Hyjlindëses trëndafili · Kryqi borziloku.
+  //  Pashka drita · Pendikostia flaka · Apostujt rrjeta · Fjetja zambaku · Lindja e Hyjlindëses trëndafili · Kryqi borziloku.
   //  Çdo ditë: leximet sipas Tipikosë (kur janë në të dhënat tona) dhe kujtimet e Sinaksarit për atë datë.
   // =====================================================================
   const JR_DEFS = [
-    { id: "ylli", name: "Pas Yllit", feast: "Krishtlindja", sym: "star", range: (Y) => [new Date(Y, 10, 15), new Date(Y, 11, 25)] },
-    { id: "vula", name: "Dita e tetë", feast: "Rrethprerja e Zotit", sym: "lamp", lay: "ring", emb: "seal", k: "Nga Krishtlindja te Rrethprerja · 8 ditë", c: ["#14102a", "#2a1638", "#0b0812"], a: "#f4d58a", range: (Y) => [new Date(Y - 1, 11, 25), new Date(Y, 0, 1)] },
-    { id: "pellumbi", name: "Drejt Jordanit", feast: "Theofania", sym: "drop", emb: "dove", path: "M60 34C300 60 300 140 180 172S48 262 180 300S312 380 180 420S92 468 180 500", e: [180, 572], k: "Parakremtja e Theofanisë", c: ["#06202e", "#0a3346", "#041018"], a: "#9fe3ff", range: (Y) => [new Date(Y, 0, 2), new Date(Y, 0, 6)] },
-    { id: "qiriri", name: "Drita e Simeonit", feast: "Ipapandia", sym: "candle", emb: "temple", path: "M40 600L110 560L70 512L150 472L112 424L200 386L160 336L250 298L212 248L292 210L254 162L180 130", e: [180, 70], k: "Nga Theofania te Ipapandia", c: ["#1f1408", "#2e1d0c", "#0d0904"], a: "#ffcf73", range: (Y) => [new Date(Y, 0, 7), new Date(Y, 1, 2)] },
-    { id: "shkalla", name: "Shkalla e Triodit", feast: "Pashka", sym: "rung", lay: "ladder", emb: "anchor", k: "Triodi · 70 ditë deri në Pashkë", c: ["#140d22", "#21123a", "#08060f"], a: "#c9b2ff", range: (Y) => { const P = Fast.pascha(Y); return [jrAdd(P, -70), jrAdd(P, -1)]; } },
-    { id: "drita", name: "Drita e Ngjalljes", feast: "Ngjitja e Zotit", sym: "flame", emb: "wreath", path: "M180 560C60 520 60 452 180 420S310 340 180 300S50 222 180 182S300 122 180 104", e: [180, 58], k: "Pashka · 40 ditë deri në Ngjitje", c: ["#2a0a0e", "#4a1418", "#140405"], a: "#ffd36b", range: (Y) => { const P = Fast.pascha(Y); return [P, jrAdd(P, 39)]; } },
-    { id: "flaka", name: "Gjuhët e zjarrit", feast: "Rrëshajët", sym: "flame", lay: "ring", emb: "fire", k: "Nga Ngjitja te Rrëshajët · 10 ditë", c: ["#2a0c04", "#45160a", "#120502"], a: "#ff9a4a", range: (Y) => { const P = Fast.pascha(Y); return [jrAdd(P, 40), jrAdd(P, 49)]; } },
-    { id: "rrjeta", name: "Rrjeta e Apostujve", feast: "Apostujt Petro dhe Pavël", sym: "fish", emb: "boat", path: "M30 80C150 60 330 90 330 160S40 200 40 270S320 320 320 390S40 430 40 500S250 520 180 540", e: [180, 596], k: "Kreshma e Apostujve", c: ["#04182a", "#06263f", "#020a12"], a: "#7fd3ff", range: (Y) => { const P = Fast.pascha(Y); return [jrAdd(P, 57), new Date(Y, 5, 29)]; } },
-    { id: "kandili", name: "Kandilët e virgjëreshave", feast: "Hyrja në Tempull e Hyjlindëses", sym: "lucerna", emb: "lucerna", path: "M40 590C120 560 90 520 150 500S260 470 220 430S90 380 150 340S290 300 230 250S120 200 180 150", e: [180, 82], k: "Hyrja e Hyjlindëses · 8 ditë", c: ["#1a1028", "#2b1a3e", "#0b0712"], a: "#f7c97a", range: (Y) => [new Date(Y, 10, 14), new Date(Y, 10, 21)] },
-    { id: "akathisti", name: "Gëzohu, o Nuse", feast: "Ungjillëzimi i Hyjlindëses", sym: "lily", emb: "orant", akathist: true, path: "M180 600C60 580 60 520 180 500S300 440 180 410S60 350 180 320S300 260 180 230S60 170 180 140", e: [180, 72], k: "24 stancat e Akathistit, një në ditë", c: ["#0a1a33", "#123058", "#050b16"], a: "#a9d4ff", range: (Y) => [new Date(Y, 2, 1), new Date(Y, 2, 25)] },
-    { id: "zambaku", name: "Zambakët e Fjetjes", feast: "Fjetja e Hyjlindëses", sym: "lily", emb: "lily", path: "M60 40C280 40 320 130 180 170S40 260 180 310S320 400 180 450S100 498 180 520", e: [180, 584], k: "Kreshma e Hyjlindëses · 15 ditë", c: ["#0c1430", "#16204a", "#060914"], a: "#e8ecff", range: (Y) => [new Date(Y, 7, 1), new Date(Y, 7, 15)] },
-    { id: "trendafili", name: "Trëndafili i Jeseut", feast: "Lindja e Hyjlindëses", sym: "rose", lay: "ring", emb: "rose", k: "Viti i ri kishtar · 8 ditë", c: ["#2a0a18", "#3d1024", "#12040a"], a: "#ff9cbc", range: (Y) => [new Date(Y, 8, 1), new Date(Y, 8, 8)] },
-    { id: "kryqi", name: "Borziloku i Kryqit", feast: "Lartësimi i Kryqit të Nderuar", sym: "leaf", lay: "ring", emb: "crossao", k: "Drejt Lartësimit të Kryqit · 6 ditë", c: ["#06201a", "#0b3328", "#030f0c"], a: "#9be8b8", range: (Y) => [new Date(Y, 8, 9), new Date(Y, 8, 14)] },
+    { id: "ylli", name: "Kreshma e Krishtlindjes", feast: "Krishtlindja", sym: "star", range: (Y) => [new Date(Y, 10, 15), new Date(Y, 11, 25)] },
+    { id: "vula", name: "Rrethprerja e Zotit", feast: "Rrethprerja e Zotit", sym: "lamp", lay: "ring", emb: "seal", k: "Nga Krishtlindja te Rrethprerja · 8 ditë", c: ["#14102a", "#2a1638", "#0b0812"], a: "#f4d58a", range: (Y) => [new Date(Y - 1, 11, 25), new Date(Y, 0, 1)] },
+    { id: "pellumbi", name: "Theofania", feast: "Theofania", sym: "drop", emb: "dove", path: "M60 34C300 60 300 140 180 172S48 262 180 300S312 380 180 420S92 468 180 500", e: [180, 572], k: "Nga Rrethprerja te Theofania · 2–6 janar", c: ["#06202e", "#0a3346", "#041018"], a: "#9fe3ff", range: (Y) => [new Date(Y, 0, 2), new Date(Y, 0, 6)] },
+    { id: "qiriri", name: "Ipapandia", feast: "Ipapandia", sym: "candle", emb: "temple", path: "M40 600L110 560L70 512L150 472L112 424L200 386L160 336L250 298L212 248L292 210L254 162L180 130", e: [180, 70], k: "Nga Theofania te Paraqitja e Zotit në Tempull", c: ["#1f1408", "#2e1d0c", "#0d0904"], a: "#ffcf73", range: (Y) => [new Date(Y, 0, 7), new Date(Y, 1, 2)] },
+    { id: "shkalla", name: "Triodi", feast: "Pashka", sym: "rung", lay: "ladder", emb: "anchor", k: "Nga e Diela e Tagrambledhësit dhe Fariseut deri në Pashkë", c: ["#140d22", "#21123a", "#08060f"], a: "#c9b2ff", range: (Y) => { const P = Fast.pascha(Y); return [jrAdd(P, -70), jrAdd(P, -1)]; } },
+    { id: "drita", name: "Pashka", feast: "Ngjitja e Zotit", sym: "flame", emb: "wreath", path: "M180 560C60 520 60 452 180 420S310 340 180 300S50 222 180 182S300 150 180 136", e: [180, 62], k: "Nga Pashka te Ngjitja e Zotit · 40 ditë", c: ["#2a0a0e", "#4a1418", "#140405"], a: "#ffd36b", range: (Y) => { const P = Fast.pascha(Y); return [P, jrAdd(P, 39)]; } },
+    { id: "flaka", name: "Pendikostia", feast: "Pendikostia", sym: "flame", lay: "ring", emb: "fire", k: "Nga Ngjitja e Zotit te Pendikostia · 10 ditë", c: ["#2a0c04", "#45160a", "#120502"], a: "#ff9a4a", range: (Y) => { const P = Fast.pascha(Y); return [jrAdd(P, 40), jrAdd(P, 49)]; } },
+    { id: "rrjeta", name: "Kreshma e Apostujve", feast: "Apostujt Petro dhe Pavli", sym: "fish", emb: "boat", path: "M30 80C150 60 330 90 330 160S40 200 40 270S320 320 320 390S40 430 40 500S250 520 180 540", e: [180, 596], k: "Deri te Apostujt Petro dhe Pavli, 29 qershor", c: ["#04182a", "#06263f", "#020a12"], a: "#7fd3ff", range: (Y) => { const P = Fast.pascha(Y); return [jrAdd(P, 57), new Date(Y, 5, 29)]; } },
+    { id: "kandili", name: "Hyrja e Hyjlindëses në Tempull", feast: "Hyrja e Hyjlindëses në Tempull", sym: "lucerna", emb: "lucerna", path: "M40 590C120 560 90 520 150 500S260 470 220 430S90 380 150 340S290 300 230 250S120 200 180 150", e: [180, 82], k: "14–21 nëntor · 8 ditë", c: ["#1a1028", "#2b1a3e", "#0b0712"], a: "#f7c97a", range: (Y) => [new Date(Y, 10, 14), new Date(Y, 10, 21)] },
+    { id: "akathisti", name: "Himni Akathist", feast: "Ungjillëzimi i Hyjlindëses", sym: "lily", emb: "orant", akathist: true, path: "M180 600C60 580 60 520 180 500S300 440 180 410S60 350 180 320S300 260 180 230S60 170 180 140", e: [180, 60], k: "Drejt Ungjillëzimit · 24 stancat e Himnit Akathist", c: ["#0a1a33", "#123058", "#050b16"], a: "#a9d4ff", range: (Y) => [new Date(Y, 2, 1), new Date(Y, 2, 25)] },
+    { id: "zambaku", name: "Kreshma e Fjetjes së Hyjlindëses", feast: "Fjetja e Hyjlindëses", sym: "lily", emb: "lily", path: "M60 40C280 40 320 130 180 170S40 260 180 310S320 400 180 450S100 498 180 520", e: [180, 584], k: "1–15 gusht · 15 ditë", c: ["#0c1430", "#16204a", "#060914"], a: "#e8ecff", range: (Y) => [new Date(Y, 7, 1), new Date(Y, 7, 15)] },
+    { id: "trendafili", name: "Lindja e Hyjlindëses", feast: "Lindja e Hyjlindëses", sym: "rose", lay: "ring", emb: "rose", k: "Nga Indikti (1 shtator) te Lindja e Hyjlindëses", c: ["#2a0a18", "#3d1024", "#12040a"], a: "#ff9cbc", range: (Y) => [new Date(Y, 8, 1), new Date(Y, 8, 8)] },
+    { id: "kryqi", name: "Lartësimi i Kryqit të Nderuar", feast: "Lartësimi i Kryqit të Nderuar", sym: "leaf", lay: "ring", emb: "crossao", k: "Nga Lindja e Hyjlindëses te Lartësimi i Kryqit", c: ["#06201a", "#0b3328", "#030f0c"], a: "#9be8b8", range: (Y) => [new Date(Y, 8, 9), new Date(Y, 8, 14)] },
   ];
   function jrAdd(d, n) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
   const jrT0 = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
@@ -7769,7 +7769,7 @@ function pickPhoto(it) {
     }
     return null;
   }
-  const jrAll = () => JR_DEFS.map(jrOcc).filter(Boolean).sort((a, b) => (b.k > 0) - (a.k > 0) || a.end - b.end || a.start - b.start);
+  const jrAll = () => JR_DEFS.map(jrOcc).filter(Boolean).sort((a, b) => (b.k > 0) - (a.k > 0) || (a.k ? a.end - b.end : a.start - b.start));
   // simbolet e vegjël (në qendër 0,0, rreze r)
   function jrSym(sym, r) {
     const q = r * 0.16;
@@ -7943,7 +7943,7 @@ function pickPhoto(it) {
       <div class="jr-list">${list.map((o) => { const J = o.J, left = Math.round(((o.k ? o.end : o.start) - t0) / 864e5);
         return `<a class="jr-card${o.k ? " now" : ""}" href="#/ylli${J.id === "ylli" ? "" : "/" + J.id}" style="--jr-a:${J.a || "#f4d58a"};--jr-b:${(J.c || ["#0b1230", "#140d28"])[0]};--jr-c:${(J.c || ["#0b1230", "#140d28"])[1]}">
           <svg viewBox="-30 -30 60 60" class="jr-ic" aria-hidden="true">${jrSym(J.sym === "rung" ? "star" : J.sym, 14)}</svg>
-          <span><b>${esc(J.name)}</b><small>${esc(J.feast)} · ${esc(jrDayLbl(o.start))} – ${esc(jrDayLbl(o.end))}</small>
+          <span><b>${esc(J.name)}</b><small>${J.name === J.feast ? "" : esc(J.feast) + " · "}${esc(jrDayLbl(o.start))} – ${esc(jrDayLbl(o.end))}</small>
             <em>${o.k ? `Tani · dita ${Math.min(o.k, o.J.id === "ylli" ? 40 : o.N)} nga ${o.J.id === "ylli" ? 40 : o.N}` : `Nis pas ${left} ${left === 1 ? "dite" : "ditësh"}`}</em></span><i>›</i></a>`; }).join("")}</div>`;
     enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
   }
@@ -7969,9 +7969,34 @@ function pickPhoto(it) {
       h.insertAdjacentHTML("afterbegin", pcSvg(k, "pc pc-h"));
     });
     if (el.id === "paneList" && el.querySelector(".hub-h, .lj-cat-h") && !el.querySelector(":scope > .pc-frieze")) {
-      el.insertAdjacentHTML("beforeend", `<div class="pc-frieze" aria-hidden="true">${pcSvg("vine")}${pcSvg("dove")}${pcSvg("anchor")}<span>ΙΧΘΥΣ</span>${pcSvg("chirho")}<span class="pc-ao">Α · Ω</span>${pcSvg("ichthys")}${pcSvg("lamb")}${pcSvg("palm")}</div>`);
+      el.insertAdjacentHTML("beforeend", `<button type="button" class="pc-frieze" aria-expanded="false" aria-label="Simbolet e të krishterëve të parë: shpjegimi">${pcSvg("vine")}${pcSvg("dove")}${pcSvg("anchor")}<span>ΙΧΘΥΣ</span>${pcSvg("chirho")}<span class="pc-ao">Α · Ω</span>${pcSvg("ichthys")}${pcSvg("lamb")}${pcSvg("palm")}</button>`);
     }
   }
+  // kuptimi i simboleve, kur preket friza
+  const PC_MEAN = [
+    ["ichthys", "ΙΧΘΥΣ · Peshku", "Në greqisht «peshk». Shkronjat e fjalës janë nismat e «Jisu Krisht, i Perëndisë Bir, Shpëtimtar». Me të njiheshin fshehurazi të krishterët gjatë përndjekjeve."],
+    ["chirho", "☧ · Kristogrami", "Dy shkronjat e para greke të emrit Krisht, Χ (Hi) dhe Ρ (Ro), të vëna njëra mbi tjetrën."],
+    ["anchor", "Spiranca", "Shpresa e palëkundur te Krishti (Hebrenjve 6:19). Krahu i saj i tërthortë fsheh shenjën e Kryqit."],
+    ["dove", "Pëllumbi me ullirin", "Paqja dhe shpirti që prehet në Perëndinë, si pëllumbi që i solli Noesë degën e ullirit."],
+    ["ao", "Α · Ω", "Alfa dhe Omega, shkronja e parë dhe e fundit e alfabetit grek: Krishti, fillimi dhe mbarimi (Zbulesa 1:8)."],
+    ["vine", "Hardhia", "Krishti është hardhia dhe ne degët e saj (Gjoni 15:5): bashkimi me Krishtin dhe Kungimi."],
+    ["lamb", "Qengji", "Qengji i Perëndisë që heq mëkatin e botës (Gjoni 1:29)."],
+    ["palm", "Palma", "Fitorja e dëshmorëve mbi vdekjen (Zbulesa 7:9)."],
+    ["stauro", "Staurogrami ⳨", "Kryqi me shkronjën Ρ, nga shenjat më të hershme të Kryqit në dorëshkrimet e krishtera."],
+    ["loaves", "Bukët dhe peshqit", "Shumëfishimi i bukëve dhe Darka e Zotit."],
+    ["ship", "Anija", "Kisha, që i çon besimtarët nëpër detin e kësaj jete."],
+    ["lamp", "Kandili", "Krishti, drita e botës (Gjoni 8:12). Kandilat e baltës ndriçonin katakombet."],
+    ["orant", "Orantja", "Figura me duar të ngritura: shpirti në lutje. Kështu është pikturuar edhe Hyjlindësja në katakombe."],
+  ];
+  document.addEventListener("click", (e) => {
+    const f = e.target.closest && e.target.closest(".pc-frieze");
+    if (!f) return;
+    const nx = f.nextElementSibling;
+    if (nx && nx.classList.contains("pc-mean")) { nx.remove(); f.setAttribute("aria-expanded", "false"); return; }
+    f.setAttribute("aria-expanded", "true");
+    f.insertAdjacentHTML("afterend", `<dl class="pc-mean">${PC_MEAN.map(([k, t, d]) => `<div>${pcSvg(k)}<dt>${esc(t)}</dt><dd>${esc(d)}</dd></div>`).join("")}</dl>`);
+    haptic(8);
+  });
 
   // ---------- Njoftimet e shërbesave: «NJOFTIM …», programet; të ardhshmet dhe të fundit ----------
   async function newsEvents(box) {
@@ -8571,22 +8596,24 @@ function pickPhoto(it) {
   ];
   // ---------- Biblioteka: librat e shërbesave të Kishës, në flipbook-un e faqes zyrtare ----------
   const FB_TONE = ["#7a1f1f", "#1f3b6b", "#6b4a12", "#24533a", "#4a2a63", "#5b2a1a"];
+  // librat e shërbesave të KOASh (flipbook), tani te faqja «Shërbesat»
+  const fbLibHtml = (S) => `<div class="fb-lib">${S.map((sc, a) => `<section class="fb-sec" data-s="${a}"><h2 class="hub-h">${esc(sc.title)}</h2>
+          <div class="fb-grid">${sc.items.map((b, k) => `<a class="fb-book" href="#/sherbesat/libri/${a}/${k}" data-q="${esc(nrm(b.t + " " + sc.title))}" style="--fb:${FB_TONE[a % FB_TONE.length]}">
+            <span class="fb-cover"><i>☦</i><b>${esc(b.t)}</b></span></a>`).join("")}</div></section>`).join("")}</div>`;
   async function viewFlipLibrary(si, ii) {
+    if (si != null) { navReplace(`#/sherbesat/libri/${si}/${ii}`); return; }
     const F = await load("flipbooks");
     const S = (F && F.sections) || [];
-    const book = si != null ? (S[+si] || { items: [] }).items[+ii] : null;
-    if (!$(".fb-lib", listPane)) {
+    const book = null;
+    if (!$(".ks-cats", listPane) || $(".fb-lib", listPane)) {
       listPane.innerHTML = `
         <header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>Biblioteka e Kishës</h1></header>
-        <p class="sec-intro">Shkrimi i Shenjtë, besimi, predikimet, tekstet liturgjike dhe librat e shërbesave të Kishës Orthodhokse Autoqefale të Shqipërisë, të hapura këtu për t'u lexuar.</p>
-        <form class="fb-find" onsubmit="return false"><input type="search" placeholder="Kërko një libër, rubrikë ose shërbesë…" aria-label="Kërko në Bibliotekë"></form>
+        <p class="sec-intro">Shkrimi i Shenjtë, besimi, predikimet dhe tekstet e Kishës Orthodhokse Autoqefale të Shqipërisë, të hapura këtu për t'u lexuar.</p>
+        <form class="fb-find" onsubmit="return false"><input type="search" placeholder="Kërko një rubrikë…" aria-label="Kërko në Bibliotekë"></form>
         <h2 class="section-title lib-h">Leximi</h2>
         ${libCatsHtml()}
-        <h2 class="section-title lib-h">Librat e shërbesave</h2>
-        <div class="fb-lib">${S.map((sc, a) => `<section class="fb-sec" data-s="${a}"><h2 class="hub-h">${esc(sc.title)}</h2>
-          <div class="fb-grid">${sc.items.map((b, k) => `<a class="fb-book" href="#/biblioteka/libri/${a}/${k}" data-q="${esc(nrm(b.t + " " + sc.title))}" style="--fb:${FB_TONE[a % FB_TONE.length]}">
-            <span class="fb-cover"><i>☦</i><b>${esc(b.t)}</b></span></a>`).join("")}</div></section>`).join("")}</div>
-        <p class="art-src art-cite">${icon("globe")}<span>Burimi: <a href="${esc((F && F.src) || SITE)}" target="_blank" rel="noopener">${esc(KOASH_CITE)} · Tekste liturgjike</a></span></p>`;
+        <a class="kn-cta lib-to-svc" href="#/sherbesat"><span class="kn-cta-ic">${icon("candle")}</span><span><b>Librat e shërbesave</b><small>${S.reduce((n, x) => n + x.items.length, 0)} libra · tani te Shërbesat</small></span><i>›</i></a>
+        <p class="art-src art-cite">${icon("globe")}<span>Burimi: <a href="${esc((F && F.src) || SITE)}" target="_blank" rel="noopener">${esc(KOASH_CITE)}</a></span></p>`;
       const inp = $(".fb-find input", listPane);
       libCatsWire($(".ks-cats", listPane), () => !!inp.value.trim());
       inp.addEventListener("input", () => {
@@ -11496,7 +11523,7 @@ function pickPhoto(it) {
       if (view === "libraria") { await viewLibraria(); return; }
       if (view === "kendi-lutjes") { await viewKendiLutjes(parts[1]); return; }
       if (view === "kisha-lutjet") { await viewKendiLutjes(parts[1], true); return; }
-      if (view === "sherbesat") { viewGroupHub("sherbesat"); return; }
+      if (view === "sherbesat") { await viewServicesHub(parts[1] === "libri" ? parts[2] : null, parts[1] === "libri" ? parts[3] : null); return; }
       if (view === "art") { navReplace("#/lexo"); return; }   // «Shkrimi në Art» u hoq
       if (view === "lexo" || view === "sot") await viewLibrary();
       else if (view === "pelqyerat") { await viewLikes(); mineSeg("pelqyerat"); }
@@ -11863,6 +11890,36 @@ function pickPhoto(it) {
     if (mainPane && !mainPane.textContent.trim()) mainPane.innerHTML = emptyMain();
   }
   const ntBtn = (b) => `<button class="nt-b" data-ntb="${b[0]}">${icon("book")}<span>${esc(b[2])}</span><i>›</i></button>`;
+  async function viewServicesHub(si, ii) {
+    const F = await load("flipbooks");
+    const S = (F && F.sections) || [];
+    const book = si != null ? (S[+si] || { items: [] }).items[+ii] : null;
+    setNav("lexo");
+    if (!$(".svc-hub", listPane)) {
+      const [title, list] = LEXO_GROUPS.sherbesat;
+      listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>${esc(title)}</h1></header>
+        <div class="svc-hub"><div class="tiles psun">${list.map(([k, ic, t, sub]) => `<a class="tile" href="#/${k}">${icon(ic)}<strong>${esc(t)}</strong><span>${esc(sub)}</span></a>`).join("")}</div>
+        <h2 class="section-title lib-h">Librat e shërbesave</h2>
+        <form class="fb-find" onsubmit="return false"><input type="search" placeholder="Kërko një libër ose shërbesë…" aria-label="Kërko te librat e shërbesave"></form>
+        ${fbLibHtml(S)}
+        <p class="art-src art-cite">${icon("globe")}<span>Burimi: <a href="${esc((F && F.src) || SITE)}" target="_blank" rel="noopener">${esc(KOASH_CITE)} · Tekste liturgjike</a></span></p></div>`;
+      const inp = $(".fb-find input", listPane);
+      inp.addEventListener("input", () => {
+        const q = nrm(inp.value.trim());
+        $$(".fb-book", listPane).forEach((b) => { b.hidden = !!q && !b.dataset.q.includes(q); });
+        $$(".fb-sec", listPane).forEach((x) => { x.hidden = !$$(".fb-book", x).some((b) => !b.hidden); });
+        $$(".svc-hub .tiles .tile", listPane).forEach((t) => { t.hidden = !!q && !nrm(t.textContent).includes(q); });
+      });
+      enter(listPane);
+    }
+    $$(".fb-book", listPane).forEach((b) => b.classList.toggle("on", !!book && b.getAttribute("href") === `#/sherbesat/libri/${si}/${ii}`));
+    if (!book) { mainPane.innerHTML = emptyMain(); setMode("list"); return; }
+    mainPane.innerHTML = `<header class="page-head art-head"><a class="back-btn art-back" href="#/sherbesat" aria-label="Kthehu">${icon("back")}</a><h2 style="font-size:15px">${esc(book.t)}</h2></header>
+      <div class="fb-host"></div>
+      <p class="art-src art-cite fb-links">${icon("globe")}<span>Burimi: ${esc(KOASH_CITE)}</span></p>`;
+    mainPane.classList.add("art-open"); enter(mainPane); setMode("read"); mainPane.scrollTop = 0;
+    await openBook($(".fb-host", mainPane), book.pdf, `${si}-${ii}`, book.t, () => location.hash.startsWith("#/sherbesat/libri/"));
+  }
   function viewGroupHub(key) {
     const [title, list] = LEXO_GROUPS[key];
     setNav("lexo");
@@ -12574,7 +12631,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.5.2";
+  const APP_VERSION = "3.5.3";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {
