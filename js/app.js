@@ -5187,9 +5187,10 @@ function pickPhoto(it) {
     const m = n.nodeValue.match(/^(\s*[«»"“”„'‘’(\[—–-]*\s*)(\p{L})/u);
     p.classList.add("no-fl");
     if (!m) return;
-    const span = document.createElement("span"); span.className = "dc"; span.textContent = m[2];
+    // thonjëzat ose kllapa në fillim mbeten bashkë me shkronjën e madhe («A…), jo të ndara prej saj
+    const span = document.createElement("span"); span.className = "dc"; span.textContent = m[1].replace(/\s+/g, "") + m[2];
     const rest = document.createTextNode(n.nodeValue.slice(m[0].length));
-    n.nodeValue = m[1];
+    n.nodeValue = m[1].match(/^\s*/)[0];
     n.after(span, rest);
   }
   // e njëjta foto vetëm një herë: fotoja kryesore sipër (art-hero / ar-ph) nuk përsëritet brenda tekstit
@@ -6863,7 +6864,7 @@ function pickPhoto(it) {
         ${imgs.length && !(p.fb && fbIsVideo(p) && imgs.length < 2) ? `<div class="mzd" aria-label="Fotot e postimit">${imgs.map((u, k) => `<figure class="mzd-c" data-k="${k}"><img src="${esc(u)}" alt="" decoding="async" ${k > 2 ? 'loading="lazy"' : ""}><button class="mzd-full" data-k="${k}" aria-label="Ekran i plotë">⛶</button></figure>`).join("")}
           <p class="mzd-n"></p></div>` : ""}
         ${paras.length >= 4 && paras.filter((l) => l.length < 70).length >= paras.length * 0.7
-          ? `<p class="ar-first mz-verse">${paras.map(esc).join("<br>")}</p>`
+          ? `<p class="mz-verse">${paras.map(esc).join("<br>")}</p>`
           : paras.map((l, i) => `<p${i === 0 ? ' class="ar-first"' : ""}>${esc(l)}</p>`).join("")}
         ${p.video ? `<p><button class="btn" data-out="${esc(p.link)}">▶ Shih videon e postimit</button></p>` : ""}
         ${p.kind === "r" ? `<p class="mz-play"><button class="btn primary" id="mzPlay">▶ Shiko emisionin</button></p>` : ""}
