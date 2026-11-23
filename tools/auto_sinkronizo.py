@@ -40,6 +40,9 @@ LOG = os.path.join(ROOT, "dist", "auto_sinkronizo.log")
 EXTS = (".jpg", ".jpeg", ".png", ".webp")
 IG_SCRIPT = r"C:\Users\MINUE\merr_sot.py"
 IG_DIRS = (r"C:\Users\MINUE\saintsoforthodoxy_sot",)
+IG_STATE = r"C:\Users\MINUE\saintsoforthodoxy_last.json"   # e shkruan merr_sot.py në çdo kontroll
+LOCK = os.path.join(ROOT, "dist", ".sinkronizimi.lock")       # një sinkronizim i vetëm në të njëjtën kohë
+SQUEEZED = os.path.join(ROOT, "dist", ".ikonat_kompresuar.json")
 APIFY_STAMP = os.path.join(ROOT, "dist", ".apify_e_fundit")   # koha e hapit të fundit me Apify
 APIFY_ORE = float(os.environ.get("FS_APIFY_ORE", "6"))
 CLOUD_STATE = os.path.join(LIVE, "cloud", "gjendja_ikonat.json")   # shkruhet nga GitHub Actions (cloud/ikonat.py)
@@ -53,8 +56,13 @@ def log(msg):
     except Exception:
         pass
     os.makedirs(os.path.dirname(LOG), exist_ok=True)
-    with open(LOG, "a", encoding="utf-8") as f:
-        f.write(line + "\n")
+    for _ in range(3):
+        try:
+            with open(LOG, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+            break
+        except OSError:
+            time.sleep(0.4)
     # log-u mos rritet pa fund
     try:
         if os.path.getsize(LOG) > 400_000:
@@ -136,6 +144,13 @@ def fetch_instagram(dite=1, apify=True):
     if apify and cr and "--apify" not in sys.argv:
         apify = False
         log(f"Instagram: e bëri GitHub-i në {cr.astimezone():%H:%M}; Apify-ja e laptopit pushon")
+    try:
+        ig_age = time.time() - os.path.getmtime(IG_STATE)
+    except OSError:
+        ig_age = None
+    if apify and ig_age is not None and ig_age < APIFY_ORE * 3600 - 300 and "--apify" not in sys.argv:
+        apify = False
+        log(f"Instagram: merr_sot.py e bëri para {ig_age / 3600:.1f} orësh; Apify-ja nuk thirret dy herë")
     if not apify:
         log(f"Instagram: shkarkimi me Apify bëhet çdo {APIFY_ORE:g} orë; tani vetëm kontrolli i dosjeve")
     elif os.path.exists(IG_SCRIPT):
@@ -214,15 +229,28 @@ def import_new():
             log(f"  + {os.path.basename(out)} ({os.path.getsize(out) // 1024} KB)")
         except Exception as e:
             log(f"  ! {f}: {e}")
-    # kompreso edhe ikonat ekzistuese mbi 350 KB
+    # kompreso edhe ikonat ekzistuese mbi 230 KB, vetëm një herë për çdo skedar: një WebP i rikompresuar
+    # çdo orë humbet cilësi pa u bërë më i vogël
+    try:
+        done = set(json.load(open(SQUEEZED, encoding="utf-8")))
+    except Exception:
+        done = set()
+    grew = False
     for f in os.listdir(DST):
         p = os.path.join(DST, f)
-        if f.lower().endswith(".webp") and os.path.getsize(p) > 230 * 1024:
+        if f.lower().endswith(".webp") and f not in done and os.path.getsize(p) > 230 * 1024:
             try:
                 to_webp(p, p)
                 log(f"  ~ u kompresua {f}")
             except Exception as e:
                 log(f"  ! {f}: {e}")
+            done.add(f)
+            grew = True
+    if grew:
+        try:
+            json.dump(sorted(done), open(SQUEEZED, "w", encoding="utf-8"))
+        except OSError:
+            pass
     return n
 
 
@@ -434,6 +462,23 @@ def fetch_flipbooks():
     merr_flipbooks.main()
 
 
+def fetch_mujoret():
+    """Mujoret (shërbesat e shenjtorëve dhe të festave, tekste të Kishës) → data/mujoret.json; çdo 6 orë"""
+    stamp = os.path.join(ROOT, "data", ".mujoret_kontrolli")
+    try:
+        if time.time() - os.path.getmtime(stamp) < 6 * 3600 - 300:
+            return log("Mujoret: të freskëta")
+    except OSError:
+        pass
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import merr_mujoret
+    log(merr_mujoret.main())
+    try:
+        open(stamp, "w").write(datetime.datetime.now().isoformat(timespec="seconds"))
+    except OSError:
+        pass
+
+
 def fetch_koash_new():
     """Kameleoni: zbulon vetë faqet dhe kategoritë e reja të faqes së Kishës që aplikacioni s'i njeh ende
     → data/koash_te_reja.js (aplikacioni i shfaq te «Të reja nga Kisha» dhe i hap si të vetat, me citim)."""
@@ -471,7 +516,7 @@ def fetch_koash_new():
 
 # ---------------- Vetë-riparimi: asnjë hap nuk lejohet të prishë të dhënat që punojnë ----------------
 GUARD = {"Sinaksari": ["imazhet"], "Lajmet": ["lajme_bota"], "Mitropolitë": ["mitropolite"], "Shkolla": ["shkolla"], "Transmetimet": ["transmetimet"], "Kinemaja": ["kinema"], "Kërkim": ["kerkim"],
-         "Tekste liturgjike": ["liturgjike"], "Kisha · të reja": ["koash_te_reja"], "Këndi i Lutjes": ["kendi_lutjes"], "Librat e Kishës": ["flipbooks"]}
+         "Tekste liturgjike": ["liturgjike"], "Kisha · të reja": ["koash_te_reja"], "Këndi i Lutjes": ["kendi_lutjes"], "Librat e Kishës": ["flipbooks"], "Mujoret": ["mujoret"]}
 
 
 def _count(doc):
@@ -604,7 +649,7 @@ def sync_live():
 
 CLOUD_TOOLS = ("auto_sinkronizo.py", "merr_lajmet.py", "merr_mitropolite.py", "merr_shkollen.py", "merr_ngjallja_shkolla.py",
                "merr_ig_shkolla.py", "merr_transmetimet.py", "merr_kinema.py", "kinema_burimet.py", "titra_shqip.py",
-               "ortografia_orthodhokse.py", "merr_kerkim.py", "merr_liturgjike.py", "merr_kendi_lutjes.py", "merr_flipbooks.py",
+               "ortografia_orthodhokse.py", "merr_kerkim.py", "merr_liturgjike.py", "merr_kendi_lutjes.py", "merr_flipbooks.py", "merr_mujoret.py",
                "kinema_katalogu.json", "_kinema_cache.json", "_perkthime.json", "_perkthime_titra.json")
 
 
@@ -624,10 +669,10 @@ def copy_cloud_tools(dst):
 
 # ---------------- Reja: kur GitHub Actions sinkronizon, PC-ja merr të dhënat prej saj dhe nuk i rimerr ----------------
 CLOUD_SYNC_STATE = os.path.join(LIVE, "cloud", "gjendja_sinkronizimi.json")
-CLOUD_DATA = ("lajme_bota", "mitropolite", "shkolla", "transmetimet", "kinema", "kerkim", "liturgjike", "kendi_lutjes", "flipbooks", "koash_te_reja", "vatikan", "meta_shkolla")
+CLOUD_DATA = ("lajme_bota", "mitropolite", "shkolla", "transmetimet", "kinema", "kerkim", "liturgjike", "kendi_lutjes", "flipbooks", "koash_te_reja", "vatikan", "meta_shkolla", "mujoret")
 CLOUD_DIRS = (("data", "gazeta"), ("img", "shkolla"), ("img", "mitropolite"), ("subtitles",), ("pdf",))
 CLOUD_STEPS = {"Lajmet", "Mitropolitë", "Shkolla", "Transmetimet", "Kinemaja", "Titrat shqip", "Kërkim", "Tekste liturgjike",
-               "Këndi i Lutjes", "Librat e Kishës", "Kisha · të reja"}
+               "Këndi i Lutjes", "Librat e Kishës", "Mujoret", "Kisha · të reja"}
 
 
 def cloud_sync_recent(hours=3):
@@ -691,13 +736,60 @@ def push():
     raise RuntimeError("push dështoi (pa internet ose pa hyrje në GitHub)")
 
 
+def _single():
+    """True kur ky është i vetmi sinkronizim që punon; një bllokim më i vjetër se 50 min konsiderohet i mbetur."""
+    os.makedirs(os.path.dirname(LOCK), exist_ok=True)
+    for _ in range(2):
+        try:
+            fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, str(os.getpid()).encode())
+            os.close(fd)
+            return True
+        except FileExistsError:
+            try:
+                if time.time() - os.path.getmtime(LOCK) > 50 * 60:
+                    os.remove(LOCK)
+                    continue
+            except OSError:
+                pass
+            return False
+    return False
+
+
+def _laptop_token():
+    """Çelësi i Apify-t që përdor merr_sot.py në këtë laptop (lexohet vetëm në kujtesë, nuk shkruhet askund)."""
+    if os.environ.get("APIFY_TOKEN", "").strip():
+        return
+    try:
+        m = re.search(r"APIFY_TOKEN\s*=\s*[\"']([A-Za-z0-9_]{20,})[\"']", open(IG_SCRIPT, encoding="utf-8-sig").read())
+        if m:
+            os.environ["APIFY_TOKEN"] = m.group(1)
+    except OSError:
+        pass
+
+
 def main():
+    if not _single():
+        log("Një sinkronizim tjetër po punon; ky anashkalohet")
+        return 0
+    try:
+        return _main()
+    finally:
+        try:
+            os.remove(LOCK)
+        except OSError:
+            pass
+
+
+def _main():
     dite = 1
     if "--dite" in sys.argv:
         dite = max(1, int(sys.argv[sys.argv.index("--dite") + 1]))
     apify = apify_due() or "--dite" in sys.argv or "--apify" in sys.argv
     if not apify:
         os.environ["FS_PA_APIFY"] = "1"          # merr_shkollen: pa Facebook-un me Apify këtë herë
+    else:
+        _laptop_token()                          # merr_mitropolite: postimet e reja të faqeve të mitropolive në Facebook
     log(f"=== Sinkronizimi nis ({dite} ditë) ===" + ("" if apify else " · pa Apify"))
     if apify:
         os.makedirs(os.path.dirname(APIFY_STAMP), exist_ok=True)
@@ -710,7 +802,7 @@ def main():
     except Exception as e:
         log(f"Të dhënat nga GitHub: GABIM {e}")
     for name, fn in (("Ikonat nga GitHub", pull_cloud), ("Instagram", lambda: fetch_instagram(dite, apify)), ("Ikonat e reja", import_new), ("Sinaksari", link_synaxarion), ("Lajmet", fetch_news), ("Mitropolitë", fetch_mitro), ("Shkolla", fetch_school), ("Transmetimet", fetch_live), ("Kinemaja", fetch_kinema), ("Titrat shqip", fetch_titra),
-                     ("Kërkim", fetch_kerkim), ("Tekste liturgjike", fetch_liturgjike), ("Këndi i Lutjes", fetch_kendi_lutjes), ("Librat e Kishës", fetch_flipbooks), ("Kisha · të reja", fetch_koash_new), ("Faqja web", sync_live), ("GitHub", push)):
+                     ("Kërkim", fetch_kerkim), ("Tekste liturgjike", fetch_liturgjike), ("Këndi i Lutjes", fetch_kendi_lutjes), ("Librat e Kishës", fetch_flipbooks), ("Mujoret", fetch_mujoret), ("Kisha · të reja", fetch_koash_new), ("Faqja web", sync_live), ("GitHub", push)):
         if cloud and name in CLOUD_STEPS:
             continue
         if name in ("Faqja web", "GitHub") and not ok:

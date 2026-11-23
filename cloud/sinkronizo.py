@@ -34,7 +34,7 @@ def mitro():
 STEPS = [("Lajmet", A.fetch_news), ("Mitropolitë", mitro), ("Shkolla", A.fetch_school), ("Transmetimet", A.fetch_live),
          ("Kinemaja", A.fetch_kinema), ("Titrat shqip", A.fetch_titra), ("Kërkim", A.fetch_kerkim),
          ("Tekste liturgjike", A.fetch_liturgjike), ("Këndi i Lutjes", A.fetch_kendi_lutjes),
-         ("Librat e Kishës", A.fetch_flipbooks), ("Kisha · të reja", A.fetch_koash_new)]
+         ("Librat e Kishës", A.fetch_flipbooks), ("Mujoret", A.fetch_mujoret), ("Kisha · të reja", A.fetch_koash_new)]
 
 
 def main():

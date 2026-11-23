@@ -3981,3 +3981,85 @@ button.pc-frieze { width: 100%; background: none; border-left: 0; border-right: 
 .jx-days li.fe .jx-dd b { color: var(--jr-a); }
 .jx-dd small { font-size: 12px; opacity: .8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .jx-days em { flex: none; font-style: normal; font-size: 10.5px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.07); max-width: 34%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Mujoret · arkivi dhe shërbesa (me stilin e Tipikosë) */
+.mj-arch-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font: 600 12px var(--font-cap); letter-spacing: .06em; color: var(--accent); text-decoration: none; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent); }
+.mj-arch-btn .pc { width: 16px; height: 16px; color: var(--gold); }
+.mj-arch { padding: 4px 0 28px; }
+.mj-next { margin: 4px 0 14px; }
+.mj-when { display: inline-block; margin: 0 0 6px 4px; font: 700 11px var(--font-cap); letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
+.mj-card { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin: 0 0 8px; border-radius: 16px; text-decoration: none; color: var(--ink); overflow: hidden;
+  background: var(--card); box-shadow: inset 0 0 0 1px var(--line); transition: transform .18s var(--ease-out, ease); }
+.mj-card:active { transform: scale(.985); }
+.mj-card.big { padding: 16px; background: linear-gradient(150deg, color-mix(in srgb, var(--gold) 16%, var(--card)), var(--card)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent), 0 10px 26px -16px rgba(0,0,0,.5); }
+.mj-dt { flex: none; width: 50px; height: 54px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+  background: linear-gradient(180deg, #7a1f1a, #4a0f0c); color: #fff4d6; box-shadow: inset 0 0 0 1px rgba(241,204,114,.45); }
+.mj-dt b { font: 700 21px var(--font-cap); }
+.mj-dt small { margin-top: 3px; font: 600 10px var(--font-cap); letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+.mj-tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mj-tx > b { font: 600 15px/1.3 var(--font-cap); color: var(--accent); }
+.mj-tx > small { font-size: 13px; color: var(--ink-2); }
+.mj-pp { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 4px; }
+.mj-pp i { display: inline-flex; align-items: center; gap: 4px; font: 500 11px system-ui, sans-serif; font-style: normal; color: var(--ink-2); padding: 2px 8px 2px 5px; border-radius: 999px; background: color-mix(in srgb, var(--gold) 10%, transparent); }
+.mj-pp .pc { width: 13px; height: 13px; color: var(--gold); }
+.mj-prog { position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--p) * 100%); background: var(--gold); border-radius: 0 3px 3px 0; }
+.mj-find { margin: 0 0 14px; }
+.mj-snip { margin: -4px 6px 12px 68px; font: italic 13px/1.45 "EB Garamond", Georgia, serif; color: var(--ink-2); }
+.mj-mon { margin: 0 0 10px; }
+.mj-mon .hub-h small { margin-left: 8px; font: 500 11px system-ui, sans-serif; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+.mj-tp { margin: 0 0 18px; }
+.mj-tp h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font: 600 12px var(--font-cap); letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+.mj-tp h3 .pc { width: 16px; height: 16px; }
+.mj-jump { position: sticky; top: 0; z-index: 3; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px 14px; padding: 8px 4px; background: linear-gradient(var(--bg) 70%, transparent); }
+.mj-jump::-webkit-scrollbar { display: none; }
+.mj-jump button { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px; border: 0; cursor: pointer; font: 500 12px system-ui, sans-serif; color: var(--ink); background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+.mj-jump button.pt { font: 600 12px var(--font-cap); color: var(--accent); }
+.mj-jump button.tr { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 60%, transparent); color: var(--gold); }
+.mj-jump .pc { width: 14px; height: 14px; color: var(--gold); }
+.mj-reader .mj-body { font-size: calc(var(--read-size, 18px) + var(--mjz, 0) * 2px); }
+.mj-part { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 34px 0 14px; padding: 12px 0; font: 600 18px var(--font-cap); letter-spacing: .1em; color: var(--accent); text-align: center;
+  border-top: 1px solid color-mix(in srgb, var(--gold) 35%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--gold) 35%, transparent); scroll-margin-top: 58px; }
+.mj-part:first-child { margin-top: 6px; }
+.mj-part .pc { width: 20px; height: 20px; color: var(--gold); flex: none; }
+.mj-h { scroll-margin-top: 58px; }
+.mj-h.mj-trop::before { content: "✠ "; color: var(--rubric, #b3261e); }
+.mj-tone { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px 0 8px; font: 600 12.5px var(--font-cap); letter-spacing: .08em; color: var(--rubric, #b3261e); text-align: center; }
+.mj-tone svg { width: 14px; height: 14px; flex: none; }
+.mj-dox { color: var(--rubric, #b3261e) !important; font-style: italic; text-align: center; margin: 12px 0 2px !important; }
+.mj-dox + .mj-dox { margin-top: 0 !important; }
+.mj-stih { margin: 8px 0 8px 18px; padding-left: 12px; border-left: 2px solid color-mix(in srgb, var(--rubric, #b3261e) 50%, transparent); font-style: italic; color: var(--rubric, #b3261e); font-size: .9em; line-height: 1.5; }
+.mj-p { text-align: justify; hyphens: auto; }
+.mj-p + .mj-p { margin-top: .7em; }
+/* hyrja: simbolet e katakombeve dalin një nga një, Kristogrami në mes më i theksuar */
+.splash-pc { gap: 12px; flex-wrap: wrap; max-width: 360px; margin-left: auto; margin-right: auto; opacity: 1; animation: none; }
+.splash-pc svg { width: 20px; height: 20px; opacity: 0; animation: fadeUp .7s calc(.9s + var(--i, 0) * .09s) ease-out forwards; }
+.splash-pc svg:nth-child(5) { width: 26px; height: 26px; color: #f4d58a; filter: drop-shadow(0 0 6px rgba(244,213,138,.55)); }
+@media (prefers-reduced-motion: reduce) { .splash-pc svg { animation: none; opacity: 1; } }
+.section-title .pc-h { order: 0; flex: none; width: 18px; height: 18px; margin: 0 -4px 0 0; color: color-mix(in srgb, var(--gold, #c9a24a) 85%, currentColor); }
+
+/* Cilësimet › Pamja: ngjyrat dhe mënyra e lehtë, secila e mbledhur në një rresht */
+.set-fold { border: 1px solid var(--line); border-radius: 14px; margin: 0 0 10px; overflow: hidden; }
+.set-fold > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 12px; cursor: pointer; }
+.set-fold > summary::-webkit-details-marker { display: none; }
+.set-fold .sf-t { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.set-fold .sf-t b { font-size: 15px; font-weight: 600; color: var(--ink); }
+.set-fold .sf-t small { font-size: 12.5px; color: var(--ink-2); line-height: 1.35; }
+.set-fold .sf-arr { font-style: normal; font-size: 20px; opacity: .6; transition: transform .2s; }
+.set-fold[open] .sf-arr { transform: rotate(90deg); }
+.set-fold .sf-ic { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.set-fold .sf-ic svg { width: 18px; height: 18px; color: var(--accent); }
+.set-fold .sf-sw { flex: none; position: relative; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(0,0,0,.18); }
+.set-fold > :not(summary) { margin: 0 12px 12px; }
+.eco-seg { display: flex; width: calc(100% - 24px); }
+.eco-seg button { flex: 1; }
+
+/* Mënyra e lehtë: më pak punë për procesorin */
+html.eco *, html.eco *::before, html.eco *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.eco :is(.tile, .card, .mj-card, .list-item, .set-sec, .jx-bar button, .fb-book) { box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; }
+html.eco :is(.jx-sky i, .meteor, .tp-hero::after) { animation: none !important; }
+/* aplikacioni në sfond: asnjë lëvizje */
+html.paused *, html.paused *::before, html.paused *::after { animation-play-state: paused !important; }
+/* listat e gjata: shfaqen vetëm pjesët që shihen në ekran */
+.list > li, .mj-card, .fb-book, .jx-days li { content-visibility: auto; contain-intrinsic-size: auto 64px; }
+.set-fold .sf-sw { overflow: hidden; background: var(--b); } .set-fold .sf-sw em { top: 14px; left: 5px; right: 5px; height: 12px; } .set-fold .sf-sw::before { height: 9px; }
+.eco-seg { background: color-mix(in srgb, var(--bg) 70%, transparent) !important; } .eco-seg button { color: var(--ink) !important; opacity: .85; } .eco-seg button[aria-checked="true"] { opacity: 1; color: var(--accent-ink, #fff) !important; }
