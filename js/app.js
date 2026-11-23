@@ -2344,6 +2344,35 @@ function pickPhoto(it) {
     };
   })();
   window.AudioDuck = AudioDuck;
+  // ÇDO VIDEO që hapet në aplikacion (lojtësi ynë, ngulitjet e YouTube / Facebook / Instagram / Vimeo te lajmet, Shkolla, arkivi,
+  // ose çdo <video>) ndal muzikën e sfondit; kur mbyllen të gjitha, muzika rikthehet vetë (vetëm nëse luante)
+  (() => {
+    const VID_RX = /youtube(?:-nocookie)?\.com\/(?:embed|live_stream)|youtu\.be\/|facebook\.com\/plugins\/(?:video|post)\.php|instagram\.com\/(?:p|reel|tv)\/[^/]+\/embed|player\.vimeo\.com|dailymotion\.com\/embed|tiktok\.com\/embed|rumble\.com\/embed/i;
+    const isVid = (n) => {
+      if (n.closest("#ytPlayer, .disc-inner")) return false;   // lojtësi i vetë muzikës
+      if (n.tagName === "VIDEO") return !!(n.getAttribute("src") || n.querySelector("source"));
+      return VID_RX.test(n.getAttribute("src") || "");
+    };
+    const any = () => [...document.querySelectorAll("iframe, video")].some(isVid);
+    let on = false, tm = 0;
+    const check = () => {
+      tm = 0;
+      const now = any();
+      if (now && !on) { on = true; AudioDuck.take("embed"); }
+      else if (!now && on) { on = false; AudioDuck.release("embed"); }
+    };
+    const has = (n) => n.nodeType === 1 && (n.matches("iframe, video") || !!n.querySelector("iframe, video"));
+    const mo = new MutationObserver((ms) => {
+      if (tm) return;
+      for (const m of ms) {
+        if (m.type === "attributes" || [...m.addedNodes].some(has) || [...m.removedNodes].some(has)) { tm = setTimeout(check, 120); return; }
+      }
+    });
+    const start = () => { mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] }); check(); };
+    if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
+    // edhe kur një <video> nis të luajë pa u futur rishtas në faqe (p.sh. luaj sërish)
+    document.addEventListener("play", (e) => { const v = e.target; if (v && v.tagName === "VIDEO" && isVid(v) && !on) { on = true; AudioDuck.take("embed"); } }, true);
+  })();
   // video në lojtësin e telefonit (Android): kur kthehesh në aplikacion, muzika rikthehet
   let nativeVideo = false;
   const nativeBack = () => { if (nativeVideo && !document.hidden) { nativeVideo = false; AudioDuck.release("video"); } };
