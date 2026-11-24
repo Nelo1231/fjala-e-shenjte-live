@@ -1,6 +1,6 @@
 name: Sinkronizimi i të dhënave (automatik)
 
-# Punon vetë në GitHub, edhe kur PC-ja është e fikur: lajmet dhe gazetat, mitropolitë, Shkolla, transmetimet,
+# Punon vetë në GitHub (me sekretin APIFY_TOKEN), edhe kur PC-ja është e fikur: lajmet dhe gazetat, mitropolitë, Shkolla, transmetimet,
 # Kinemaja dhe titrat shqip, Kërkim, tekstet liturgjike, Këndi i Lutjes, librat e Kishës, faqet e reja të Kishës.
 # Çdo orë në minutën 35 (ikonat e ditës kanë workflow-n e vet në minutën 20).
 # GitHub mund ta vonojë orarin; çdo hap kontrollon vetë se çfarë është e re, ndaj vonesat nuk humbin gjë.
