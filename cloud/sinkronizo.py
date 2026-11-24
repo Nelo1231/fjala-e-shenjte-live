@@ -39,7 +39,16 @@ STEPS = [("Lajmet", A.fetch_news), ("Mitropolitë", mitro), ("Shkolla", A.fetch_
 
 def main():
     now = datetime.datetime.now(datetime.timezone.utc)
-    apify = now.hour in APIFY_HOURS or os.environ.get("FS_APIFY") == "1"
+    # GitHub-i nuk e nis gjithmonë në orën e caktuar: Apify-ja (Instagram-i i Shkollës) kur kanë kaluar ≥ 5.5 orë nga hera e fundit
+    try:
+        prev = json.load(open(STATE, encoding="utf-8"))
+    except Exception:
+        prev = {}
+    try:
+        ap_age = (now - datetime.datetime.fromisoformat(prev.get("apify", "").replace("Z", "+00:00"))).total_seconds() / 3600
+    except ValueError:
+        ap_age = 99
+    apify = ap_age >= 5.5 or os.environ.get("FS_APIFY") == "1"
     if now.hour in FB_HOURS and os.environ.get("APIFY_TOKEN"):
         os.environ["FS_FB_TOKEN"] = os.environ["APIFY_TOKEN"]   # vetëm për Facebook-un e mitropolive (paguhet vetëm postimi i ri)
     if not apify:
@@ -61,7 +70,8 @@ def main():
             A.log(traceback.format_exc().strip().splitlines()[-1])
             for f, old in snap.items():
                 open(f, "wb").write(old)
-    state = {"kontrolli": now.isoformat(timespec="seconds").replace("+00:00", "Z"), "hapat": done, "gabime": failed}
+    stamp = now.isoformat(timespec="seconds").replace("+00:00", "Z")
+    state = {"kontrolli": stamp, "apify": stamp if apify and os.environ.get("APIFY_TOKEN") else prev.get("apify", ""), "hapat": done, "gabime": failed}
     os.makedirs(os.path.dirname(STATE), exist_ok=True)
     json.dump(state, open(STATE, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     A.log("=== Mbaroi: " + (f"{len(done)} hapa ✓" + (f" · gabime te {', '.join(failed)}" if failed else "")) + " ===")

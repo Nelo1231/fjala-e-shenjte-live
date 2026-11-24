@@ -620,9 +620,13 @@ def sync_live():
         for d in (".github", "cloud"):
             if os.path.isdir(os.path.join(ROOT, d)):
                 shutil.copytree(os.path.join(ROOT, d), os.path.join(stage, d), ignore=shutil.ignore_patterns("__pycache__", "gjendja_*.json"))
-        if os.path.exists(CLOUD_STATE):
-            os.makedirs(os.path.join(stage, "cloud"), exist_ok=True)
-            shutil.copy2(CLOUD_STATE, os.path.join(stage, "cloud", "gjendja_ikonat.json"))
+        # gjendja që shkruan GitHub-i (kur punoi për herë të fundit, kur thirri Apify-n) mbetet: pa të,
+        # push-i i laptopit e fshinte dhe GitHub-i e thërriste Apify-n sikur s'kishte punuar kurrë
+        lc = os.path.join(LIVE, "cloud")
+        for f in (os.listdir(lc) if os.path.isdir(lc) else []):
+            if f.startswith("gjendja_") and f.endswith(".json"):
+                os.makedirs(os.path.join(stage, "cloud"), exist_ok=True)
+                shutil.copy2(os.path.join(lc, f), os.path.join(stage, "cloud", f))
 
         release_ready()
         if os.path.exists(UPD):

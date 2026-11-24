@@ -192,6 +192,17 @@ def main():
     os.makedirs(os.path.dirname(STATE), exist_ok=True)
     state = json.load(open(STATE, encoding="utf-8")) if os.path.exists(STATE) else {}
     captions = {}
+    # orari niset shpesh (GitHub-i i hedh disa nisje): Apify-ja vetëm një herë në 5 orë, që buxheti të mjaftojë
+    try:
+        last = datetime.datetime.fromisoformat(state.get("kontrolli", "").replace("Z", "+00:00"))
+        age = (datetime.datetime.now(datetime.timezone.utc) - last).total_seconds() / 3600
+    except ValueError:
+        age = 99
+    if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and age < 5:
+        say(f"Kontrolli i fundit {age:.1f} orë më parë; Apify-ja pushon deri në 5 orë.")
+        m = reconcile(captions)
+        say(f"Ikonat: 0 foto të reja · {m} muaj të përditësuar")
+        return
     n = fetch(state, captions)
     m = reconcile(captions)
     if TOKEN:

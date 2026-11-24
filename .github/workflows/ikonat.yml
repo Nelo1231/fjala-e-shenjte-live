@@ -1,10 +1,11 @@
 name: Ikonat e ditës (automatike)
 
 # Punon vetë në GitHub, edhe kur laptopi është i fikur.
-# Orari (ora e Shqipërisë, dimër): 05:20 · 11:20 · 17:20 · 23:20  →  njëlloj si Apify-ja çdo 6 orë në laptop.
+# GitHub-i i hedh shpesh nisjet e orarit, ndaj ka dy mundësi në orë; cloud/ikonat.py e thërret Apify-n
+# vetëm kur kontrolli i fundit është më i vjetër se 5 orë (dhe gjithmonë kur niset me dorë).
 on:
   schedule:
-    - cron: '20 4,10,16,22 * * *'
+    - cron: '12,42 * * * *'
   workflow_dispatch:
 
 permissions:

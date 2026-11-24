@@ -5,8 +5,10 @@ name: Sinkronizimi i të dhënave (automatik)
 # Çdo orë në minutën 35 (ikonat e ditës kanë workflow-n e vet në minutën 20).
 # GitHub mund ta vonojë orarin; çdo hap kontrollon vetë se çfarë është e re, ndaj vonesat nuk humbin gjë.
 on:
+  # GitHub-i i hedh shpesh nisjet e orarit kur është i ngarkuar: katër mundësi në orë; hapi «Radha» e lë
+  # të punojë vetëm njërën prej tyre (kur sinkronizimi i fundit është më i vjetër se 45 minuta).
   schedule:
-    - cron: '35 * * * *'
+    - cron: '7,22,37,52 * * * *'
   # nis menjëherë edhe kur ndryshon vetë sinkronizimi (commit-et e robotit nuk e nisin sërish)
   push:
     branches: [main]
@@ -35,24 +37,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Radha (a ka ardhur koha?)
+        id: radha
+        run: |
+          python3 - <<'PY'
+          import datetime, json, os
+          ev = os.environ.get("GITHUB_EVENT_NAME", "")
+          skip = False
+          try:
+              t = json.load(open("cloud/gjendja_sinkronizimi.json", encoding="utf-8")).get("kontrolli", "")
+              age = (datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(t.replace("Z", "+00:00"))).total_seconds() / 60
+              skip = ev == "schedule" and age < 45
+              print(f"Sinkronizimi i fundit: {age:.0f} min më parë")
+          except Exception as e:
+              print("Pa gjendje të mëparshme:", e)
+          open(os.environ["GITHUB_OUTPUT"], "a").write(f"skip={'true' if skip else 'false'}\n")
+          print("Anashkalohet (u bë së fundi)" if skip else "Nis sinkronizimi")
+          PY
+
       - uses: actions/setup-python@v5
+        if: steps.radha.outputs.skip != 'true'
         with:
           python-version: '3.12'
           cache: 'pip'
           cache-dependency-path: cloud/requirements.txt
 
       - name: Instalo paketat (torch pa GPU, për përkthimin offline)
+        if: steps.radha.outputs.skip != 'true'
         run: |
           pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
           pip install --quiet -r cloud/requirements.txt
 
       - name: Modeli i përkthimit anglisht → shqip (ruhet në cache)
+        if: steps.radha.outputs.skip != 'true'
         uses: actions/cache@v4
         with:
           path: ~/.local/share/argos-translate
           key: argos-en-sq-v1
 
       - name: Instalo modelin kur mungon
+        if: steps.radha.outputs.skip != 'true'
         run: |
           python - <<'PY'
           import argostranslate.package as p, argostranslate.translate as t
@@ -65,12 +89,14 @@ jobs:
           PY
 
       - name: Sinkronizo
+        if: steps.radha.outputs.skip != 'true'
         env:
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           FS_APIFY: ${{ github.event.inputs.apify }}
         run: python -X utf8 cloud/sinkronizo.py
 
       - name: Ruaj në GitHub
+        if: steps.radha.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
