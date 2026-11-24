@@ -3635,14 +3635,15 @@ function pickPhoto(it) {
   // ---------- Programi i Kishës: ngjarjet e ardhshme nga njoftimet zyrtare të KOASh-it dhe të Mitropolive ----------
   // Nga çdo njoftim («do të kremtohet…», «njofton…», «NJOFTIM», «Programi…») nxirren data, ora, vendi dhe kush shërben.
   const PG_MON = { janar: 0, shkurt: 1, mars: 2, prill: 3, maj: 4, qershor: 5, korrik: 6, gusht: 7, shtator: 8, tetor: 9, nëntor: 10, nentor: 10, dhjetor: 11 };
-  const PG_FUT = /\bdo\s+t[ëe]\s+(?:kremto\w*|kryhe?\w*|meshoj\w*|meshohet|drejto\w*|kryesoj\w*|bëhet|mbahet|zhvillo\w*|shërbej\w*|presë|pritet|shenjtëro\w*|hirotonis\w*|dorëzo\w*|vizitoj\w*|bekoj\w*|bekohet|organizo\w*|marrë\s+pjesë|jetë\s+i\s+pranishëm|celebro\w*)|\bnjofto(?:n|jmë|het)\b|\bNJOFTIM|\bftojmë\b|\bftesë\b|\bprogrami\b|\bju\s+mirëpresim\b/i;
+  const PG_FUT = /\bdo\s+t[ëe]\s+(?:kremto\w*|kryhe?\w*|meshoj\w*|meshohet|drejto\w*|kryesoj\w*|bëhet|mbahet|zhvillo\w*|shërbej\w*|presë|pritet|shenjtëro\w*|hirotonis\w*|dorëzo\w*|vizitoj\w*|bekoj\w*|bekohet|organizo\w*|marrë\s+pjesë|jetë\s+i\s+pranishëm|celebro\w*)|\bnjofto(?:n|jmë|het)\b|\bftojmë\b|\bftesë\b|\bprogrami\b|\bju\s+mirëpresim\b/i;
   const PG_PLACE = /\b(?:në|te)\s+((?:Katedralen|Kishën|kishën|Manastirin|manastirin|Paraklisin|paraklisin|Famullinë|famullinë|Sallën|sallën|Qendrën|qendrën|Akademinë|Seminarin)\b[^,.;:()!?\n]{2,90})/;
   const pgDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
   function pgParse(n) {
     const title = String(n.title || "").normalize("NFKC").replace(/\s+/g, " ").trim();
     const body = String(n.text || n.ex || "").normalize("NFKC").replace(/#[\w-]+\{[^}]*\}/g, " ").replace(/\s+/g, " ").trim();
     const all = (title + ". " + body).slice(0, 2200);
-    if (!PG_FUT.test(all)) return null;
+    // «NJOFTIM» me shkronja të mëdha ose titulli «Njoftim…» (jo «sipas njoftimit të Mitropolisë» te raportimet)
+    if (!PG_FUT.test(all) && !/\bNJOFTIM\b/.test(all) && !/^Njoftim\b/i.test(title)) return null;
     const pd = new Date(n.date); if (isNaN(pd)) return null;
     const p0 = pgDay(pd), max = new Date(p0.getTime() + 150 * 864e5);
     const cands = [];
@@ -3652,9 +3653,18 @@ function pickPhoto(it) {
       cands.push({ d, i: m.index });
     }
     for (const m of all.matchAll(/\b(\d{1,2})[./](\d{1,2})[./](\d{4})\b/g)) cands.push({ d: new Date(+m[3], +m[2] - 1, +m[1], 12), i: m.index });
-    const nes = /\bnesër\b/i.exec(all); if (nes) cands.push({ d: new Date(p0.getTime() + 864e5), i: nes.index });
+    const nes = /\b(?:nesër|nesërme|nesërmen)\b/i.exec(all); if (nes) cands.push({ d: new Date(p0.getTime() + 864e5), i: nes.index });
+    // «të dielën», «këtë të shtunë», «ditën e premte» pa datë: dita e ardhshme e javës pas njoftimit
+    const WDN = ["diel", "hënë", "martë", "mërkurë", "enjte", "premte", "shtunë"];
+    for (const m of all.matchAll(/\b(?:këtë|të|ditën\s+e|në)\s+(diel|hënë|martë|mërkurë|enjte|premte|shtunë)\w*/gi)) {
+      const w = WDN.indexOf(m[1].toLowerCase()); if (w < 0) continue;
+      const add = (w - p0.getDay() + 7) % 7;
+      cands.push({ d: new Date(p0.getFullYear(), p0.getMonth(), p0.getDate() + add, 12), i: m.index + 0.5, wk: true });
+    }
     const sot = /\b(?:sot|këtë\s+(?:mbrëmje|të\s+diel))\b/i.exec(title); if (sot && /njoftim/i.test(title)) cands.push({ d: p0, i: 0 });
-    const ok = cands.filter((c) => !isNaN(c.d) && c.d >= p0 && c.d <= max).sort((a, b) => a.i - b.i);
+    let ok = cands.filter((c) => !isNaN(c.d) && c.d >= p0 && c.d <= max).sort((a, b) => a.i - b.i);
+    // data e plotë ka përparësi para ditës së javës kur përmenden pranë njëra-tjetrës («të mërkurën, më 25 nëntor»)
+    if (ok.length > 1 && ok[0].wk) { const full = ok.find((c) => !c.wk && c.i - ok[0].i < 80); if (full) ok = [full].concat(ok.filter((c) => c !== full)); }
     if (!ok.length) return null;
     const at = ok[0], near = all.slice(Math.max(0, at.i - 40), at.i + 260);
     const tm = /\b(?:në\s+)?or(?:ën|a|ës)\s+(\d{1,2})[:.](\d{2})/i.exec(near) || /\b(\d{1,2})[:.](\d{2})\s*(?:e\s+(?:mëngjesit|mbrëmjes|darkës))?\b(?=[^\d])/.exec(near);
@@ -3680,7 +3690,10 @@ function pickPhoto(it) {
     src.filter((n) => new Date(n.date) > lim).sort((a, b) => new Date(b.date) - new Date(a.date)).forEach((n) => {
       const e = pgParse(n); if (!e) return;
       const k = isoD(e.d) + "|" + e.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "").slice(0, 40);
-      if (seen.has(k)) return; seen.add(k); e.g = n.g; out.push(e);
+      if (seen.has(k)) return; seen.add(k); e.g = n.g;
+      const by = (e.by || "") + " " + e.place + " " + e.title;
+      e.m = /Gjirokastr/i.test(by) ? "gjiro" : /Korç/i.test(by) ? "korce" : /Fier|Apoloni/i.test(by) ? "fier" : /Berat|Vlor|Kanin/i.test(by) ? "berat" : /Elbasan|Shpat|Librazhd/i.test(by) ? "elbasan" : n.g === "tirane" || n.g === "radio" ? "tirane" : n.g;
+      out.push(e);
     });
     return out.sort((a, b) => a.d - b.d || (a.t || a.d) - (b.t || b.d));
   }
@@ -3696,11 +3709,255 @@ function pickPhoto(it) {
       "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", `DESCRIPTION:${esc2(e.title)}`, "END:VALARM", "END:VEVENT", "END:VCALENDAR"].filter(Boolean).join("\r\n");
   }
   const pgRem = () => store.get("pg.rem", {});
+  // ---------- Shërbesat e rregullta të dy kishave të Tiranës (rregulli i Kishës, pa orë të shpikura) ----------
+  // Katedralja «Ngjallja e Krishtit»: Mëngjesore çdo ditë përveç të shtunës, Liturgji çdo të diel (dhe kur njoftohet),
+  //   Mbrëmësore çdo ditë; të premten mbrëma, kur Mbrëmësorja është e përditshme, Paraklisi i Vogël i Hyjlindëses.
+  // Kisha «Ungjillëzimi i Hyjlindëses»: Mëngjesore dhe Mbrëmësore çdo ditë; Liturgji çdo të shtunë e të diel, në ditët me kryq (†) në Kalendarin
+  //   e Kishës dhe çdo ditë të Sarandarit të Krishtlindjes (15 nëntor – 24 dhjetor).
+  // Mbrëmësorja e mbrëmjes i takon ditës që vjen: Tipikoja e asaj dite thotë nëse është «e përditshme» apo e madhe.
+  // ---------- Ndryshimet e autorit në Programin e Kishës ----------
+  // Autori i shkruan nga telefoni te Paneli i autorit → data/programi_autori.json në depon live (GitHub Contents API).
+  // Të gjithë e lexojnë live nga GitHub Pages, pa përditësim aplikacioni.
+  const PGA_FILE = "data/programi_autori.json", PGA_REPO = "Nelo1231/fjala-e-shenjte-live", PGA_TOK = "fsa.ghtoken";
+  const PGA_CH = { kat: "Katedralja «Ngjallja e Krishtit»", ung: "Kisha «Ungjillëzimi i Hyjlindëses»", tj: "Kishë tjetër" };
+  const PGA_SV = [["men", "Mëngjesorja"], ["lit", "Liturgjia Hyjnore"], ["mbr", "Mbrëmësorja"], ["mbr", "Mbrëmësorja e Madhe"], ["mbr", "Paraklisi i Vogël i Hyjlindëses"],
+    ["x", "Paraklisi i Madh i Hyjlindëses"], ["x", "Agripnia"], ["x", "Himni Akathist"], ["x", "Bekimi i Ujit"], ["x", "Shërbesa e Përshpirtjes"], ["x", "Tjetër"]];
+  let pgA = store.get("pga.cache", null);
+  async function pgaLoad(force) {
+    if (pgA && pgA._at && !force && Date.now() - pgA._at < 60e3) return pgA;
+    try {
+      const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 6000);
+      const r = await fetch(`${LIVE_BASE}${PGA_FILE}?t=${Date.now()}`, { cache: "no-store", signal: ctl.signal });
+      clearTimeout(tm);
+      let j = null;
+      if (r.status === 404) j = { items: [] }; else if (r.ok) j = await r.json();
+      if (j && Array.isArray(j.items)) { pgA = j; pgA._at = Date.now(); store.set("pga.cache", pgA); }
+    } catch (e) { /* pa rrjet: mbetet kopja e fundit */ }
+    return pgA || { items: [] };
+  }
+  const pgaItems = () => (pgA && Array.isArray(pgA.items) ? pgA.items : []).filter((a) => a && /^\d{4}-\d\d-\d\d$/.test(a.d || ""));
+  const pgaFor = (ds) => pgaItems().filter((a) => a.d === ds);
+  const pgaHref = (c, t, ds) => /Paraklisi i Vogël/.test(t) ? "#/kendi-lutjes/paraklisi-vogel" : c === "men" || c === "lit" || c === "mbr" ? `#/sherbesa-dites/${ds}/${c}` : "";
+  const pgaM = (a) => { if (a.ch !== "tj") return "tirane"; const p = a.place || ""; return /Gjirokastr/i.test(p) ? "gjiro" : /Korç/i.test(p) ? "korce" : /Fier|Apoloni/i.test(p) ? "fier" : /Berat|Vlor|Kanin/i.test(p) ? "berat" : /Elbasan|Shpat|Librazhd/i.test(p) ? "elbasan" : "tirane"; };
+  // ndryshimet e autorit zbatohen mbi shërbesat e rregullta të ditës
+  function pgaApply(churches, ds) {
+    const A = pgaFor(ds); if (!A.length) return churches;
+    const ord = { men: 0, lit: 1, x: 2, mbr: 3 };
+    const put = (list, a) => {
+      const c = a.c || "x", i = c === "x" ? list.findIndex((s) => s.t === a.t) : list.findIndex((s) => s.c === c);
+      if (a.op === "anulo") { if (i >= 0) Object.assign(list[i], { off: true, adm: true, note: a.sh || "" }); return; }
+      const s = { ic: /Paraklis|Akathist/.test(a.t) ? "heart" : c === "men" ? "sun" : c === "x" ? "bell" : "candle", t: a.t, note: a.sh || "", href: pgaHref(c, a.t, ds), c, ora: a.ora || "", adm: true };
+      if (i >= 0) list[i] = s; else list.push(s);
+    };
+    churches.forEach((ch) => A.filter((a) => a.ch === ch.k).forEach((a) => put(ch.s, a)));
+    const other = {};
+    A.filter((a) => a.ch === "tj" && a.op !== "anulo").forEach((a) => {
+      const nm = (a.place || "Kishë tjetër").trim();
+      if (!other[nm]) { other[nm] = { k: "tj", name: nm, city: "", rx: /(?!)/, s: [] }; churches.push(other[nm]); }
+      put(other[nm].s, a);
+    });
+    churches.forEach((ch) => ch.s.sort((x, y) => (ord[x.c] ?? 2) - (ord[y.c] ?? 2)));
+    return churches;
+  }
+  // shërbesat e veçanta të autorit shfaqen edhe te «Ngjarjet e njoftuara»
+  function pgaEvents() {
+    const up = pgA && pgA.updated ? new Date(pgA.updated) : new Date();
+    return pgaItems().filter((a) => a.op !== "anulo" && (a.c === "x" || a.c === "lit" || a.ch === "tj")).map((a) => {
+      const [y, m, dd] = a.d.split("-").map(Number), d = new Date(y, m - 1, dd, 12);
+      const hm = /^(\d\d):(\d\d)$/.exec(a.ora || ""), t = hm ? new Date(y, m - 1, dd, +hm[1], +hm[2]) : null;
+      return { adm: true, d, t, title: a.t, place: a.ch === "tj" ? (a.place || "") : PGA_CH[a.ch] + ", Tiranë", who: "", ex: a.sh || "", by: "Programi i Kishës",
+        n: { src: "autori", link: "", fb: false }, posted: isNaN(up) ? new Date() : up, key: "pga:" + a.id, g: "tirane", m: pgaM(a) };
+    });
+  }
+
+  // --- publikimi (vetëm autori, me çelësin e tij të GitHub-it të ruajtur vetëm në telefonin e tij) ---
+  const pgaTok = () => { try { return localStorage.getItem(PGA_TOK) || ""; } catch (e) { return ""; } };
+  const pgaHdr = () => ({ Authorization: "Bearer " + pgaTok(), Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" });
+  const PGA_API = `https://api.github.com/repos/${PGA_REPO}/contents/${PGA_FILE}`;
+  const b64u = (str) => { const by = new TextEncoder().encode(str); let s = ""; for (let i = 0; i < by.length; i += 0x8000) s += String.fromCharCode.apply(null, by.subarray(i, i + 0x8000)); return btoa(s); };
+  const unb64u = (b) => new TextDecoder().decode(Uint8Array.from(atob(String(b || "").replace(/\s/g, "")), (c) => c.charCodeAt(0)));
+  async function pgaRemote() {
+    const r = await fetch(PGA_API + "?ref=main&t=" + Date.now(), { headers: pgaHdr(), cache: "no-store" });
+    if (r.status === 404) return { sha: null, doc: { items: [] } };
+    if (r.status === 401 || r.status === 403) throw new Error("auth");
+    if (!r.ok) throw new Error("http " + r.status);
+    const j = await r.json(); let doc = { items: [] };
+    try { doc = JSON.parse(unb64u(j.content)); } catch (e) { /* */ }
+    if (!doc || !Array.isArray(doc.items)) doc = { items: [] };
+    return { sha: j.sha, doc };
+  }
+  // change(items) → items të reja; lexon gjendjen e fundit nga GitHub, që të mos humbasë asgjë
+  async function pgaPublish(change, msg) {
+    for (let k = 0; k < 2; k++) {
+      const { sha, doc } = await pgaRemote();
+      const y = new Date(); y.setDate(y.getDate() - 1); const cut = isoD(y);
+      const items = change(doc.items.slice()).filter((a) => a.d >= cut).sort((a, b) => (a.d + (a.ora || "")).localeCompare(b.d + (b.ora || "")));
+      const out = { updated: new Date().toISOString(), items };
+      const body = { message: msg, content: b64u(JSON.stringify(out, null, 1) + "\n"), branch: "main" };
+      if (sha) body.sha = sha;
+      const r = await fetch(PGA_API, { method: "PUT", headers: Object.assign({ "Content-Type": "application/json" }, pgaHdr()), body: JSON.stringify(body) });
+      if (r.ok) { pgA = Object.assign(out, { _at: Date.now() }); store.set("pga.cache", pgA); return out; }
+      if (r.status === 401 || r.status === 403) throw new Error("auth");
+      if (r.status !== 409 && r.status !== 422) throw new Error("http " + r.status);
+    }
+    throw new Error("conflict");
+  }
+  const pgaErr = (e) => e && e.message === "auth" ? "Çelësi s'pranohet. Kontrollo që ka leje «Contents: Read and write» për depon live." : e && e.message === "conflict" ? "Skedari ndryshoi ndërkohë. Provo sërish." : "Nuk u publikua. Kontrollo internetin.";
+
+  async function viewAuthorProgram() {
+    if (!authorOK() || !authorOpen) { navReplace("#/autori"); return; }
+    const head = `<header class="page-head"><a class="back-btn" href="#/autori" aria-label="Kthehu">${icon("back")}</a><h1>Ndrysho Programin</h1></header>`;
+    listPane.innerHTML = head + `<div class="pg-load"><div class="spinner"></div></div>`;
+    enter(listPane); setMode("list"); mainPane.innerHTML = emptyMain();
+    let items = [], src = "";
+    if (pgaTok()) { try { items = (await pgaRemote()).doc.items; src = "github"; } catch (e) { /* */ } }
+    if (!src) items = (await pgaLoad(true)).items || [];
+    const tok = !!pgaTok(), today = isoToday();
+    const svOpts = PGA_SV.map(([c, t], i) => `<option value="${i}">${esc(t)}</option>`).join("");
+    const fmtD = (ds) => { const [y, m, d] = ds.split("-").map(Number), x = new Date(y, m - 1, d, 12); return `${VK_WD[x.getDay()]}, ${d} ${MUAJ[m - 1]}`; };
+    const up = items.filter((a) => a.d >= today);
+    const byDay = {}; up.forEach((a) => (byDay[a.d] = byDay[a.d] || []).push(a));
+    listPane.innerHTML = head + `
+      <p class="pg-intro">Çdo ndryshim që publikon këtu del <b>te të gjithë</b> te «Programi i Kishës» pas rreth një minute, pa përditësim aplikacioni.</p>
+      <section class="au-card glass pga-tok">
+        <h3>${icon("gear")} Çelësi i publikimit</h3>
+        ${tok ? `<p>Çelësi është ruajtur vetëm në këtë telefon (s'hyn në kopjen rezervë).</p>
+          <div class="row au-row"><button class="btn sm" id="pgaTest" type="button">${icon("check")}<span>Provo çelësin</span></button>
+          <button class="btn sm" id="pgaDel" type="button">${icon("close")}<span>Hiqe çelësin</span></button></div>`
+        : `<ol class="pga-steps"><li>Në GitHub: <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</b>.</li>
+          <li>Repository access: <b>Only select repositories → fjala-e-shenjte-live</b>.</li>
+          <li>Permissions → Repository → <b>Contents: Read and write</b>. Asgjë tjetër.</li>
+          <li>Kopjo çelësin dhe ngjite këtu. Ruhet vetëm në këtë telefon.</li></ol>
+          <form id="pgaTokF" class="pga-tokf"><input id="pgaTokI" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" required>
+          <button class="btn primary sm" type="submit">${icon("check")}<span>Ruaje</span></button></form>`}
+      </section>
+      <h2 class="hub-h">Shto një ndryshim</h2>
+      <form class="au-card glass pga-form" id="pgaF">
+        <label>Dita<input type="date" id="pgaD" min="${today}" value="${today}" required></label>
+        <label>Kisha<select id="pgaCh"><option value="kat">${esc(PGA_CH.kat)}</option><option value="ung">${esc(PGA_CH.ung)}</option><option value="tj">Kishë tjetër…</option></select></label>
+        <label class="pga-place" hidden>Emri i kishës dhe qyteti<input id="pgaPl" maxlength="90" placeholder="p.sh. Kisha e Shën Prokopit, Tiranë"></label>
+        <div class="pga-op" role="radiogroup"><label><input type="radio" name="pgaOp" value="shto" checked> Shto · ndrysho</label><label><input type="radio" name="pgaOp" value="anulo"> Nuk bëhet</label></div>
+        <label>Shërbesa<select id="pgaSv">${svOpts}</select></label>
+        <label class="pga-other" hidden>Emri i shërbesës<input id="pgaT" maxlength="90"></label>
+        <label class="pga-time">Ora (nëse dihet)<input type="time" id="pgaO"></label>
+        <label>Shënim (opsional)<input id="pgaN" maxlength="160" placeholder="p.sh. Kryeson Kryepiskopi"></label>
+        <button class="btn primary" type="submit" ${tok ? "" : "disabled"}>${icon("send")}<span>Publiko</span></button>
+        ${tok ? "" : `<p class="muted">Ruaj së pari çelësin e publikimit.</p>`}
+      </form>
+      <h2 class="hub-h">Ndryshimet e publikuara</h2>
+      ${Object.keys(byDay).length ? Object.keys(byDay).sort().map((ds) => `<section class="pga-day"><h3>${esc(fmtD(ds))}</h3><ul>${byDay[ds].map((a) => `<li class="glass${a.op === "anulo" ? " off" : ""}">
+          <span><b>${a.op === "anulo" ? "Nuk bëhet: " : ""}${esc(a.t)}</b><small>${esc(a.ch === "tj" ? a.place || "Kishë tjetër" : PGA_CH[a.ch])}${a.ora ? " · ora " + esc(a.ora) : ""}${a.sh ? " · " + esc(a.sh) : ""}</small></span>
+          ${tok ? `<button class="icon-btn small" type="button" data-pgadel="${esc(a.id)}" aria-label="Fshi">${icon("close")}</button>` : ""}</li>`).join("")}</ul></section>`).join("")
+        : `<p class="muted pga-none">Asnjë ndryshim për ditët në vijim. Programi tregon shërbesat e rregullta.</p>`}
+      <a class="btn" href="#/programi">${icon("calendar")}<span>Shiko Programin</span></a>`;
+    const f = $("#pgaF"), chS = $("#pgaCh"), svS = $("#pgaSv");
+    const sync = () => {
+      $(".pga-place", f).hidden = chS.value !== "tj";
+      $(".pga-other", f).hidden = PGA_SV[+svS.value][1] !== "Tjetër";
+      const off = $("input[name=pgaOp]:checked", f).value === "anulo";
+      $(".pga-time", f).hidden = off;
+    };
+    chS.onchange = svS.onchange = sync; $$("input[name=pgaOp]", f).forEach((r) => (r.onchange = sync)); sync();
+    const tf = $("#pgaTokF");
+    if (tf) tf.addEventListener("submit", (e) => {
+      e.preventDefault(); const v = $("#pgaTokI").value.trim();
+      if (!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(v)) { toast("Ky s'duket si çelës GitHub"); return; }
+      try { localStorage.setItem(PGA_TOK, v); } catch (err) { /* */ }
+      haptic(14); toast("Çelësi u ruajt ✓"); viewAuthorProgram();
+    });
+    const tb = $("#pgaTest");
+    if (tb) tb.onclick = async () => { toast("Po provoj…"); try { await pgaRemote(); toast("Çelësi punon ✓"); } catch (e) { toast(pgaErr(e)); } };
+    const db = $("#pgaDel");
+    if (db) db.onclick = () => { if (!confirm("Ta heq çelësin nga ky telefon?")) return; try { localStorage.removeItem(PGA_TOK); } catch (e) { /* */ } viewAuthorProgram(); };
+    let busy = false;
+    f.addEventListener("submit", async (e) => {
+      e.preventDefault(); if (busy || !pgaTok()) return;
+      const d = $("#pgaD").value, ch = chS.value, [c, t0] = PGA_SV[+svS.value], op = $("input[name=pgaOp]:checked", f).value;
+      const t = t0 === "Tjetër" ? $("#pgaT").value.trim() : t0, place = ch === "tj" ? $("#pgaPl").value.trim() : "";
+      if (!d || d < today) { toast("Zgjidh një ditë nga sot e tutje"); return; }
+      if (!t) { toast("Shkruaj emrin e shërbesës"); return; }
+      if (ch === "tj" && !place) { toast("Shkruaj emrin e kishës"); return; }
+      if (ch === "tj" && op === "anulo") { toast("«Nuk bëhet» vlen për dy kishat e Tiranës"); return; }
+      const a = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), d, ch, op, c: t0 === "Tjetër" ? "x" : c, t };
+      if (place) a.place = place;
+      const ora = $("#pgaO").value; if (ora && op !== "anulo") a.ora = ora;
+      const sh = $("#pgaN").value.trim(); if (sh) a.sh = sh;
+      busy = true; const btn = $("button[type=submit]", f); btn.disabled = true; toast("Po publikoj…");
+      try {
+        // i njëjti shërbim në të njëjtën ditë e kishë zëvendësohet
+        const same = (x) => x.d === a.d && x.ch === a.ch && (a.ch !== "tj" || x.place === a.place) && (a.c === "x" ? x.t === a.t : x.c === a.c);
+        await pgaPublish((L) => L.filter((x) => !same(x)).concat([a]), `Programi: ${op === "anulo" ? "nuk bëhet" : "shto"} ${t} · ${d}`);
+        haptic([15, 30, 15]); toast("U publikua ✓ · del te të gjithë pas ~1 minute"); viewAuthorProgram();
+      } catch (err) { toast(pgaErr(err)); btn.disabled = false; } finally { busy = false; }
+    });
+    $$("[data-pgadel]", listPane).forEach((b) => b.addEventListener("click", async () => {
+      if (busy || !confirm("Ta heq këtë ndryshim? Programi kthehet te shërbesat e rregullta.")) return;
+      busy = true; toast("Po heq…");
+      try { await pgaPublish((L) => L.filter((x) => x.id !== b.dataset.pgadel), "Programi: hiq një ndryshim"); toast("U hoq ✓"); viewAuthorProgram(); }
+      catch (err) { toast(pgaErr(err)); } finally { busy = false; }
+    }));
+  }
+
+  function pgVespers(eve) {
+    const n = new Date(eve.getFullYear(), eve.getMonth(), eve.getDate() + 1, 12), tp = data.tipikoja;
+    const sc = tp && n.getFullYear() === 2026 ? tp.sections[n.getMonth()] : null;
+    const it = sc ? sc.items.find((x) => parseInt(x.title, 10) === n.getDate()) : null;
+    if (!it) return null;   // pa Tipikonë për atë ditë: s'e dimë
+    return /Mbrëmësor\w*\s+e\s+përditshme/i.test(it.blocks.map((b) => b.x).join(" ")) ? "daily" : "great";
+  }
+  function pgDayServices(d) {
+    const f = Fast.info(d), wd = d.getDay(), ds = isoD(d), v = pgVespers(d);
+    const sar = f.saranta ? Math.round((pgDay(d) - new Date(d.getFullYear(), 10, 15, 12)) / 864e5) + 1 : 0;
+    const vName = v === "great" ? "Mbrëmësorja e Madhe" : v === "daily" ? "Mbrëmësorja e përditshme" : "Mbrëmësorja";
+    const S = (ic, t, note, href) => ({ ic, t, note, href, c: /Mëngjes/.test(t) ? "men" : /Liturgji/.test(t) ? "lit" : "mbr" });
+    const cat = [];
+    if (wd !== 6) cat.push(S("sun", "Mëngjesorja", "", `#/sherbesa-dites/${ds}/men`));
+    if (wd === 0) cat.push(S("candle", "Liturgjia Hyjnore", "E diel", `#/sherbesa-dites/${ds}/lit`));
+    if (wd === 5 && v === "daily") cat.push(S("heart", "Paraklisi i Vogël i Hyjlindëses", "Në vend të Mbrëmësores së përditshme", "#/kendi-lutjes/paraklisi-vogel"));
+    else cat.push(S("candle", vName, wd === 5 && v === "great" ? "Tipikoja s'ka Mbrëmësore të përditshme: Mbrëmësorja e Madhe" : "", `#/sherbesa-dites/${ds}/mbr`));
+    const ung = [S("sun", "Mëngjesorja", "", `#/sherbesa-dites/${ds}/men`)];
+    // Ungjillëzimi: Liturgji çdo të shtunë dhe të diel, në ditët me kryq (†) dhe gjatë Sarandarit
+    if (f.liturgy || f.saranta || wd === 0 || wd === 6) ung.push(S("candle", "Liturgjia Hyjnore", [wd === 0 ? "E diel" : wd === 6 ? "E shtunë" : f.liturgy && f.fromCal ? "Ditë me kryq (†) në Kalendarin e Kishës" : f.liturgy ? "E kremte" : "", sar ? `Sarandari i Krishtlindjes · dita ${sar} nga 40` : ""].filter(Boolean).join(" · "), `#/sherbesa-dites/${ds}/lit`));
+    ung.push(S("candle", vName, "", `#/sherbesa-dites/${ds}/mbr`));
+    return pgaApply([
+      { k: "kat", name: "Katedralja «Ngjallja e Krishtit»", city: "Tiranë", rx: /Ngjallja e Krishtit/i, s: cat },
+      { k: "ung", name: "Kisha «Ungjillëzimi i Hyjlindëses»", city: "Tiranë", rx: /Ungjillëzimi/i, s: ung },
+    ], ds);
+  }
+  function pgWeekHtml(L, sel) {
+    const t0 = pgDay(new Date()), days = Array.from({ length: 7 }, (_, i) => new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + i, 12));
+    const d = days[Math.max(0, Math.min(6, sel))];
+    const ev = L.filter((e) => isoD(e.d) === isoD(d));
+    const chips = days.map((x, i) => `<button type="button" role="tab" data-pgd="${i}" aria-selected="${i === sel}"><small>${i === 0 ? "Sot" : i === 1 ? "Nesër" : VK_WD[x.getDay()].replace(/^E\s+/, "").slice(0, 3)}</small><b>${x.getDate()}</b>${pgaFor(isoD(x)).length ? `<i class="pgr-dot" aria-label="ka ndryshime"></i>` : ""}</button>`).join("");
+    const li = (s) => { const inner = `${icon(s.ic)}<span><b>${s.off ? `<s>${esc(s.t)}</s>` : esc(s.t)}${s.adm ? ` <em class="pgr-adm">${s.off ? "Nuk bëhet" : "Njoftim"}</em>` : ""}</b>${s.ora || s.note ? `<small>${[s.ora ? "ora " + esc(s.ora) : "", esc(s.note || "")].filter(Boolean).join(" · ")}</small>` : ""}</span>`;
+      return `<li${s.off ? ` class="pgr-off"` : s.adm ? ` class="pgr-new"` : ""}>${s.href && !s.off ? `<a href="${s.href}">${inner}<i>›</i></a>` : `<span class="pgr-a">${inner}</span>`}</li>`; };
+    const churches = pgDayServices(d).map((c) => {
+      // vetëm njoftimet për Tiranën (edhe Katedralja e Gjirokastrës quhet «Ngjallja e Krishtit»)
+      const extra = ev.filter((e) => { const tx = `${e.place} ${e.title} ${e.ex}`; return c.rx.test(tx) && /Tiran/i.test(tx) && !e.by && !/Gjirokast|Korç|Berat|Elbasan|Fier|Durrës|Vlor|Sarand/i.test(e.place); });
+      return `<article class="pgr-ch"><header><b>${esc(c.name)}</b>${c.city ? `<small>${esc(c.city)}</small>` : ""}</header>
+        <ul>${c.s.map(li).join("")}
+        ${extra.map((e) => `<li class="pgr-ev"><span class="pgr-a">${icon("bell")}<span><b>${esc(e.title)}</b><small>Njoftuar${e.t ? ` · ora ${pad2(e.t.getHours())}:${pad2(e.t.getMinutes())}` : ""}</small></span></span></li>`).join("")}</ul></article>`;
+    }).join("");
+    return `<section class="pgr" aria-label="Shërbesat e çdo dite">
+      <h2 class="pgr-h">Shërbesat e çdo dite · Tiranë</h2>
+      ${authorOK() && authorOpen ? `<a class="btn sm pgr-edit" href="#/autori-programi">${icon("pen")}<span>Ndrysho programin</span></a>` : ""}
+      <div class="pgr-days" role="tablist">${chips}</div>
+      <p class="pgr-date">${VK_WD[d.getDay()]}, ${d.getDate()} ${MUAJ[d.getMonth()]}${(() => { const ft = Fast.info(d).feast, n = typeof ft === "string" ? ft : ft && (ft.name || ft.t); return n ? ` · ${esc(n)}` : ""; })()}</p>
+      <div class="pgr-grid">${churches}</div>
+      <p class="pgr-note">Sipas rregullit të shërbesave të kishave dhe Tipikosë së Kishës. Rastet e veçanta (p.sh. Liturgji të shtunën) shtohen këtu dhe më poshtë kur Kisha i njofton.</p>
+    </section>`;
+  }
+
   async function viewProgrami() {
     listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/kisha" aria-label="Kthehu">${icon("back")}</a><h1>Programi i Kishës</h1></header><div class="pg-load"><div class="spinner"></div></div>`;
     enter(listPane); setMode("list");
-    const L = await pgLoad().catch(() => []);
-    const t0 = pgDay(new Date()), up = L.filter((e) => e.d >= t0), past = L.filter((e) => e.d < t0).reverse().slice(0, 12);
+    const [L0] = await Promise.all([pgLoad().catch(() => []), load("kalendari").catch(() => null), load("tipikoja").catch(() => null), pgaLoad(true).catch(() => null)]);
+    const L = L0.concat(pgaEvents()).sort((a, b) => (a.t || a.d) - (b.t || b.d));
+    let pgSel = 0;
+    let pgM = store.get("pg.m", "");
+    const t0 = pgDay(new Date()), upAll = L.filter((e) => e.d >= t0), pastAll = L.filter((e) => e.d < t0).reverse();
+    const up = upAll.filter((e) => !pgM || e.m === pgM), past = pastAll.filter((e) => !pgM || e.m === pgM).slice(0, 12);
+    const MTS = [["", "Të gjitha"], ["tirane", "Tiranë"], ["korce", "Korçë"], ["gjiro", "Gjirokastër"], ["fier", "Fier"], ["berat", "Berat"], ["elbasan", "Elbasan"]];
     const R = pgRem(), canRem = !!(android && android.scheduleReminders);
     const card = (e, i, old) => { const d = e.d, rel = vkIn(Math.round((d - t0) / 864e5));
       return `<article class="pg-ev${old ? " pg-old" : ""}" data-pg="${i}">
@@ -3710,22 +3967,30 @@ function pickPhoto(it) {
           <h3>${esc(e.title)}</h3>
           ${e.place ? `<p class="pg-meta">${icon("church")}<span>${esc(e.place)}</span></p>` : ""}
           ${e.who ? `<p class="pg-meta">${icon("cross")}<span>${esc(e.who)}</span></p>` : ""}
+          ${e.adm && e.ex ? `<p class="pg-meta">${icon("pen")}<span>${esc(e.ex)}</span></p>` : ""}
           <p class="pg-src">${esc(e.by || (e.n.src === "koash" || e.g === "tirane" ? "KOASh" : (FB_BY[e.g] || {}).head || "KOASh"))} · njoftuar më ${e.posted.getDate()} ${MUAJ[e.posted.getMonth()]}</p>
           <div class="pg-act">
-            <button type="button" class="btn sm" data-pa="read">${icon("news")}<span>Njoftimi</span></button>
+            ${e.adm ? "" : `<button type="button" class="btn sm" data-pa="read">${icon("news")}<span>Njoftimi</span></button>`}
             ${old ? "" : `<button type="button" class="btn sm" data-pa="ics">${icon("calendar")}<span>Në kalendar</span></button>
             ${canRem ? `<button type="button" class="btn sm${R[e.key] ? " on" : ""}" data-pa="rem" aria-pressed="${!!R[e.key]}">${icon("bell")}<span>${R[e.key] ? "Do të të kujtoj" : "Më kujto"}</span></button>` : ""}`}
           </div>
         </div></article>`; };
     const all = up.concat(past);
     listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/kisha" aria-label="Kthehu">${icon("back")}</a><h1>Programi i Kishës</h1></header>
-      <p class="pg-intro">Liturgjitë kryepriftërore, kremtimet, pritjet e lipsaneve dhe ngjarjet që Kisha dhe Mitropolitë njoftojnë.</p>
+      <div id="pgrSlot">${pgWeekHtml(L, pgSel)}</div>
+      <h2 class="pgr-h pg-h2">Ngjarjet e njoftuara</h2>
+      <p class="pg-intro">Liturgjitë kryepriftërore, kremtimet, pritjet e lipsaneve dhe ngjarjet që Kryepiskopata dhe Mitropolitë njoftojnë.</p>
+      <div class="pg-mts" role="tablist">${MTS.map(([k, t]) => { const n = upAll.filter((e) => !k || e.m === k).length; return `<button type="button" role="tab" data-pgm="${k}" aria-selected="${k === pgM}">${t}${n ? ` <small>${n}</small>` : ""}</button>`; }).join("")}</div>
       ${up.length ? `<section class="pg-list">${up.map((e, i) => card(e, i, false)).join("")}</section>`
         : `<div class="empty">${icon("calendar")}<h3>Asnjë ngjarje e njoftuar</h3><p>Për ditët në vijim nuk ka ende njoftime zyrtare. Faqja përditësohet vetë sapo Kisha ose një Mitropoli njofton një ngjarje.</p></div>`}
       ${past.length ? `<details class="pg-past"><summary>Ngjarjet e kaluara (${past.length})</summary><section class="pg-list">${past.map((e, i) => card(e, up.length + i, true)).join("")}</section></details>` : ""}
       <p class="mj-cite pg-cite">${esc(KOASH_CITE)} · faqet zyrtare të Mitropolive</p>`;
     enter(listPane);
     listPane.onclick = async (ev) => {
+      const mb = ev.target.closest("[data-pgm]");
+      if (mb) { store.set("pg.m", mb.dataset.pgm); haptic(6); const y = listPane.scrollTop; await viewProgrami(); listPane.scrollTop = y; return; }
+      const dd = ev.target.closest("[data-pgd]");
+      if (dd) { pgSel = +dd.dataset.pgd; haptic(6); $("#pgrSlot", listPane).innerHTML = pgWeekHtml(L, pgSel); return; }
       const b = ev.target.closest("[data-pa]"); if (!b) return;
       const e = all[+b.closest("[data-pg]").dataset.pg]; if (!e) return; haptic(8);
       if (b.dataset.pa === "read") { const h = pgHref(e); if (h) location.hash = h; else openSite(e.n.link); }
@@ -7807,6 +8072,10 @@ function pickPhoto(it) {
         <a class="set-link" href="#/njoftimet">${icon("bell")}<span>Të gjitha njoftimet · zgjidh cilat do</span><i>›</i></a></section>
       <p class="set-ver">Fjala e Shenjtë · v${esc(APP_VERSION)}</p>`;
     enter(listPane); mainPane.innerHTML = emptyMain(); setMode("list");
+    { let taps = 0, tt = 0; const sv = $(".set-ver", listPane);
+      if (sv) sv.addEventListener("click", () => { clearTimeout(tt); tt = setTimeout(() => (taps = 0), 1500);
+        if (++taps < 5) return; taps = 0;
+        if (authorOK() && authorOpen) location.hash = "#/autori"; else askAuthorCode(() => { location.hash = "#/autori"; }, !authorOK()); }); }
     $$("[data-th]", listPane).forEach((b) => b.addEventListener("click", () => {
       store.set("theme", b.dataset.th); applyTheme(true); haptic(12);
       themePick(listPane, b);
@@ -11057,38 +11326,50 @@ function pickPhoto(it) {
   let authorOpen = false;
   async function sha256hex(t) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""); }
   const isAuthorName = (n, b) => /^minuel/.test(nrm(n || "")) && /^emanuel/.test(nrm(b || ""));
-  function askAuthorCode(then) {
+  function askAuthorCode(then, full) {
     if ($(".author-sheet")) return;
+    // në çdo telefon: emri, emri i pagëzimit dhe kodi; profili i telefonit nuk preket
+    const names = full || !isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""));
     const el = document.createElement("div");
     el.className = "sheet update-sheet author-sheet";
     el.innerHTML = `<div class="sheet-card update-card" role="dialog" aria-modal="true">
         <div class="upd-icon">✦</div>
-        <h2>Mirë se erdhe, Emanuel</h2>
-        <p class="upd-notes">Je autori i aplikacionit? Shkruaj kodin tënd.</p>
-        <form id="auForm" class="rr-open"><input id="auCode" class="rr-pin" type="password" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="••••••">
+        <h2>${names ? "Hyrja e autorit" : "Mirë se erdhe, Emanuel"}</h2>
+        <p class="upd-notes">${names ? "Shkruaj emrin, emrin e pagëzimit dhe kodin." : "Je autori i aplikacionit? Shkruaj kodin tënd."}</p>
+        <form id="auForm" class="rr-open${names ? " au-full" : ""}">${names ? `<input id="auName" class="au-in" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Emri">
+          <input id="auBapt" class="au-in" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Emri i pagëzimit">` : ""}
+          <input id="auCode" class="rr-pin" type="password" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="••••••">
           <button class="btn primary" type="submit">Hyr</button></form>
+        <p class="au-lockmsg" hidden></p>
         <button class="btn upd-later" type="button">Jo tani</button></div>`;
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add("open"));
-    setTimeout(() => $("#auCode", el)?.focus(), 350);
+    setTimeout(() => $(names ? "#auName" : "#auCode", el)?.focus(), 350);
     const close = () => { el.classList.remove("open"); setTimeout(() => el.remove(), 300); };
     $(".upd-later", el).addEventListener("click", close);
     $("#auForm", el).addEventListener("submit", async (e) => {
       e.preventDefault();
-      const ok = (await sha256hex("fjala-autori:" + $("#auCode", el).value.trim())) === AUTHOR_HASH;
-      if (!ok) { const f = $("#auForm", el); f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); haptic([60, 40, 60], true); $("#auCode", el).value = ""; return; }
-      store.set("author", true); authorOpen = true;
+      const fl = store.get("author.fail", { n: 0, until: 0 }), msg = $(".au-lockmsg", el);
+      if (fl.until > Date.now()) { msg.hidden = false; msg.textContent = `Shumë prova të gabuara. Provo pas ${Math.ceil((fl.until - Date.now()) / 60e3)} minutash.`; return; }
+      const nmOk = !names || isAuthorName($("#auName", el).value.trim(), $("#auBapt", el).value.trim());
+      const ok = nmOk && (await sha256hex("fjala-autori:" + $("#auCode", el).value.trim())) === AUTHOR_HASH;
+      if (!ok) {
+        fl.n = (fl.n || 0) + 1; if (fl.n >= 5) { fl.until = Date.now() + 10 * 60e3; fl.n = 0; } store.set("author.fail", fl);
+        const f = $("#auForm", el); f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); haptic([60, 40, 60], true); $("#auCode", el).value = ""; return;
+      }
+      store.set("author.fail", { n: 0, until: 0 });
+      store.set("author", true); store.set("author.dev", true); authorOpen = true;
       haptic([30, 60, 30, 60, 160], true); goldBurst(); close();
       toast("✦ Mirë se erdhe, autor Emanuel!");
       if (then) then();
     });
   }
-  const authorOK = () => store.get("author", false) && isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""));
+  const authorOK = () => store.get("author.dev", false) || (store.get("author", false) && isAuthorName(store.get("me.name", ""), store.get("me.bapt", "")));
   // ask=true VETËM kur sapo janë shkruar e ruajtur dy emrat (emri + emri i pagëzimit);
   // në nisje dhe kudo tjetër vetëm kontrollohet: askush nuk e sheh as faqen, as kërkesën për kod.
   function checkAuthor(ask) {
     // po s'janë më emrat e autorit, mënyra e autorit fiket dhe paneli fshihet krejt
-    if (!isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""))) { if (store.get("author", false)) store.set("author", false); authorOpen = false; $(".author-sheet")?.remove(); return; }
+    if (!isAuthorName(store.get("me.name", ""), store.get("me.bapt", ""))) { if (store.get("author.dev", false)) return; if (store.get("author", false)) store.set("author", false); authorOpen = false; $(".author-sheet")?.remove(); return; }
     if (store.get("author", false) || ask !== true) return;
     askAuthorCode(() => { location.hash = "#/autori"; });
   }
@@ -11142,6 +11423,8 @@ function pickPhoto(it) {
       <div class="au-tools">
         <button class="btn" id="auUpd">${icon("refresh")}<span>Kontrollo përditësimin</span></button>
         <button class="btn" id="auCache">${icon("close")}<span>Pastro cache-t</span></button>
+        <a class="btn primary" href="#/autori-programi">${icon("calendar")}<span>Ndrysho Programin e Kishës</span></a>
+        <button class="btn" id="auOut">${icon("back")}<span>Dil nga ky telefon</span></button>
       </div>`;
     done();
     const persist = (l) => { store.set("author.log", l); store.set("author.dirty", true); viewAuthor(); };
@@ -11171,6 +11454,12 @@ function pickPhoto(it) {
       } catch (err) { toast("Kopja nuk u lexua"); }
     });
     $("#auUpd").addEventListener("click", () => { toast("Po kontrolloj…"); checkAppUpdate(); });
+    $("#auOut").addEventListener("click", () => {
+      if (!confirm("Të dalësh nga mënyra e autorit në këtë telefon? Hiqet edhe çelësi i publikimit të Programit.")) return;
+      store.set("author.dev", false); store.set("author", false); authorOpen = false;
+      try { localStorage.removeItem(PGA_TOK); } catch (e) { /* */ }
+      haptic(20); toast("Dole nga mënyra e autorit"); location.hash = "#/shpirti";
+    });
     $("#auCache").addEventListener("click", async () => {
       try { for (const k of await caches.keys()) await caches.delete(k); } catch (e) { /* */ }
       freeIcons(); toast("Cache-t u pastruan ✓");
@@ -12502,7 +12791,7 @@ function pickPhoto(it) {
       app.dataset.view = "read";
       listPane.onclick = null; mainPane.onclick = null;
       const navOf = { pelqyerat: "pelqyerat", shenime: "pelqyerat", kisha: "kisha", lajm: "kisha", postim: "kisha", seksion: "kisha", arkiv: "kisha", lajme: "kisha", gazeta: "lexo", mitropolite: "lexo", fanari: "lexo", vatikani: "lexo", gazetat: "lexo", shkolla: "kisha", shpirti: "shpirti", lutja: "shpirti", fjala: "shpirti", emri: "shpirti",
-        noli: "lexo", perleshoret: "lexo", diptiket: "shpirti", viti: "shpirti", pashkalia: "shpirti", mbrojtesi: "shpirti", urime: "shpirti", kuiz: "shpirti", komboskini: "shpirti", rrefimi: "shpirti", autori: "shpirti", kanuni: "shpirti", kathizma: "shpirti", shqyrtimi: "shpirti", frymemarrja: "shpirti", edjela: "shpirti", ikona: "shpirti", numerimi: "shpirti", sfida: "shpirti", kungimi: "shpirti", mjekesia: "shpirti", lindja: "shpirti", lavdi: "shpirti", kalendari: "shpirti", cilesimet: "shpirti", transmetime: "kisha", programi: "kisha", kinema: "lexo" };
+        noli: "lexo", perleshoret: "lexo", diptiket: "shpirti", viti: "shpirti", pashkalia: "shpirti", mbrojtesi: "shpirti", urime: "shpirti", kuiz: "shpirti", komboskini: "shpirti", rrefimi: "shpirti", autori: "shpirti", "autori-programi": "shpirti", kanuni: "shpirti", kathizma: "shpirti", shqyrtimi: "shpirti", frymemarrja: "shpirti", edjela: "shpirti", ikona: "shpirti", numerimi: "shpirti", sfida: "shpirti", kungimi: "shpirti", mjekesia: "shpirti", lindja: "shpirti", lavdi: "shpirti", kalendari: "shpirti", cilesimet: "shpirti", transmetime: "kisha", programi: "kisha", kinema: "lexo" };
     if (view === "kisha") document.querySelector('.nav-btn[data-go="kisha"]')?.classList.remove("has-new");
     if (view !== "lajm" && view !== "seksion") mainPane.classList.remove("art-open");
     if (view !== "lajme" && view !== "gazeta" && view !== "mitropolite" && view !== "fanari" && view !== "kishat" && view !== "vatikani" && view !== "shkolla") NewsImg.stop();
@@ -12530,6 +12819,7 @@ function pickPhoto(it) {
       else if (view === "lutja") await viewPrayer();
       else if (view === "komboskini") viewRope();
       else if (view === "autori") viewAuthor();
+      else if (view === "autori-programi") await viewAuthorProgram();
       else if (view === "kanuni") await viewRule(parts[1]);
       else if (view === "kathizma") await viewKathisma(parts[1]);
       else if ((view === "rrefimi" || view === "shqyrtimi") && unbaptized()) viewLocked(view);
@@ -13762,7 +14052,7 @@ function pickPhoto(it) {
   }, { passive: true });
 
   /* ---------- Përditësimet private të APK-së ---------- */
-  const APP_VERSION = "3.5.6";
+  const APP_VERSION = "3.5.9";
   const UPDATE_BASE = "https://nelo1231.github.io/fjala-e-shenjte-live";   // GitHub Pages; APK-ja te GitHub Releases
   async function checkAppUpdate() {
     try {

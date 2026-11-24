@@ -4270,3 +4270,71 @@ html.eco .vr-sel { transition: none; }
 .xm-list li { margin: 2px 0; font-size: 13px; }
 .xm-list li button { all: unset; cursor: pointer; display: block; padding: 6px 4px; border-radius: 8px; color: #fff4d6; line-height: 1.35; }
 .xm-list li button:hover, .xm-list li button:focus-visible { background: rgba(244, 213, 138, .12); }
+
+/* ---------- Programi: shërbesat e çdo dite (Tiranë) ---------- */
+.pgr { margin: 0 16px 14px; padding: 14px; border-radius: 22px; background: radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--gold) 14%, transparent), transparent 70%), var(--card); border: 1px solid var(--line); }
+.pgr-h { margin: 0 0 10px; font-family: var(--font-cap); font-weight: 500; font-size: 17px; letter-spacing: .03em; color: var(--accent); }
+.pg-h2 { margin: 18px 16px 4px; }
+.pgr-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-bottom: 10px; }
+.pgr-days button { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 7px 2px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; cursor: pointer; min-width: 0; }
+.pgr-days button small { font-size: 10.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.pgr-days button b { font-size: 16px; font-weight: 600; }
+.pgr-days button[aria-selected="true"] { background: color-mix(in srgb, var(--gold) 26%, transparent); border-color: color-mix(in srgb, var(--gold) 60%, transparent); }
+.pgr-days button[aria-selected="true"] small { color: var(--ink); }
+.pgr-date { margin: 0 0 10px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.pgr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.pgr-ch { padding: 10px 10px 6px; border-radius: 16px; background: color-mix(in srgb, var(--ink) 4%, transparent); border: 1px solid var(--line); }
+.pgr-ch header { display: flex; flex-direction: column; margin: 0 4px 6px; }
+.pgr-ch header b { font-size: 14px; color: var(--accent); }
+.pgr-ch header small { font-size: 11.5px; color: var(--ink-2); }
+.pgr-ch ul { list-style: none; margin: 0; padding: 0; }
+.pgr-ch li a, .pgr-a { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-top: 1px solid var(--line); text-decoration: none; color: var(--ink); }
+.pgr-ch li:first-child a { border-top: 0; }
+.pgr-ch li svg { width: 18px; height: 18px; flex: none; color: var(--accent); }
+.pgr-ch li span span, .pgr-ch li a > span { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.pgr-ch li b { font-size: 13.5px; font-weight: 600; }
+.pgr-ch li small { font-size: 11.5px; color: var(--ink-2); line-height: 1.3; }
+.pgr-ch li i { color: var(--ink-2); font-style: normal; }
+.pgr-ev .pgr-a { background: color-mix(in srgb, var(--gold) 12%, transparent); border-radius: 10px; padding: 8px; }
+.pgr-note { margin: 10px 2px 0; font-size: 11.5px; color: var(--ink-2); line-height: 1.4; }
+.pg-mts { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 0 16px 12px; }
+.pg-mts::-webkit-scrollbar { display: none; }
+.pg-mts button { flex: none; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.pg-mts button small { margin-left: 3px; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--gold) 30%, transparent); font-size: 11px; }
+.pg-mts button[aria-selected="true"] { background: color-mix(in srgb, var(--gold) 26%, transparent); border-color: color-mix(in srgb, var(--gold) 60%, transparent); font-weight: 600; }
+
+/* ---------- Programi: ndryshimet e autorit ---------- */
+.pgr-days button { position: relative; }
+.pgr-dot { position: absolute; top: 4px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.pgr-adm { font-style: normal; font-size: 10.5px; font-weight: 600; padding: 1px 6px; border-radius: 8px; margin-left: 4px; vertical-align: 1px; background: color-mix(in srgb, var(--gold) 26%, transparent); color: var(--ink); }
+.pgr-off .pgr-adm { background: color-mix(in srgb, #c0392b 18%, transparent); }
+.pgr-off b s { opacity: .65; }
+.pgr-off svg { opacity: .45; }
+.pgr-ch li:first-child .pgr-a { border-top: 0; }
+.pgr-edit { margin: 0 0 10px; }
+.pga-tok h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 15px; }
+.pga-tok h3 svg { width: 18px; height: 18px; }
+.pga-steps { margin: 0 0 10px; padding-left: 20px; font-size: 13.5px; line-height: 1.5; }
+.pga-tokf { display: flex; gap: 8px; }
+.pga-tokf input { flex: 1; min-width: 0; }
+.pga-form { display: grid; gap: 10px; }
+.pga-form label { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.pga-form label[hidden] { display: none; }
+.pga-form input, .pga-form select, .pga-tokf input { font: inherit; font-size: 15px; color: var(--ink); background: color-mix(in srgb, var(--ink) 5%, transparent); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; width: 100%; box-sizing: border-box; }
+.pga-op { display: flex; gap: 14px; flex-wrap: wrap; font-size: 14px; }
+.pga-op label { display: flex; align-items: center; gap: 6px; color: var(--ink); }
+.pga-op input { width: auto; }
+.pga-day h3 { font-size: 13px; color: var(--ink-2); margin: 12px 4px 6px; font-weight: 600; }
+.pga-day ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pga-day li { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; }
+.pga-day li > span { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.pga-day li small { color: var(--ink-2); font-size: 12px; }
+.pga-day li.off b { text-decoration: line-through; text-decoration-thickness: 1px; }
+.pga-none { margin: 6px 4px 14px; }
+
+/* ---------- Hyrja e autorit nga çdo telefon ---------- */
+.rr-open.au-full { display: grid; grid-template-columns: 1fr; gap: 8px; max-width: 300px; margin-left: auto; margin-right: auto; }
+.au-full .au-in, .au-full .rr-pin { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 11px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg-2); color: var(--ink); }
+.au-full .rr-pin { font-size: 22px; text-align: center; letter-spacing: .4em; }
+.au-lockmsg { text-align: center; font-size: 13px; color: #c0392b; margin: 4px 0 0; }
+.set-ver { cursor: default; user-select: none; -webkit-user-select: none; }

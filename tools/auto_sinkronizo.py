@@ -627,6 +627,10 @@ def sync_live():
             if f.startswith("gjendja_") and f.endswith(".json"):
                 os.makedirs(os.path.join(stage, "cloud"), exist_ok=True)
                 shutil.copy2(os.path.join(lc, f), os.path.join(stage, "cloud", f))
+        # ndryshimet e Programit të Kishës që autori i publikon nga telefoni jetojnë vetëm në GitHub
+        pa = os.path.join(LIVE, "data", "programi_autori.json")
+        if os.path.exists(pa):
+            shutil.copy2(pa, os.path.join(data_dst, "programi_autori.json"))
 
         release_ready()
         if os.path.exists(UPD):
@@ -721,6 +725,9 @@ def push():
         run(["git", "config", "user.name", "Minuel"], cwd=LIVE)
         run(["git", "config", "user.email", "minuelkaso@gmail.com"], cwd=LIVE)
     run(["git", "add", "-A"], cwd=LIVE)
+    # PC-ja nuk e prek kurrë skedarin e Programit që shkruan telefoni (as kur kopja e saj është e vjetër)
+    run(["git", "reset", "-q", "HEAD", "--", "data/programi_autori.json"], cwd=LIVE)
+    run(["git", "checkout", "-q", "--", "data/programi_autori.json"], cwd=LIVE)
     if run(["git", "diff", "--cached", "--quiet"], cwd=LIVE).returncode == 0:
         log("GitHub: asnjë ndryshim")
         return False
