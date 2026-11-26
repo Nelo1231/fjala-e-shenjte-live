@@ -171,18 +171,22 @@
       "id": "risen-2016",
       "titulli": "Risen",
       "titulliOrigjinal": "Risen",
-      "viti": "2016",
       "tipi": "film",
       "kategoria": "Dhiata e Re",
-      "statusi": "i disponueshëm",
-      "kohezgjatja": 107,
+      "viti": "2016",
       "dataShtimit": "2026-11-26",
+      "statusi": "i disponueshëm",
+      "premiera": "",
+      "kohezgjatja": 107,
+      "pershkrimi": "",
+      "posteri": "https://kommodo.ai/i/Z5WREvL5GeQtkeE6YvYx",
       "burimi": {
         "lloji": "direct",
-        "url": ""
+        "url": "https://prx-1331-ant-q.vmpx.online/hls2/03/02013/ugcipcaroh28_n/master.m3u8?t=pMjSwwSUMP5Dv06Du3TqA1kXijq20ahtKd87iByGRwE=&s=1795700540&e=43200&v=&srv=box-c-o-l-12&i=0.4&sp=0&asn=21183"
       },
+      "titraShqipUrl": "",
       "episodet": []
     }
   ],
-  "updated": "2026-11-26T12:58:14.264319"
+  "updated": "2026-11-26T13:52:12.918Z"
 }
