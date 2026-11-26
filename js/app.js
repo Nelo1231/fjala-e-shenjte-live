@@ -13160,6 +13160,14 @@ function pickPhoto(it) {
   // pjesa e leximit brenda Bibliotekës: Shkrimi i Shenjtë, besimi, predikimet, tekstet liturgjike, katekizmi
   const libBtn = ([t, u, ic]) => `<button class="site-link" data-url="${SITE + u}" data-q="${esc(nrm(t))}">${icon(ic)}<span>${esc(t)}</span></button>`;
   const libCatsHtml = () => `<div class="ks-cats">
+        <!-- Veprat e Shën Maksim Pohuesit -->
+        <details class="ks-cat" data-q="${esc(nrm("Etërit e Kishës Shën Maksim Pohuesi Patristikë"))}">
+          <summary>${icon("book")}<span><b>Shën Maksim Pohuesi</b><small>Katër vepra në shqip</small></span><i>›</i></summary>
+          <div class="site-links"><a class="site-link" href="#/maksim-mistagogjia" data-q="${esc(nrm("Mistagogjia"))}">${icon("book")}<span>Mistagogjia</span></a>
+            <a class="site-link" href="#/maksim-dashuria" data-q="${esc(nrm("Kapituj mbi dashurinë"))}">${icon("book")}<span>Kapituj mbi dashurinë</span></a>
+            <a class="site-link" href="#/maksim-fjala-asketike" data-q="${esc(nrm("Fjala asketike"))}">${icon("book")}<span>Fjala asketike</span></a>
+            <a class="site-link" href="#/maksim-teologjia" data-q="${esc(nrm("Kapituj mbi teologjinë"))}">${icon("book")}<span>Kapituj mbi teologjinë</span></a></div>
+        </details>
         <a class="ks-cat ks-link" href="#/dhiata-re" data-q="${esc(nrm("Shkrimi i Shenjtë Dhiata e Re Ungjilli Apostulli"))}"><span class="ks-sum">${icon("book")}<span><b>Shkrimi i Shenjtë</b><small>Dhiata e Re · 27 librat</small></span><i>›</i></span></a>
         ${KOASH_READ.map(([gt, ls]) => `<details class="ks-cat" data-q="${esc(nrm(gt))}"><summary>${icon(ls[0][2])}<span><b>${esc(gt)}</b><small>${ls.length} rubrika · ${esc(ls.slice(0, 3).map((l) => l[0]).join(" · "))}</small></span><i>›</i></summary><div class="site-links">${ls.map(libBtn).join("")}</div></details>`).join("")}
       </div>`;
@@ -13459,6 +13467,11 @@ function pickPhoto(it) {
 
   /* ---------- UNGJILLI / APOSTULLI / DHIATA E VJETËR ---------- */
   const BOOKS = {
+    // Veprat e Shën Maksim Pohuesit
+    "maksim-mistagogjia": { file: "maksim-mistagogjia", title: "Mistagogjia", icon: "book", pending: "Kontrollo skedarët e librit te dosja data." },
+    "maksim-dashuria": { file: "maksim-dashuria", title: "Kapituj mbi dashurinë", icon: "book", pending: "Kontrollo skedarët e librit te dosja data." },
+    "maksim-fjala-asketike": { file: "maksim-fjala-asketike", title: "Fjala asketike", icon: "book", pending: "Kontrollo skedarët e librit te dosja data." },
+    "maksim-teologjia": { file: "maksim-teologjia", title: "Kapituj mbi teologjinë", icon: "book", pending: "Kontrollo skedarët e librit te dosja data." },
     ungjilli: { file: "ungjilli", title: "Ungjilli", icon: "book", pending: "" },
     apostulli: { file: "apostulli", title: "Apostulli", icon: "letter", pending: "" },
     dhiata: { file: "dhiata-vjeter", title: "Dhiata e Vjetër", icon: "scroll", pending: "Dhiata e Vjetër do shtohet së shpejti." },
@@ -13656,7 +13669,7 @@ function pickPhoto(it) {
     const meta = BOOKS[key];
     const book = await load(meta.file);
     if (!book) {
-      listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>${meta.title}</h1></header>
+      listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="${key.startsWith('maksim-') ? '#/biblioteka' : '#/lexo'}" aria-label="Kthehu">${icon("back")}</a><h1>${meta.title}</h1></header>
         <div class="empty">${icon(meta.icon)}<h3>Së shpejti</h3><p>${esc(meta.pending)}</p></div>`;
       enter(listPane);
       mainPane.innerHTML = emptyMain();
@@ -13668,7 +13681,7 @@ function pickPhoto(it) {
       const f = Fast.info(new Date(2026, a, parseInt(it.title, 10) || 1));
       return `<span class="tp-marks">${f.level && f.level.cls !== "free" ? `<i class="lg lv-${f.level.cls}" title="${esc(f.level.name)}"></i>` : ""}${litDay(f, it) ? `<i class="cal-x${f.great ? " great" : ""}">✝</i>` : ""}</span>`;
     };
-    listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="#/lexo" aria-label="Kthehu">${icon("back")}</a><h1>${esc(meta.title)}</h1></header>
+    listPane.innerHTML = `<header class="page-head"><a class="back-btn" href="${key.startsWith('maksim-') ? '#/biblioteka' : '#/lexo'}" aria-label="Kthehu">${icon("back")}</a><h1>${esc(meta.title)}</h1></header>
       ${key === "tipikoja" ? `<div id="calSlot"></div>` : ""}
       ${book.sections.map((s, a) => `<details class="kath"${String(a) === si ? " open" : ""}><summary>${esc(s.title)}</summary><ul class="list">
         ${s.items.map((it, b) => `<li><a class="list-item" href="#/${key}/${a}/${b}"${String(a) === si && String(b) === ii ? ' aria-current="true"' : ""}>
